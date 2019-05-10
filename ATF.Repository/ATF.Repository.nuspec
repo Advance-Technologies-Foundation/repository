@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>ATF.Repository</id>
+    <version>1.0.5</version>
+    <title>ATF.Repository</title>
+    <authors>bpmonline</authors>
+    <owners>bpmonline</owners>
+    <license type="expression">MIT</license>
+    <iconUrl>https://www.bpmonline.com/sites/all/themes/ts_bootstrap_subtheme/img/logo/logo_bpm.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>The current package contains a repository library for work with data models.</description>
+    <releaseNotes></releaseNotes>
+    <copyright>Copyright 2019</copyright>
+    <tags>ATF Repository bpmonline</tags>
+  </metadata>
+</package>
