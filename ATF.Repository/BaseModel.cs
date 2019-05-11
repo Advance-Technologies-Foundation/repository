@@ -5,7 +5,7 @@
 	using System.Collections.Generic;
 	using Terrasoft.Core;
 
-	public class BaseModel
+	public abstract class BaseModel
 	{
 		public UserConnection UserConnection { protected get; set; }
 
