@@ -2,16 +2,17 @@
 <package >
   <metadata>
     <id>ATF.Repository</id>
-    <version>1.0.5</version>
+    <version>1.0.6</version>
     <title>ATF.Repository</title>
-    <authors>bpmonline</authors>
-    <owners>bpmonline</owners>
+    <authors>ATF</authors>
+    <owners>ATF</owners>
+    <projectUrl>https://github.com/Advance-Technologies-Foundation/repository</projectUrl>
     <license type="expression">MIT</license>
     <iconUrl>https://www.bpmonline.com/sites/all/themes/ts_bootstrap_subtheme/img/logo/logo_bpm.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>The current package contains a repository library for work with data models.</description>
+    <description>ATF.Repository is the open-source object-relational mapping (ORM) framework for bpm`online</description>
     <releaseNotes></releaseNotes>
-    <copyright>Copyright 2019</copyright>
-    <tags>ATF Repository bpmonline</tags>
+    <copyright>Copyright ©2019</copyright>
+    <tags>ATF Repository bpmonline ORM</tags>
   </metadata>
 </package>

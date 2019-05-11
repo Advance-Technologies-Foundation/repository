@@ -10,7 +10,7 @@
 		public UserConnection UserConnection { protected get; set; }
 
 		[SchemaProperty("Id")]
-		public Guid Id { get; set; }
+		public Guid Id { get; internal set; }
 
 		internal IDictionary<string, object> values { get; set; }
 
