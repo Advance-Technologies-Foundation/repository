@@ -1,79 +1,78 @@
-# Введение
-**ATF.Repository** - это объектно-ориентированная технология доступа к данным, является object-relational mapping (ORM) решением для **bpm`online** от **Advanced Technologies Foundation**.
+# Introduction
+**ATF.Repository** - is an object-oriented data access technology. It is an object-relational mapping (ORM) solution for **bpm`online** from **Advanced Technologies Foundation**.
 
+This is an external library and not a part of **bpm`online** kernel.
 
-Это внешняя библиотека и не является частью ядра **bpm`online**.
+# General features:
+- working with data via models;
+- building direct and reverse data dependencies via models;
+- creating, modifying and deleting data with the help of models with business logic implementation.
 
-# Основные возможности:
-- работа с данными через модели;
-- построение прямых и обратных зависимостей данных через модели;
-- создание изменение и удаление данных через модели с выполнением бизнес-логики.
+# Repository
 
-# Репозиторий
+**Repository** (*ATF.Repository.Repository*) - is a storage and model generator. All models should be created via the repository. All changes are applied via the repository. 
 
-**Repository** (*ATF.Repository.Repository*) - это хранилище и генератор моделей. Все модели должны создаваться через репозиторий. Все изменения применяются посредством репозитория. 
-
-### Создание экземпляра репозитория:
+### Creating a repository instance:
 
 ```csharp
 var repository = ClassFactory.Get<IRepository>();
 repository.UserConnection = UserConnection;
 ```
 
-### Сохранение изменений:
+### Saving changes:
 
 ```csharp
 repository.Save();
 ```
 
-## Модель
+## Model
 
-**Модель** - это основная единица работы с данными. Она связывается с **Entity**.
-Модель наследуется от абстрактного класса **BaseModel** (*ATF.Repository.BaseModel*).
-Модель помечается атрибутом **Schema** (*ATF.Repository.Attributes.Schema*).
-Свойства модели, связанные с полями **Entity** помечаются атрибутом **SchemaProperty** (*ATF.Repository.Attributes.SchemaProperty*).
+**Model** - basic unit of data modeling. It is connected to the **Entity**.
+The model is inherited from an abstract **BaseModel** class (*ATF.Repository.BaseModel*).
+It is marked with the **Schema** attribute (*ATF.Repository.Attributes.Schema*).
+Model properties, connected to the **Entity** fields, are marked with **SchemaProperty** attribute (*ATF.Repository.Attributes.SchemaProperty*).
 
 
-**Важно!** Тип свойства должен совпадать с типом данных связанной колонки.
+**Attention!** The type of property must be the same as the type of data  in connected column.
 
-**Примечание**. Имя модели и свойств не обязательно должно совпадать с именем схемы и ее полей.
+**Note**. It is not required that the title of the model and its properties matches the title of the schema and its fields.
 
-##### Пример:
+##### Example:
 
 ```csharp
 [Schema("TsOrderExpense")]
 public class Expense : BaseModel {
 
-	// Связь с полем типа Справочник c именем Type
+	// Connection with the "Type" lookup field
 	[SchemaProperty("Type")]
 	public Guid TypeId { get; set; }
 
-	// Связь с полем типа Дата-Время c именем ExpenseDate
+	// Connection with the "ExpenseDate" Date-Time field 
 	[SchemaProperty("ExpenseDate")]
 	public DateTime ExpenseDate { get; set; }
 
-	// Связь с полем типа Дробное c именем Amount
+	// Connection with the "Amount" decimal field 
 	[SchemaProperty("Amount")]
 	public decimal Amount { get; set; }
 
 }
 ```
 
-### Настройка прямой связи
+### Direct connection setup
 
-Для настройки прямой связи следует добавить в модель свойство типа модель и пометить его атрибутом **ReferenceProperty** (*ATF.Repository.Attributes.ReferenceProperty*) с указанием имени свойства модели, по которому будет производиться выборка.
+To set up direct connection, add a property of a model type to the model and mark it with the **ReferenceProperty** attribute (*ATF.Repository.Attributes.ReferenceProperty*). Specify the name of the model property by which the selection should be made.
 
-##### Пример
+##### Example:
 
 ```csharp
 [Schema("TsOrderExpense")]
 public class Expense : BaseModel {
 
-	// Связь с полем типа Справочник с именем Order
+	// Connection with the "Order" lookup field
 	[SchemaProperty("Order")]
 	public Guid OrderId { get; set; }
 
-	// Установка прямой связи с моделью Order и связью через значение свойства модели Expense с именем OrderId
+	// Setting up direct connection with the Order model, using the value of "OrderId" property of the "Expense" model
 	[ReferenceProperty("OrderId")]
 	public virtual Order Order { get; set; }
 
@@ -82,27 +81,28 @@ public class Expense : BaseModel {
 [Schema("TsOrder")]
 public class Order : BaseModel {
 
-	// Связь с полем типа Дробное c именем Amount
+	// Connection with the "Amount" Decimal field
 	[SchemaProperty("Amount")]
 	public decimal Amount { get; set; }
 
 }
 ```
 
-##### Пример использования прямой связи
-
+##### Example of using direct connection
+```csharp
 var amount = expenceBonus.Order.Amount;
+```
 
-### Настройка обратной связи
+### Reverse connection setup
 
-Для настройки обратной связи, следует в мастер-модели добавить свойство типа ```List<T>```, где T - модель-деталь, а в модели-детали добавить свойство типа Справочник, со ссылкой на значение, по которому определяется мастер-модель.
+To set up reverse connection, add a property of ```List<T>``` type to a master model, where "T" states for a detail model. Then add a Lookup property referring to the value by which the master model is determined.
 
-##### Пример
+##### Example:
 ```csharp
 [Schema("TsOrderExpense")]
 public class Expense : BaseModel {
 
-	// Установка обратной связи с моделью ExpenseProduct и связью через значение свойства модели ExpenseProduct с именем ExpenseId
+	// Setting up reverse connection with the ExpenseProduct model, using the value of the "ExpenseId" property of the ExpenseProduct model
 	[DetailProperty("ExpenseId")]
 	public virtual List<ExpenseProduct> ExpenseProducts { get; set; }
 
@@ -111,54 +111,54 @@ public class Expense : BaseModel {
 [Schema("TsOrderExpenseProduct")]
 public class ExpenseProduct : BaseModel {
 
-	// Связь с полем типа Справочник c именем Expense, для вычитки данных по обратным связям
+	// Connection with the "Expense" Lookup field for reading data by reverse connections.
 	[SchemaProperty("Expense")]
 	public Guid ExpenseId { get; set; }
 
-	// Связь с полем типа Дробное c именем Amount
+	// Connection with the "Amount" Decimal field
 	[SchemaProperty("Amount")]
 	public decimal Amount { get; set; }
 
 }
 ```
 
-##### Пример использования обратной связи
+##### Reverce connection use case
 
 var expenseProducts = expense.ExpenseProducts.Where(x => x.Amount > 100m);
 
-### Создание нового экземпляра модели
-Создание модели происходит посредством вызова метода ```CreateItem<T>``` с указанием типа модели. При этом связанные с Entity свойства будут заполнены значениями по умолчанию.
+Creating a new model instance
+A model is created by calling a ```CreateItem<T>``` method and specifying the model type. Upon that, properties, connected to the Entity, will be populated with default values.
 
 ```csharp
 var bonusModel = repository.CreateItem<Bonus>();
 ```
 
-### Получение модели по существующим данным из репозитория
-Вычитка существующей модели происходит посредством вызова метода ```GetItem<T>``` где Id - идентификатор существующей записи.
+### Receiving the model by existing data from the repository
+Existing model is read by means of calling a ```GetItem<T>``` method, where Id - is the identifier of the existing record.
 
 ```csharp
 var bonusModel = Repository.GetItem<Bonus>(Id);
 ```
 
-### Изменение данных в модели
+### Model data changing
 ```csharp
 bonusModel.Amount = 100m;
 ```
 
-### Удаление экземпляра модели из репозитория
-Удаление происходит происходит посредством вызова метода ```DeleteItem<T>``` где model - экземпляр модели, которую требуется удалить.
+### Deleting model instance from the repository
+Model instance is deleted by calling ```DeleteItem<T>``` method, where  model - is the instance to be deleted.
 
 ```csharp
 Repository.DeleteItem<Bonus>(model);
 ```
 
-## Ленивая загрузка
+## Lazy loading
 
-Настройка моделей допускает ленивую загрузку моделей по прямым и обратным связям. Для добавление ленивой загрузки, следует добавить модификатор **virtual** к свойству. 
+Models setup allows lazy loading of models by direct and indirect connections. To launch lazy loading add **virtual** modifier to the property. 
 
-В указанном ниже примере, значения свойств **Order** и **Products** будут загружены сразу, а значения свойств **Document** и **Expenses** в момент первого обращения к этому свойству.
+In the following example values of  **Order** and **Products** properties will be loaded at once. Values of **Document** and **Expenses** properties will be loaded at the moment of the first applying.
 
-**Примечание**: Мы рекомендуем по возможности использовать ленивую загрузку.
+**Note**. If possible, lazy loading is recommended.
 
 ```csharp
 [Schema("TsOrderExpense")]
@@ -179,11 +179,11 @@ public class Invoice : BaseModel {
 }
 ```
 
-## Использование базовых механизмов доступа к данным
+## Using basic mechanisms of data access
 
-Работа с моделями не исключает использование базовых механизмов доступа к данным как через **EntitySchemaQuery** (*Terrasoft.Core.Entities.EntitySchemaQuery*) так и через **Select** (*Terrasoft.Core.DB.Select*).
+Working with models does not exclude usage of data access basic mechanisms - both via **EntitySchemaQuery** (*Terrasoft.Core.Entities.EntitySchemaQuery*) and **Select** (*Terrasoft.Core.DB.Select*).
 
-В примере ниже можно увидеть использование таких подходов:
+These approaches are shown in the following example:
 
 ```csharp
 [Schema("TsOrderExpense")]
@@ -198,7 +198,8 @@ public class Expense : BaseModel {
 	}
 
 	public decimal BonusProductPrimaryAmountSymm() {
-		var esq = new EntitySchemaQuery(UserConnection.EntitySchemaManager, "BonusProduct");
+		var esq = new 
+EntitySchemaQuery(UserConnection.EntitySchemaManager, "BonusProduct");
 		var primaryAmountColumnName = esq.AddColumn(esq.CreateAggregationFunction(AggregationTypeStrict.Sum, "PrimaryAmount"));
 		var collection = esq.GetEntityCollection(UserConnection);
 		return collection.Count > 0
