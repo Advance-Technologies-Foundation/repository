@@ -7,11 +7,11 @@
 	{
 		UserConnection UserConnection { set; }
 
-		T GetItem<T>(Guid id) where T : BaseModel;
+		T GetItem<T>(Guid id) where T : BaseModel, new();
 
-		List<T> GetItems<T>(string filterPropertyName, Guid filterValue) where T : BaseModel;
+		List<T> GetItems<T>(string filterPropertyName, Guid filterValue) where T : BaseModel, new();
 
-		T CreateItem<T>() where T : BaseModel;
+		T CreateItem<T>() where T : BaseModel, new();
 
 		void DeleteItem<T>(T model) where T : BaseModel;
 

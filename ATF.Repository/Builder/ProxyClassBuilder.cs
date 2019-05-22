@@ -72,7 +72,7 @@
 
 		private void InternalSet(IInvocation invocation, PropertyInfo property) {
 			var proxy = GetProxy(invocation);
-			proxy.values[property.Name] = invocation.Arguments[0];
+			proxy.LazyValues[property.Name] = invocation.Arguments[0];
 		}
 
 		private void FillProperty(IInvocation invocation, PropertyInfo property) {
@@ -91,11 +91,11 @@
 
 		private void InternalGet(IInvocation invocation, PropertyInfo property) {
 			var proxy = GetProxy(invocation);
-			if (!proxy.values.ContainsKey(property.Name)) {
+			if (!proxy.LazyValues.ContainsKey(property.Name)) {
 				FillProperty(invocation, property);
 			}
-			invocation.ReturnValue = proxy.values.ContainsKey(property.Name)
-				? proxy.values[property.Name]
+			invocation.ReturnValue = proxy.LazyValues.ContainsKey(property.Name)
+				? proxy.LazyValues[property.Name]
 				: null;
 		}
 
