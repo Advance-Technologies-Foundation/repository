@@ -102,8 +102,6 @@
 			return model;
 		}
 
-
-
 		private List<IDictionary<string, object>> GetRecordsValues<T>(Filter filter) where T : BaseModel, new() {
 			List<IDictionary<string, object>> response = new List<IDictionary<string, object>>();
 			if (!DataStoreEnabled || string.IsNullOrEmpty(filter.Name) || filter.Value == Guid.Empty) {
@@ -229,10 +227,14 @@
 
 		private IDictionary<string, object> GetValuesFromEntity<T>(Entity entity) where T : BaseModel, new() {
 			var response = new Dictionary<string, object>();
-			var parameters = _modelMapper.GetParameters(typeof(T));
-			foreach (var item in parameters) {
-				var schemaColumn = entity.Schema.Columns.GetByName(item.EntitySchemaColumnName);
-				response.Add(item.Name, entity.GetColumnValue(schemaColumn.ColumnValueName));
+			if (entity != null) {
+				var parameters = _modelMapper.GetParameters(typeof(T));
+				foreach (var item in parameters) {
+					var schemaColumn = entity.Schema.Columns.GetByName(item.EntitySchemaColumnName);
+					response.Add(item.Name, entity.GetColumnValue(schemaColumn.ColumnValueName));
+				}
+			} else {
+				response.Add(DefaultPrimaryColumnName, Guid.NewGuid());
 			}
 			return response;
 		}
@@ -365,6 +367,9 @@
 		#region Methods: Public
 
 		public T GetItem<T>(Guid id) where T : BaseModel, new() {
+			if (_items.ContainsKey(id)) {
+				return (T)_items[id];
+			}
 			var items = GetItems<T>(DefaultPrimaryColumnName, id);
 			return items.Count > 0
 				? items.First()
