@@ -47,6 +47,8 @@
 
 		#region Properties: Public
 
+		public bool UseAdminRight { get; set; }
+
 		public UserConnection UserConnection { private get; set; }
 
 		#endregion
@@ -289,6 +291,7 @@
 					entity.SetColumnValue(GetColumnNameByPropertyName(model.GetType(), parameter.Name), value);
 				}
 			});
+			entity.UseAdminRights = UseAdminRight;
 			entity.Save(false);
 			PrepareModelAfterSave(model);
 		}
@@ -343,6 +346,7 @@
 			if (entity == null) {
 				return;
 			}
+			entity.UseAdminRights = UseAdminRight;
 			if (model.IsNew || entity.Delete()) {
 				_items.Remove(model.Id);
 				_itemsToDelete.Remove(model);

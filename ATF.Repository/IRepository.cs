@@ -5,6 +5,8 @@
 	using Terrasoft.Core;
 	public interface IRepository
 	{
+		bool UseAdminRight { get; set; }
+
 		UserConnection UserConnection { set; }
 
 		T GetItem<T>(Guid id) where T : BaseModel, new();
