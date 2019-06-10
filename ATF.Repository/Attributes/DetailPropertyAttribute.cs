@@ -1,6 +1,8 @@
 ﻿namespace ATF.Repository.Attributes
 {
 	using System;
+
+	[AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
 	public class DetailPropertyAttribute: Attribute
 	{
 		public string MasterFilterPropertyName { get; private set; }

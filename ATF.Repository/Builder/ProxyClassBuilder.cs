@@ -6,8 +6,9 @@
 	using System.Reflection;
 	using ATF.Repository.Mapping;
 	using Castle.DynamicProxy;
+    using Terrasoft.Common;
 
-	public class ProxyClassBuilder
+    public class ProxyClassBuilder
 	{
 		private IDictionary<Type, IInterceptor> _interceptors;
 
@@ -38,32 +39,19 @@
 	internal class InstanceProxyHelper<T> : IInterceptor where T : BaseModel
 	{
 		private ModelMapper _modelMapper;
-		private Dictionary<string, LazyMapInfo> _maps;
 		private Dictionary<MethodInfo, PropertyInfo> _properties;
+		private Dictionary<string, ModelItem> _modelItems;
 
 		public InstanceProxyHelper() {
 			_modelMapper = new ModelMapper();
-			_maps = new Dictionary<string, LazyMapInfo>();
 			_properties = new Dictionary<MethodInfo, PropertyInfo>();
+			_modelItems = new Dictionary<string, ModelItem>();
 
-
-			var references = _modelMapper.GetReferences(typeof(T)).Where(x => x.IsLazyLoad);
-			var details = _modelMapper.GetDetails(typeof(T)).Where(x => x.IsLazyLoad);
-			var properties = typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(x => x.GetMethod.IsVirtual);
-			foreach (var property in properties) {
-				var reference = references.Where(x => x.Name == property.Name).FirstOrDefault();
-				var detail = details.Where(x => x.Name == property.Name).FirstOrDefault();
-				if (reference != null || detail != null) {
-					if (reference != null) {
-						_maps.Add(property.Name, reference);
-					}
-					if (detail != null) {
-						_maps.Add(property.Name, detail);
-					}
-					_properties.Add(property.GetMethod, property);
-					_properties.Add(property.SetMethod, property);
-				}
-			}
+			_modelMapper.GetModelItems(typeof(T)).Where(x => x.IsLazy).ForEach(x => {
+				_modelItems.Add(x.PropertyInfo.Name, x);
+				_properties.Add(x.PropertyInfo.GetMethod, x.PropertyInfo);
+				_properties.Add(x.PropertyInfo.SetMethod, x.PropertyInfo);
+			});
 		}
 
 		private T GetProxy(IInvocation invocation) {
@@ -77,15 +65,13 @@
 
 		private void FillProperty(IInvocation invocation, PropertyInfo property) {
 			var proxy = GetProxy(invocation);
-			var map = _maps[property.Name];
-			var reference = map as ModelReference;
-			if (reference != null) {
-				proxy.Repository.FillReferenceValue<T>((T)invocation.InvocationTarget, map as ModelReference);
-				return;
-			}
-			var detail = map as ModelDetail;
-			if (detail != null) {
-				proxy.Repository.FillDetailValue<T>((T)invocation.InvocationTarget, map as ModelDetail);
+			var modelItem = _modelItems[property.Name];
+			if (modelItem.PropertyType == ModelItemType.Reference) {
+				proxy.Repository.FillReferenceValue<T>((T)invocation.InvocationTarget, modelItem);
+			} else if (modelItem.PropertyType == ModelItemType.Detail) {
+				proxy.Repository.FillDetailValue<T>((T)invocation.InvocationTarget, modelItem);
+			} else if (modelItem.PropertyType == ModelItemType.Lookup) {
+				proxy.Repository.FillLookupValue<T>((T)invocation.InvocationTarget, modelItem);
 			}
 		}
 

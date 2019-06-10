@@ -25,5 +25,7 @@
 
 		public bool IsNew { get; internal set; }
 
+		public bool IsMarkAsDeleted { get; internal set; }
+
 	}
 }

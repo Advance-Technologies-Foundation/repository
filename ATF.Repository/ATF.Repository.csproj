@@ -145,18 +145,16 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Attributes\DetailPropertyAttribute.cs" />
+    <Compile Include="Attributes\LookupPropertyAttribute.cs" />
     <Compile Include="Attributes\ReferencePropertyAttribute.cs" />
     <Compile Include="Attributes\SchemaAttribute.cs" />
     <Compile Include="Attributes\SchemaPropertyAttribute.cs" />
     <Compile Include="BaseModel.cs" />
     <Compile Include="Builder\ProxyClassBuilder.cs" />
     <Compile Include="IRepository.cs" />
-    <Compile Include="Mapping\LazyMapInfo.cs" />
-    <Compile Include="Mapping\MapInfo.cs" />
-    <Compile Include="Mapping\ModelDetail.cs" />
+    <Compile Include="Mapping\ModelItem.cs" />
+    <Compile Include="Mapping\ModelItemType.cs" />
     <Compile Include="Mapping\ModelMapper.cs" />
-    <Compile Include="Mapping\ModelParameter.cs" />
-    <Compile Include="Mapping\ModelReference.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Repository.cs" />
   </ItemGroup>
