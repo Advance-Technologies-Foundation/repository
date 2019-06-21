@@ -44,7 +44,7 @@
 		[DetailProperty("ExpenseId")]
 		public virtual List<ExpenseProduct> ExpenseProducts { get; set; }
 
-		[ReferenceProperty("InvoiceId")]
+		[LookupProperty("Invoice")]
 		public virtual Invoice Invoice { get; set; }
 
 	}

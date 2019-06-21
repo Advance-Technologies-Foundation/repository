@@ -247,9 +247,6 @@
 
 		[Obsolete("Will be removed in 1.3.0")]
 		internal void FillReferenceValue<T>(T model, ModelItem reference) where T : BaseModel {
-			if (!DataStoreEnabled) {
-				return;
-			}
 			var referenceId = GetModelPropertyValue<Guid>(model, reference.EntityColumnName);
 			if (referenceId != Guid.Empty && reference.PropertyInfo != null) {
 				var method = GetGenericMethod(GetType(), reference.DataValueType, "GetItem");
@@ -265,9 +262,6 @@
 		}
 
 		internal void FillLookupValue<T>(T model, ModelItem lookup) where T : BaseModel {
-			if (!DataStoreEnabled) {
-				return;
-			}
 			var lookupId = GetLookupLinkValue<Guid>(model, lookup);
 			if (lookupId != Guid.Empty && lookup.PropertyInfo != null) {
 				var method = GetGenericMethod(GetType(), lookup.DataValueType, "GetItem");

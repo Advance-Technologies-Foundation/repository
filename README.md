@@ -60,7 +60,7 @@ public class Expense : BaseModel {
 
 ### Direct connection setup
 
-To set up direct connection, add a property of a model type to the model and mark it with the **ReferenceProperty** attribute (*ATF.Repository.Attributes.ReferenceProperty*). Specify the name of the model property by which the selection should be made.
+To set up direct connection, add a property of a model type to the model and mark it with the **LookupProperty** attribute (*ATF.Repository.Attributes.LookupProperty*).
 
 ##### Example:
 
@@ -72,8 +72,8 @@ public class Expense : BaseModel {
 	[SchemaProperty("Order")]
 	public Guid OrderId { get; set; }
 
-	// Setting up direct connection with the Order model, using the value of "OrderId" property of the "Expense" model
-	[ReferenceProperty("OrderId")]
+	// Setting up direct connection with the Order model, using the value of "Order" lookup field
+	[LookupProperty("Order")]
 	public virtual Order Order { get; set; }
 
 }
@@ -164,10 +164,10 @@ In the following example values of  **Order** and **Products** properties will b
 [Schema("TsOrderExpense")]
 public class Invoice : BaseModel {
 
-	[ReferenceProperty("DocumentId")]
+	[LookupProperty("Document")]
 	public virtual Document Document { get; set; }
 
-	[ReferenceProperty("OrderId")]
+	[LookupProperty("Order")]
 	public Order Order { get; set; }
 
 	[DetailProperty("InvoiceId")]

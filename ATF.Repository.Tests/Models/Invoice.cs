@@ -16,8 +16,8 @@
 		[SchemaProperty("PaymentCurrencyRate")]
 		public decimal PaymentCurrencyRate { get; set; }
 
-		[SchemaProperty("Order")]
-		public Guid OrderId { get; set; }
+		[LookupProperty("Order")]
+		public Order Order { get; set; }
 
 		[DetailProperty("InvoiceId")]
 		public virtual List<Expense> Expenses { get; set; }
