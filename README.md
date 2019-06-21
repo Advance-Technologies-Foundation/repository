@@ -124,9 +124,11 @@ public class ExpenseProduct : BaseModel {
 
 ##### Reverce connection use case
 
+```csharp
 var expenseProducts = expense.ExpenseProducts.Where(x => x.Amount > 100m);
+```
 
-Creating a new model instance
+##### Creating a new model instance
 A model is created by calling a ```CreateItem<T>``` method and specifying the model type. Upon that, properties, connected to the Entity, will be populated with default values.
 
 ```csharp
