@@ -161,9 +161,15 @@
 		}
 
 		[Test]
-		public void GetDetailPropertyWithValues_ShouldEqualsExpectedValue() {
+		public void GetDetailPropertyWithMasterLink_ShouldEqualsExpectedValue() {
 			var expense = _repository.GetItem<Expense>((Guid)_expense1Values["Id"]);
 			Assert.AreEqual(100, expense.ExpenseProducts.Sum(x => x.Amount));
+		}
+
+		[Test]
+		public void GetDetailPropertyWithoutMasterLink_ShouldEqualsExpectedValue() {
+			var expense = _repository.GetItem<Expense>((Guid)_expense1Values["Id"]);
+			Assert.AreEqual(100, expense.ExpenseProductsWithoutMasterLink.Sum(x => x.Amount));
 		}
 
 		#endregion

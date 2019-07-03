@@ -26,6 +26,9 @@
 		[DetailProperty("TsOrderExpense")]
 		public virtual List<ExpenseProduct> ExpenseProducts { get; set; }
 
+		[DetailProperty("TsOrderExpense")]
+		public virtual List<ExpenseProductWithoutMasterColumnLink> ExpenseProductsWithoutMasterLink { get; set; }
+
 		[ReferenceProperty("OrderId")]
 		public virtual Order Order { get; set; }
 
