@@ -5,9 +5,9 @@
 	using System.Linq;
 	using System.Reflection;
 	using ATF.Repository.Attributes;
-    using Terrasoft.Common;
+	using Terrasoft.Common;
 
-    internal class ModelMapper
+	internal class ModelMapper
 	{
 		private IDictionary<Type, List<ModelItem>> _cashedItems;
 		private IDictionary<Type, Func<PropertyInfo, ModelItem>> _typeConverters;
@@ -102,8 +102,8 @@
 				Type type = propertyInfo.PropertyType.GenericTypeArguments?.FirstOrDefault();
 				modelItem = CreatrModelItem(propertyInfo, ModelItemType.Detail);
 				modelItem.DataValueType = type;
-				modelItem.MasterModelPropertyName = attribute.MasterFilterPropertyName;
-				modelItem.DetailModelPropertyName = attribute.DetailFilterPropertyName;
+				modelItem.MasterEntityColumnName = attribute.MasterEntityColumnName;
+				modelItem.DetailEntityColumnName = attribute.DetailEntityColumnName;
 			}
 			return modelItem;
 		}
@@ -121,7 +121,7 @@
 
 		protected ModelItem GetModelItem(PropertyInfo propertyInfo) {
 			ModelItem modelItem = null;
-			foreach(var item in _typeConverters) {
+			foreach (var item in _typeConverters) {
 				if (modelItem != null) {
 					continue;
 				}

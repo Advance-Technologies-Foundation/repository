@@ -28,12 +28,12 @@
 		/// <summary>
 		/// Master model property name. Like Invoice.Id
 		/// </summary>
-		internal string MasterModelPropertyName { get; set; }
+		internal string MasterEntityColumnName { get; set; }
 
 		/// <summary>
 		/// Detail model property name. Like InvoiceProduct.InvoiceId
 		/// </summary>
-		internal string DetailModelPropertyName { get; set; }
+		internal string DetailEntityColumnName { get; set; }
 
 		/// <summary>
 		/// Lazy load flag

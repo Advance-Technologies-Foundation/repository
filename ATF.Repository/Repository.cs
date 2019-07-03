@@ -19,9 +19,9 @@
 	{
 		class Filter
 		{
-			public string Name { get; set; }
+			public string EntityColumnName { get; set; }
 
-			public Guid Value { get; set; }
+			public Guid EntityColumnValue { get; set; }
 		}
 
 		#region Fields: Private
@@ -30,7 +30,7 @@
 		private ModelMapper _modelMapper;
 		private ProxyClassBuilder _proxyClassBuilder;
 
-		private static string DefaultPrimaryColumnName = "Id";
+		private static string DefaultPrimaryEntityColumnName = "Id";
 
 		#endregion
 
@@ -75,10 +75,10 @@
 		}
 
 		private T LoadModelByValues<T>(IDictionary<string, object> values) where T : BaseModel, new() {
-			if (!values.ContainsKey(DefaultPrimaryColumnName)) {
+			if (!values.ContainsKey(DefaultPrimaryEntityColumnName)) {
 				return null;
 			}
-			var modelId = ConvertValue<Guid>(values[DefaultPrimaryColumnName]);
+			var modelId = ConvertValue<Guid>(values[DefaultPrimaryEntityColumnName]);
 			if (_items.ContainsKey(modelId)) {
 				return (T)_items[modelId];
 			}
@@ -106,7 +106,7 @@
 
 		private List<IDictionary<string, object>> GetRecordsValues<T>(Filter filter) where T : BaseModel, new() {
 			List<IDictionary<string, object>> response = new List<IDictionary<string, object>>();
-			if (!DataStoreEnabled || string.IsNullOrEmpty(filter.Name) || filter.Value == Guid.Empty) {
+			if (!DataStoreEnabled || string.IsNullOrEmpty(filter.EntityColumnName) || filter.EntityColumnValue == Guid.Empty) {
 				return response;
 			}
 			Type type = typeof(T);
@@ -124,14 +124,14 @@
 			string entitySchemaName = GetEntitySchemaName(type);
 			var esq = new EntitySchemaQuery(UserConnection.EntitySchemaManager, entitySchemaName);
 			var filterColumn = esq.RootSchema.Columns
-				.Where(x => x.Name == filter.Name || x.ColumnValueName == filter.Name)
+				.Where(x => x.Name == filter.EntityColumnName || x.ColumnValueName == filter.EntityColumnName)
 				.FirstOrDefault();
 			esq.UseAdminRights = UseAdminRight;
 			esq.PrimaryQueryColumn.IsAlwaysSelect = true;
 
-			esq.Filters.Add(esq.CreateFilterWithParameters(FilterComparisonType.Equal, filterColumn.Name, filter.Value));
+			esq.Filters.Add(esq.CreateFilterWithParameters(FilterComparisonType.Equal, filterColumn.Name, filter.EntityColumnValue));
 			_modelMapper.GetProperties(type)
-				.Where(x => !x.IsLazy && x.EntityColumnName != DefaultPrimaryColumnName)
+				.Where(x => !x.IsLazy && x.EntityColumnName != DefaultPrimaryEntityColumnName)
 				.ForEach(x => esq.AddColumn(x.EntityColumnName));
 			_modelMapper.GetLookups(type).ForEach(x => {
 				if (!esq.Columns.Where(c => c.Name == x.EntityColumnName).Any()) {
@@ -277,13 +277,13 @@
 		}
 
 		internal void FillDetailValue<T>(T model, ModelItem detail) where T : BaseModel {
-			var masterFilterPropertyName = !string.IsNullOrEmpty(detail.MasterModelPropertyName)
-				? detail.MasterModelPropertyName
-				: DefaultPrimaryColumnName;
+			var masterFilterPropertyName = !string.IsNullOrEmpty(detail.MasterEntityColumnName)
+				? detail.MasterEntityColumnName
+				: DefaultPrimaryEntityColumnName;
 			var masterId = GetModelPropertyValue<Guid>(model, masterFilterPropertyName);
 			if (detail.PropertyInfo != null) {
 				var method = GetGenericMethod(GetType(), detail.DataValueType, "GetItems");
-				detail.PropertyInfo.SetValue(model, method.Invoke(this, new object[] { detail.DetailModelPropertyName, masterId }));
+				detail.PropertyInfo.SetValue(model, method.Invoke(this, new object[] { detail.DetailEntityColumnName, masterId }));
 			}
 		}
 
@@ -293,7 +293,7 @@
 				response.AddRangeIfNotExists(GetValuesFromEntity<T>(entity, _modelMapper.GetProperties(typeof(T))));
 				response.AddRangeIfNotExists(GetValuesFromEntity<T>(entity, _modelMapper.GetLookups(typeof(T))));
 			} else {
-				response.Add(DefaultPrimaryColumnName, Guid.NewGuid());
+				response.Add(DefaultPrimaryEntityColumnName, Guid.NewGuid());
 			}
 			return response;
 		}
@@ -439,7 +439,7 @@
 			if (_items.ContainsKey(id)) {
 				return (T)_items[id];
 			}
-			var items = GetItems<T>(DefaultPrimaryColumnName, id);
+			var items = GetItems<T>(DefaultPrimaryEntityColumnName, id);
 			return items.Count > 0
 				? items.First()
 				: null;
@@ -447,7 +447,7 @@
 
 		public List<T> GetItems<T>(string filterPropertyName, Guid filterValue) where T : BaseModel, new() {
 			var response = new List<T>();
-			var recordsValues = GetRecordsValues<T>(new Filter() { Name = filterPropertyName, Value = filterValue });
+			var recordsValues = GetRecordsValues<T>(new Filter() { EntityColumnName = filterPropertyName, EntityColumnValue = filterValue });
 			recordsValues.ForEach(recordValues => {
 				var model = LoadModelByValues<T>(recordValues);
 				if (model != null) {
