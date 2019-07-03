@@ -95,15 +95,15 @@ var amount = expenceBonus.Order.Amount;
 
 ### Reverse connection setup
 
-To set up reverse connection, add a property of ```List<T>``` type to a master model, where "T" states for a detail model. Then add a Lookup property referring to the value by which the master model is determined.
+To set up reverse connection, add a property of ```List<T>``` type to a master model, where "T" states for a detail model. 
 
 ##### Example:
 ```csharp
 [Schema("TsOrderExpense")]
 public class Expense : BaseModel {
 
-	// Setting up reverse connection with the ExpenseProduct model, using the value of the "ExpenseId" property of the ExpenseProduct model
-	[DetailProperty("ExpenseId")]
+	// Setting up reverse connection with the ExpenseProduct model, using the name of detail entity schema column for link.
+	[DetailProperty("TsOrderExpense")]
 	public virtual List<ExpenseProduct> ExpenseProducts { get; set; }
 
 }
@@ -111,9 +111,8 @@ public class Expense : BaseModel {
 [Schema("TsOrderExpenseProduct")]
 public class ExpenseProduct : BaseModel {
 
-	// Connection with the "Expense" Lookup field for reading data by reverse connections.
-	[SchemaProperty("Expense")]
-	public Guid ExpenseId { get; set; }
+	//Entity schema TsOrderExpenseProduct contain column TsOrderExpense
+	//but we shouldn't add property with map on that column if we want to create reverse connection
 
 	// Connection with the "Amount" Decimal field
 	[SchemaProperty("Amount")]
