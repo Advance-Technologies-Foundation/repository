@@ -199,8 +199,7 @@ public class Expense : BaseModel {
 	}
 
 	public decimal BonusProductPrimaryAmountSymm() {
-		var esq = new 
-EntitySchemaQuery(UserConnection.EntitySchemaManager, "BonusProduct");
+		var esq = new EntitySchemaQuery(UserConnection.EntitySchemaManager, "BonusProduct");
 		var primaryAmountColumnName = esq.AddColumn(esq.CreateAggregationFunction(AggregationTypeStrict.Sum, "PrimaryAmount"));
 		var collection = esq.GetEntityCollection(UserConnection);
 		return collection.Count > 0
