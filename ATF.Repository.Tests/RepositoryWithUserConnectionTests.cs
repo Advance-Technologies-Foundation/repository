@@ -87,6 +87,23 @@
 				{ "CalculateExpense", "Boolean" }
 			});
 			tsOrderExpenseProductSchema.AddLookupColumn("TsOrderExpense", "TsOrderExpense");
+
+			var bonusStateSchema = EntitySchemaManager.AddCustomizedEntitySchema("BonusState", new Dictionary<string, string> {
+				{ "Name", "ShortText" }
+			});
+
+			var bonusSchema = EntitySchemaManager.AddCustomizedEntitySchema("Bonus", new Dictionary<string, string> {
+				{ "AccrualDate", "DateTime" },
+				{ "Amount", "Float2" },
+				{ "Comment", "ShortText" },
+				{ "CurrencyRate", "Float2" },
+				{ "IsTarget", "Boolean" },
+			});
+			bonusSchema.AddLookupColumn("Invoice", "Invoice");
+			bonusSchema.AddLookupColumn("Order", "Order");
+			bonusSchema.AddLookupColumn("BonusState", "State");
+
+
 		}
 
 		private void SetUpTestData() {
@@ -170,6 +187,12 @@
 		public void GetDetailPropertyWithoutMasterLink_ShouldEqualsExpectedValue() {
 			var expense = _repository.GetItem<Expense>((Guid)_expense1Values["Id"]);
 			Assert.AreEqual(100, expense.ExpenseProductsWithoutMasterLink.Sum(x => x.Amount));
+		}
+
+		[Test]
+		public void GetDetailPropertyWhenThereAreNoRecords_ShouldReturnEmptyList() {
+			var bonusList = _repository.GetItems<Bonus>("Invoice", Guid.NewGuid());
+			Assert.AreEqual(0, bonusList.Count);
 		}
 
 		#endregion

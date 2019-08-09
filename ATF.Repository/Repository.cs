@@ -10,9 +10,9 @@
 	using ATF.Repository.Mapping;
 	using Terrasoft.Common;
 	using Terrasoft.Core;
-	using Terrasoft.Core.DB;
 	using Terrasoft.Core.Entities;
 	using Terrasoft.Core.Factories;
+	using global::Common.Logging;
 
 	[DefaultBinding(typeof(IRepository))]
 	public class Repository : IRepository
@@ -31,6 +31,7 @@
 		private ProxyClassBuilder _proxyClassBuilder;
 
 		private static string DefaultPrimaryEntityColumnName = "Id";
+		private static readonly ILog _log = LogManager.GetLogger("Terrasoft");
 
 		#endregion
 
@@ -63,6 +64,10 @@
 		#endregion
 
 		#region Methods: Private
+
+		private void LogEvent(string message) {
+			_log.Error(message);
+		}
 
 		private string GetEntitySchemaName(Type type) {
 			string name = string.Empty;
@@ -109,13 +114,18 @@
 			if (!DataStoreEnabled || string.IsNullOrEmpty(filter.EntityColumnName) || filter.EntityColumnValue == Guid.Empty) {
 				return response;
 			}
-			Type type = typeof(T);
-			var esq = GetValuesESQ<T>(filter);
-			var collection = esq.GetEntityCollection(UserConnection);
-			collection.ForEach(entity => {
-				var values = GetValuesFromEntity<T>(entity);
-				response.Add(values);
-			});
+			try {
+				Type type = typeof(T);
+				var esq = GetValuesESQ<T>(filter);
+				var collection = esq.GetEntityCollection(UserConnection);
+				collection.ForEach(entity => {
+					var values = GetValuesFromEntity<T>(entity);
+					response.Add(values);
+				});
+			} catch (Exception e) {
+				LogEvent(string.Format("GetRecordsValues. DetailEntityColumnName: {0}, MasterId: {1}. \n ErrorMessage: {2}. At: {3}", filter.EntityColumnName, filter.EntityColumnValue, e.Message, e.StackTrace));
+				throw e;
+			}
 			return response;
 		}
 
@@ -123,21 +133,38 @@
 			Type type = typeof(T);
 			string entitySchemaName = GetEntitySchemaName(type);
 			var esq = new EntitySchemaQuery(UserConnection.EntitySchemaManager, entitySchemaName);
-			var filterColumn = esq.RootSchema.Columns
+			try {
+				var filterColumn = esq.RootSchema.Columns
 				.Where(x => x.Name == filter.EntityColumnName || x.ColumnValueName == filter.EntityColumnName)
 				.FirstOrDefault();
-			esq.UseAdminRights = UseAdminRight;
-			esq.PrimaryQueryColumn.IsAlwaysSelect = true;
+				esq.UseAdminRights = UseAdminRight;
+				esq.PrimaryQueryColumn.IsAlwaysSelect = true;
 
-			esq.Filters.Add(esq.CreateFilterWithParameters(FilterComparisonType.Equal, filterColumn.Name, filter.EntityColumnValue));
-			_modelMapper.GetProperties(type)
-				.Where(x => !x.IsLazy && x.EntityColumnName != DefaultPrimaryEntityColumnName)
-				.ForEach(x => esq.AddColumn(x.EntityColumnName));
-			_modelMapper.GetLookups(type).ForEach(x => {
-				if (!esq.Columns.Where(c => c.Name == x.EntityColumnName).Any()) {
-					esq.AddColumn(x.EntityColumnName);
-				}
-			});
+				esq.Filters.Add(esq.CreateFilterWithParameters(FilterComparisonType.Equal, filterColumn.Name, filter.EntityColumnValue));
+				_modelMapper.GetProperties(type)
+					.Where(x => !x.IsLazy && x.EntityColumnName != DefaultPrimaryEntityColumnName)
+					.ForEach(x => {
+						try {
+							esq.AddColumn(x.EntityColumnName);
+						} catch (Exception e) {
+							LogEvent(string.Format("AddESQColumn. EntityColumnName: {0}, \n ErrorMessage: {1}. At: {2}", x.EntityColumnName, e.Message, e.StackTrace));
+							throw e;
+						}
+					});
+				_modelMapper.GetLookups(type).ForEach(x => {
+					try {
+						if (!esq.Columns.Where(c => c.Name == x.EntityColumnName).Any()) {
+							esq.AddColumn(x.EntityColumnName);
+						}
+					} catch (Exception e) {
+						LogEvent(string.Format("AddESQLookupColumn. EntityColumnName: {0}, \n ErrorMessage: {1}. At: {2}", x.EntityColumnName, e.Message, e.StackTrace));
+						throw e;
+					}
+				});
+			} catch (Exception e) {
+				LogEvent(string.Format("GetRecordsValues. DetailEntityColumnName: {0}, MasterId: {1}. \n ErrorMessage: {2}. At: {3}", filter.EntityColumnName, filter.EntityColumnValue, e.Message, e.StackTrace));
+				throw e;
+			}
 			return esq;
 		}
 
@@ -301,8 +328,14 @@
 		private IDictionary<string, object> GetValuesFromEntity<T>(Entity entity, List<ModelItem> modelItems) where T : BaseModel, new() {
 			var response = new Dictionary<string, object>();
 			foreach (var modelItem in modelItems) {
-				var schemaColumn = entity.Schema.Columns.GetByName(modelItem.EntityColumnName);
-				response.Add(modelItem.PropertyName, entity.GetColumnValue(schemaColumn.ColumnValueName));
+				try {
+					var schemaColumn = entity.Schema.Columns.GetByName(modelItem.EntityColumnName);
+					response.Add(modelItem.PropertyName, entity.GetColumnValue(schemaColumn.ColumnValueName));
+				} catch (Exception e) {
+					LogEvent(string.Format("GetValuesFromEntity.  EntityName: {0}, EntityColumnName: {1}, \n ErrorMessage: {2}. At: {3}", entity.Schema.Name, modelItem.EntityColumnName, e.Message, e.StackTrace));
+					throw e;
+				}
+				
 			}
 			return response;
 		}
@@ -318,15 +351,19 @@
 		private Entity LoadEntity(Type type, Guid id) {
 			var schema = GetEntitySchema(type);
 			var entity = schema?.CreateEntity(UserConnection);
-			return entity != null && entity.FetchFromDB(id)
-				? entity
-				: null;
+			if (entity != null) {
+				entity.UseAdminRights = UseAdminRight;
+				return entity.FetchFromDB(id) ? entity : null;
+			} else {
+				return null;
+			}
 		}
 
 		private Entity CreateEntity(Type type) {
 			var schema = GetEntitySchema(type);
 			Entity entity = schema?.CreateEntity(UserConnection);
 			if (schema != null) {
+				entity.UseAdminRights = UseAdminRight;
 				entity.SetDefColumnValues();
 			}
 			return entity;
@@ -447,13 +484,18 @@
 
 		public List<T> GetItems<T>(string filterPropertyName, Guid filterValue) where T : BaseModel, new() {
 			var response = new List<T>();
-			var recordsValues = GetRecordsValues<T>(new Filter() { EntityColumnName = filterPropertyName, EntityColumnValue = filterValue });
-			recordsValues.ForEach(recordValues => {
-				var model = LoadModelByValues<T>(recordValues);
-				if (model != null) {
-					response.Add(model);
-				}
-			});
+			try {
+				var recordsValues = GetRecordsValues<T>(new Filter() { EntityColumnName = filterPropertyName, EntityColumnValue = filterValue });
+				recordsValues.ForEach(recordValues => {
+					var model = LoadModelByValues<T>(recordValues);
+					if (model != null) {
+						response.Add(model);
+					}
+				});
+			} catch (Exception e) {
+				LogEvent(string.Format("GetItems. DetailEntityColumnName: {0}, MasterId: {1}. \n ErrorMessage: {2}. At: {3}", filterPropertyName, filterValue, e.Message, e.StackTrace));
+				throw e;
+			}
 			return response;
 		}
 

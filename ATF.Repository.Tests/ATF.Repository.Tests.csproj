@@ -188,6 +188,7 @@
     <Compile Include="Models\Expense.cs" />
     <Compile Include="Models\ExpenseProductWithoutMasterColumnLink.cs" />
     <Compile Include="Models\ExpenseProduct.cs" />
+    <Compile Include="Models\Bonus.cs" />
     <Compile Include="Models\Order.cs" />
     <Compile Include="Models\Invoice.cs" />
     <Compile Include="RepositoryWithoutUserConnectionTests.cs" />
