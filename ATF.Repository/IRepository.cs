@@ -9,6 +9,8 @@
 
 		UserConnection UserConnection { set; }
 
+		IChangeTracker ChangeTracker { get; }
+
 		T GetItem<T>(Guid id) where T : BaseModel, new();
 
 		List<T> GetItems<T>(string filterPropertyName, Guid filterValue) where T : BaseModel, new();
@@ -19,5 +21,19 @@
 
 		void Save();
 
+	}
+
+	
+
+	public interface IChangeTracker
+	{
+		IEnumerable<ITrackedModel<BaseModel>> GetTrackedModels();
+
+		IEnumerable<ITrackedModel<T>> GetTrackedModels<T>() where T : BaseModel;
+	}
+
+	public interface ITrackedModel<out T> where T: BaseModel
+	{
+		T Model { get; }
 	}
 }

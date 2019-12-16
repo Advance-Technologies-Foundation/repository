@@ -2,17 +2,16 @@
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Data;
 	using System.Linq;
 	using System.Reflection;
-	using ATF.Repository.Attributes;
-	using ATF.Repository.Builder;
-	using ATF.Repository.Mapping;
+	using Attributes;
+	using Builder;
+	using Mapping;
 	using Terrasoft.Common;
 	using Terrasoft.Core;
 	using Terrasoft.Core.Entities;
 	using Terrasoft.Core.Factories;
-	using global::Common.Logging;
+	using Common.Logging;
 
 	[DefaultBinding(typeof(IRepository))]
 	public class Repository : IRepository
@@ -26,22 +25,12 @@
 
 		#region Fields: Private
 
-		private Dictionary<Guid, BaseModel> _items;
-		private ModelMapper _modelMapper;
-		private ProxyClassBuilder _proxyClassBuilder;
+		internal readonly Dictionary<Guid, BaseModel> Items;
+		private readonly ModelMapper _modelMapper;
+		private readonly ProxyClassBuilder _proxyClassBuilder;
 
 		private static string DefaultPrimaryEntityColumnName = "Id";
 		private static readonly ILog _log = LogManager.GetLogger("Terrasoft");
-
-		#endregion
-
-		#region Properties: Protected
-
-		public bool DataStoreEnabled {
-			get {
-				return UserConnection != null;
-			}
-		}
 
 		#endregion
 
@@ -50,15 +39,18 @@
 		public bool UseAdminRight { get; set; }
 
 		public UserConnection UserConnection { private get; set; }
+		public IChangeTracker ChangeTracker { get; private set; }
+		private bool DataStoreEnabled => UserConnection != null;
 
 		#endregion
 
 		#region Constructors: Public
 
 		public Repository() {
-			_items = new Dictionary<Guid, BaseModel>();
+			Items = new Dictionary<Guid, BaseModel>();
 			_modelMapper = new ModelMapper();
 			_proxyClassBuilder = new ProxyClassBuilder(this);
+			ChangeTracker = new ChangeTracker { Repository = this };
 		}
 
 		#endregion
@@ -69,12 +61,12 @@
 			_log.Error(message);
 		}
 
-		private string GetEntitySchemaName(Type type) {
+		private static string GetEntitySchemaName(MemberInfo type) {
 			string name = string.Empty;
 			if (Attribute.IsDefined(type, typeof(SchemaAttribute)) &&
 				(type.GetCustomAttribute(typeof(SchemaAttribute)) as SchemaAttribute) != null) {
 				SchemaAttribute attribute = type.GetCustomAttribute(typeof(SchemaAttribute)) as SchemaAttribute;
-				name = attribute.Name;
+				name = attribute?.Name;
 			}
 			return name;
 		}
@@ -84,8 +76,8 @@
 				return null;
 			}
 			var modelId = ConvertValue<Guid>(values[DefaultPrimaryEntityColumnName]);
-			if (_items.ContainsKey(modelId)) {
-				return (T)_items[modelId];
+			if (Items.ContainsKey(modelId)) {
+				return (T)Items[modelId];
 			}
 			return CreateItem<T>(values);
 		}
@@ -94,7 +86,7 @@
 			var model = CreateModel<T>();
 			FillPropertyValues<T>(model, values);
 			FillLookupLinkValues<T>(model, values);
-			_items.Add(model.Id, model);
+			Items.Add(model.Id, model);
 			FillReferenceValues<T>(model);
 			FillLookupValues<T>(model);
 			FillDetailValues<T>(model);
@@ -115,55 +107,62 @@
 				return response;
 			}
 			try {
-				Type type = typeof(T);
-				var esq = GetValuesESQ<T>(filter);
+				var esq = GetValuesEsq<T>(filter);
 				var collection = esq.GetEntityCollection(UserConnection);
 				collection.ForEach(entity => {
 					var values = GetValuesFromEntity<T>(entity);
 					response.Add(values);
 				});
 			} catch (Exception e) {
-				LogEvent(string.Format("GetRecordsValues. DetailEntityColumnName: {0}, MasterId: {1}. \n ErrorMessage: {2}. At: {3}", filter.EntityColumnName, filter.EntityColumnValue, e.Message, e.StackTrace));
-				throw e;
+				LogEvent(
+					$"GetRecordsValues. DetailEntityColumnName: {filter.EntityColumnName}, MasterId: {filter.EntityColumnValue}. \n ErrorMessage: {e.Message}. At: {e.StackTrace}");
+				throw;
 			}
 			return response;
 		}
 
-		private EntitySchemaQuery GetValuesESQ<T>(Filter filter) where T : BaseModel, new() {
+		private EntitySchemaQuery GetValuesEsq<T>(Filter filter) where T : BaseModel, new() {
 			Type type = typeof(T);
 			string entitySchemaName = GetEntitySchemaName(type);
 			var esq = new EntitySchemaQuery(UserConnection.EntitySchemaManager, entitySchemaName);
 			try {
 				var filterColumn = esq.RootSchema.Columns
-				.Where(x => x.Name == filter.EntityColumnName || x.ColumnValueName == filter.EntityColumnName)
-				.FirstOrDefault();
+					.FirstOrDefault(x => x.Name == filter.EntityColumnName || x.ColumnValueName == filter.EntityColumnName);
 				esq.UseAdminRights = UseAdminRight;
 				esq.PrimaryQueryColumn.IsAlwaysSelect = true;
 
-				esq.Filters.Add(esq.CreateFilterWithParameters(FilterComparisonType.Equal, filterColumn.Name, filter.EntityColumnValue));
+				if (filterColumn != null) {
+					esq.Filters.Add(esq.CreateFilterWithParameters(FilterComparisonType.Equal, filterColumn.Name,
+						filter.EntityColumnValue));
+				} else {
+					throw new ArgumentException();
+				}
 				_modelMapper.GetProperties(type)
 					.Where(x => !x.IsLazy && x.EntityColumnName != DefaultPrimaryEntityColumnName)
 					.ForEach(x => {
 						try {
 							esq.AddColumn(x.EntityColumnName);
 						} catch (Exception e) {
-							LogEvent(string.Format("AddESQColumn. EntityColumnName: {0}, \n ErrorMessage: {1}. At: {2}", x.EntityColumnName, e.Message, e.StackTrace));
-							throw e;
+							LogEvent(
+								$"AddESQColumn. EntityColumnName: {x.EntityColumnName}, \n ErrorMessage: {e.Message}. At: {e.StackTrace}");
+							throw;
 						}
 					});
 				_modelMapper.GetLookups(type).ForEach(x => {
 					try {
-						if (!esq.Columns.Where(c => c.Name == x.EntityColumnName).Any()) {
+						if (esq.Columns.All(c => c.Name != x.EntityColumnName)) {
 							esq.AddColumn(x.EntityColumnName);
 						}
 					} catch (Exception e) {
-						LogEvent(string.Format("AddESQLookupColumn. EntityColumnName: {0}, \n ErrorMessage: {1}. At: {2}", x.EntityColumnName, e.Message, e.StackTrace));
-						throw e;
+						LogEvent(
+							$"AddESQLookupColumn. EntityColumnName: {x.EntityColumnName}, \n ErrorMessage: {e.Message}. At: {e.StackTrace}");
+						throw;
 					}
 				});
 			} catch (Exception e) {
-				LogEvent(string.Format("GetRecordsValues. DetailEntityColumnName: {0}, MasterId: {1}. \n ErrorMessage: {2}. At: {3}", filter.EntityColumnName, filter.EntityColumnValue, e.Message, e.StackTrace));
-				throw e;
+				LogEvent(
+					$"GetRecordsValues. DetailEntityColumnName: {filter.EntityColumnName}, MasterId: {filter.EntityColumnValue}. \n ErrorMessage: {e.Message}. At: {e.StackTrace}");
+				throw;
 			}
 			return esq;
 		}
@@ -176,8 +175,9 @@
 				: string.Empty;
 		}
 
-		private MethodInfo GetGenericMethod(Type type, Type genericType, string methodName) {
-			MethodInfo response = type.GetMethods().Where(method => method.Name == methodName && method.ContainsGenericParameters).FirstOrDefault();
+		private static MethodInfo GetGenericMethod(Type type, Type genericType, string methodName) {
+			MethodInfo response = type.GetMethods()
+				.FirstOrDefault(method => method.Name == methodName && method.ContainsGenericParameters);
 			return response?.MakeGenericMethod(genericType);
 		}
 
@@ -188,14 +188,14 @@
 		}
 
 		private void FillPropertyValues<T>(T model, IDictionary<string, object> values) where T : BaseModel {
-			var properies = _modelMapper.GetProperties(model.GetType());
-			foreach (var property in properies) {
+			var properties = _modelMapper.GetProperties(model.GetType());
+			foreach (var property in properties) {
 				var value = values.ContainsKey(property.PropertyName)
 					? values[property.PropertyName]
 					: null;
-				FillPropertyValue<T>(model, property.PropertyInfo, value);
+				FillPropertyValue(model, property.PropertyInfo, value);
 			}
-			UpdateInitValues<T>(model);
+			UpdateInitValues(model);
 		}
 
 		private void FillPropertyValue<T>(T model, PropertyInfo propertyInfo, object value) {
@@ -207,13 +207,13 @@
 		private void FillLookupLinkValues<T>(T model, IDictionary<string, object> values) where T : BaseModel {
 			var properties = _modelMapper.GetProperties(model.GetType());
 			var lookups = _modelMapper.GetLookups(model.GetType())
-				.Where(lookup => !properties.Any(property => property.EntityColumnName == lookup.EntityColumnName));
+				.Where(lookup => properties.All(property => property.EntityColumnName != lookup.EntityColumnName));
 
 			foreach (var lookup in lookups) {
 				var value = values.ContainsKey(lookup.PropertyName)
 					? values[lookup.PropertyName]
 					: null;
-				SetLookupLinkValue<T>(model, lookup, value);
+				SetLookupLinkValue(model, lookup, value);
 			}
 		}
 
@@ -229,7 +229,7 @@
 			}
 		}
 
-		private string GetLazyLookupKey(string propertyName) {
+		private static string GetLazyLookupKey(string propertyName) {
 			return $"Lookup::{propertyName}";
 		}
 
@@ -245,9 +245,8 @@
 		private T GetLookupLinkValue<T>(BaseModel model, ModelItem lookup) {
 			var property = _modelMapper
 				.GetProperties(model.GetType())
-				.Where(x => x.EntityColumnName == lookup.EntityColumnName)
-				.FirstOrDefault();
-			return (property != null)
+				.FirstOrDefault(x => x.EntityColumnName == lookup.EntityColumnName);
+			return property != null
 				? (T)property.PropertyInfo.GetValue(model)
 				: GetModelLazyValue<T>(model, GetLazyLookupKey(lookup.PropertyName));
 		}
@@ -255,20 +254,20 @@
 		private T GetModelLazyValue<T>(BaseModel model, string key) {
 			return model.LazyValues.ContainsKey(key)
 				? ConvertValue<T>(model.LazyValues[key])
-				: default(T);
+				: default;
 		}
 
 		private T ConvertValue<T>(object value) {
 			return value != null && value.GetType() == typeof(T)
 				? (T)value
-				: default(T);
+				: default;
 		}
 
 		[Obsolete("Will be removed in 1.3.0")]
 		private void FillReferenceValues<T>(T model) where T : BaseModel, new() {
 			var references = _modelMapper.GetReferences(model.GetType());
 			foreach (var reference in references.Where(x => !x.IsLazy)) {
-				FillReferenceValue<T>(model, reference);
+				FillReferenceValue(model, reference);
 			}
 		}
 
@@ -285,7 +284,7 @@
 			_modelMapper
 				.GetLookups(model.GetType())
 				.Where(x => !x.IsLazy)
-				.ForEach(lookup => FillLookupValue<T>(model, lookup));
+				.ForEach(lookup => FillLookupValue(model, lookup));
 		}
 
 		internal void FillLookupValue<T>(T model, ModelItem lookup) where T : BaseModel {
@@ -299,7 +298,7 @@
 		private void FillDetailValues<T>(T model) where T : BaseModel {
 			var details = _modelMapper.GetDetails(model.GetType());
 			foreach (var detail in details.Where(x => !x.IsLazy)) {
-				FillDetailValue<T>(model, detail);
+				FillDetailValue(model, detail);
 			}
 		}
 
@@ -317,23 +316,24 @@
 		private IDictionary<string, object> GetValuesFromEntity<T>(Entity entity) where T : BaseModel, new() {
 			var response = new Dictionary<string, object>();
 			if (entity != null) {
-				response.AddRangeIfNotExists(GetValuesFromEntity<T>(entity, _modelMapper.GetProperties(typeof(T))));
-				response.AddRangeIfNotExists(GetValuesFromEntity<T>(entity, _modelMapper.GetLookups(typeof(T))));
+				response.AddRangeIfNotExists(GetValuesFromEntity(entity, _modelMapper.GetProperties(typeof(T))));
+				response.AddRangeIfNotExists(GetValuesFromEntity(entity, _modelMapper.GetLookups(typeof(T))));
 			} else {
 				response.Add(DefaultPrimaryEntityColumnName, Guid.NewGuid());
 			}
 			return response;
 		}
 
-		private IDictionary<string, object> GetValuesFromEntity<T>(Entity entity, List<ModelItem> modelItems) where T : BaseModel, new() {
+		private IDictionary<string, object> GetValuesFromEntity(Entity entity, IEnumerable<ModelItem> modelItems) {
 			var response = new Dictionary<string, object>();
 			foreach (var modelItem in modelItems) {
 				try {
 					var schemaColumn = entity.Schema.Columns.GetByName(modelItem.EntityColumnName);
 					response.Add(modelItem.PropertyName, entity.GetColumnValue(schemaColumn.ColumnValueName));
 				} catch (Exception e) {
-					LogEvent(string.Format("GetValuesFromEntity.  EntityName: {0}, EntityColumnName: {1}, \n ErrorMessage: {2}. At: {3}", entity.Schema.Name, modelItem.EntityColumnName, e.Message, e.StackTrace));
-					throw e;
+					LogEvent(
+						$"GetValuesFromEntity.  EntityName: {entity.Schema.Name}, EntityColumnName: {modelItem.EntityColumnName}, \n ErrorMessage: {e.Message}. At: {e.StackTrace}");
+					throw;
 				}
 				
 			}
@@ -377,11 +377,11 @@
 		}
 
 		private void SaveModel<T>(T model) where T : BaseModel {
-			var valuesToSave = GetValuesForSave<T>(model);
+			var valuesToSave = GetValuesForSave(model);
 			if (!valuesToSave.Any()) {
 				return;
 			}
-			var entity = GetModelEntity<T>(model);
+			var entity = GetModelEntity(model);
 			if (entity == null) {
 				return;
 			}
@@ -404,7 +404,7 @@
 		private void UpdateInitValues<T>(T model) where T : BaseModel {
 			model.InitValues.Clear();
 			var parameters = _modelMapper.GetProperties(model.GetType());
-			var currentModelValues = GetValuesFromModel<T>(model);
+			var currentModelValues = GetValuesFromModel(model);
 			parameters.ForEach(parameter => {
 				model.InitValues.Add(parameter.PropertyName, currentModelValues[parameter.PropertyName]);
 			});
@@ -416,14 +416,14 @@
 
 		private IDictionary<string, object> GetValuesForSave<T>(T model) where T : BaseModel {
 			return model.IsNew
-				? GetValuesFromModel<T>(model)
-				: GetChangedValues<T>(model);
+				? GetValuesFromModel(model)
+				: GetChangedValues(model);
 		}
 
 		private IDictionary<string, object> GetChangedValues<T>(T model) where T : BaseModel {
 			var response = new Dictionary<string, object>();
 			var parameters = _modelMapper.GetProperties(model.GetType());
-			var currentModelValues = GetValuesFromModel<T>(model);
+			var currentModelValues = GetValuesFromModel(model);
 			parameters.ForEach(parameter => {
 				if (GetIsItemExistsAndNotEqual(model.InitValues, currentModelValues, parameter.PropertyName)) {
 					response.Add(parameter.PropertyName, currentModelValues[parameter.PropertyName]);
@@ -455,16 +455,16 @@
 		}
 
 		private void SaveItems() {
-			foreach (var item in _items.Where(x => !x.Value.IsMarkAsDeleted)) {
+			foreach (var item in Items.Where(x => !x.Value.IsMarkAsDeleted)) {
 				SaveModel(item.Value);
 			}
 		}
 
 		private void DeleteItems() {
-			var toDelete = _items.Where(x=>x.Value.IsMarkAsDeleted).ToArray();
+			var toDelete = Items.Where(x=>x.Value.IsMarkAsDeleted).ToArray();
 			foreach (var item in toDelete) {
 				DeleteModel(item.Value);
-				_items.Remove(item.Key);
+				Items.Remove(item.Key);
 			}
 		}
 
@@ -473,8 +473,8 @@
 		#region Methods: Public
 
 		public T GetItem<T>(Guid id) where T : BaseModel, new() {
-			if (_items.ContainsKey(id)) {
-				return (T)_items[id];
+			if (Items.ContainsKey(id)) {
+				return (T)Items[id];
 			}
 			var items = GetItems<T>(DefaultPrimaryEntityColumnName, id);
 			return items.Count > 0
@@ -493,8 +493,9 @@
 					}
 				});
 			} catch (Exception e) {
-				LogEvent(string.Format("GetItems. DetailEntityColumnName: {0}, MasterId: {1}. \n ErrorMessage: {2}. At: {3}", filterPropertyName, filterValue, e.Message, e.StackTrace));
-				throw e;
+				LogEvent(
+					$"GetItems. DetailEntityColumnName: {filterPropertyName}, MasterId: {filterValue}. \n ErrorMessage: {e.Message}. At: {e.StackTrace}");
+				throw;
 			}
 			return response;
 		}
@@ -505,8 +506,8 @@
 		}
 
 		public void DeleteItem<T>(T model) where T : BaseModel {
-			if (!_items.ContainsKey(model.Id)) {
-				// TODO #3. Добавить корректную обработку ошибок.
+			if (!Items.ContainsKey(model.Id)) {
+				// TODO #3.
 				throw new KeyNotFoundException();
 			}
 			model.IsMarkAsDeleted = true;

@@ -3,19 +3,19 @@
 	using NUnit.Framework;
 	using System;
 	using Terrasoft.Configuration.Tests;
-	using ATF.Repository.Tests.Models;
+	using Models;
 	using System.Collections.Generic;
 	using Terrasoft.Common;
 	using System.Linq;
 
 	[TestFixture]
 	[MockSettings(RequireMock.DBEngine)]
-	class RepositoryWithUserConnectionTests : BaseConfigurationTestFixture
+	public class RepositoryWithUserConnectionTests : BaseConfigurationTestFixture
 	{
 		#region Fields: Private
 
 		private IRepository _repository;
-		private static DateTime _testDateTime = DateTime.Now;
+		private static readonly DateTime _testDateTime = DateTime.Now;
 
 		private static readonly Dictionary<string, object> _orderValues = new Dictionary<string, object> {
 			{ "Id", Guid.NewGuid() },
@@ -48,14 +48,14 @@
 			{ "ExpenseDate", _testDateTime }
 		};
 
-		private static readonly Dictionary<string, object> _expense1product1Values = new Dictionary<string, object> {
+		private static readonly Dictionary<string, object> _expense1Product1Values = new Dictionary<string, object> {
 			{ "Id", Guid.NewGuid() },
 			{ "Amount", 40m },
 			{ "CalculateExpense", false },
 			{ "TsOrderExpenseId", _expense1Values["Id"] }
 		};
 
-		private static readonly Dictionary<string, object> _expense1product2Values = new Dictionary<string, object> {
+		private static readonly Dictionary<string, object> _expense1Product2Values = new Dictionary<string, object> {
 			{ "Id", Guid.NewGuid() },
 			{ "Amount", 60m },
 			{ "CalculateExpense", false },
@@ -88,7 +88,7 @@
 			});
 			tsOrderExpenseProductSchema.AddLookupColumn("TsOrderExpense", "TsOrderExpense");
 
-			var bonusStateSchema = EntitySchemaManager.AddCustomizedEntitySchema("BonusState", new Dictionary<string, string> {
+			EntitySchemaManager.AddCustomizedEntitySchema("BonusState", new Dictionary<string, string> {
 				{ "Name", "ShortText" }
 			});
 
@@ -110,7 +110,7 @@
 			SetUpTestData("Order", _orderValues);
 			SetUpTestData("Invoice", _invoiceValues);
 			SetUpTestData("TsOrderExpense", _expense1Values, _expense2Values);
-			SetUpTestData("TsOrderExpenseProduct", _expense1product1Values, _expense1product2Values);
+			SetUpTestData("TsOrderExpenseProduct", _expense1Product1Values, _expense1Product2Values);
 		}
 
 		private void SetUpTestData(string schemaName, params Dictionary<string, object>[] items) {
@@ -131,8 +131,7 @@
 		protected override void SetUp() {
 			base.SetUp();
 			UserConnection.Workspace.Id = Guid.NewGuid();
-			_repository = new Repository();
-			_repository.UserConnection = UserConnection;
+			_repository = new Repository {UserConnection = UserConnection};
 			AddCustomizedEntitySchemas();
 			SetUpTestData();
 		}
@@ -140,6 +139,12 @@
 		#endregion
 
 		#region TestMethods
+
+		[Test]
+		public void CreateItem_ShouldReturnsExpectedValue() {
+			var order = _repository.CreateItem<Order>();
+			Assert.IsInstanceOf<Order>(order);
+		}
 
 		[Test]
 		public void GetStringProperty_ShouldEqualsExpectedValue() {
@@ -193,6 +198,34 @@
 		public void GetDetailPropertyWhenThereAreNoRecords_ShouldReturnEmptyList() {
 			var bonusList = _repository.GetItems<Bonus>("Invoice", Guid.NewGuid());
 			Assert.AreEqual(0, bonusList.Count);
+		}
+
+		[Test]
+		public void ChangeTracker_GetItems_WithoutTyped_ShouldReturnsExpectedValue() {
+			var newOrder = _repository.CreateItem<Order>();
+			var existedOrder = _repository.GetItem<Order>((Guid)_orderValues["Id"]);
+			var invoice = _repository.GetItem<Invoice>((Guid)_invoiceValues["Id"]);
+			var trackedModels = _repository.ChangeTracker.GetTrackedModels();
+
+			var enumerable = trackedModels as ITrackedModel<BaseModel>[] ?? trackedModels.ToArray();
+			Assert.IsTrue(enumerable.Any(x => x.Model == newOrder));
+			Assert.IsTrue(enumerable.Any(x => x.Model == existedOrder));
+			Assert.IsTrue(enumerable.Any(x => x.Model == invoice));
+			Assert.AreEqual(3, enumerable.Length);
+		}
+
+		[Test]
+		public void ChangeTracker_GetItems_WithTyped_ShouldReturnsExpectedValue() {
+			var newOrder = _repository.CreateItem<Order>();
+			var existedOrder = _repository.GetItem<Order>((Guid)_orderValues["Id"]);
+			var invoice = _repository.GetItem<Invoice>((Guid)_invoiceValues["Id"]);
+			var trackedModels = _repository.ChangeTracker.GetTrackedModels<Order>();
+
+			var enumerable = trackedModels as ITrackedModel<Order>[] ?? trackedModels.ToArray();
+			Assert.IsTrue(enumerable.Any(x => x.Model == newOrder));
+			Assert.IsTrue(enumerable.Any(x => x.Model == existedOrder));
+			Assert.IsFalse(enumerable.Any(x => x.Model == (BaseModel)invoice));
+			Assert.AreEqual(2, enumerable.Length);
 		}
 
 		#endregion

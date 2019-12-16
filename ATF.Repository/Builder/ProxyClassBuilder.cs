@@ -4,29 +4,44 @@
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Reflection;
-	using ATF.Repository.Mapping;
+	using Mapping;
 	using Castle.DynamicProxy;
-    using Terrasoft.Common;
+	using Terrasoft.Common;
 
-    public class ProxyClassBuilder
+	internal static class InterceptorRepository
 	{
-		private IDictionary<Type, IInterceptor> _interceptors;
+		private static readonly IDictionary<Type, IInterceptor> _interceptors = new Dictionary<Type, IInterceptor>();
 
-		private Repository _repository;
-		private ProxyGenerator _generator;
+		public static IInterceptor Get(Type type) {
+			return _interceptors.ContainsKey(type)
+				? _interceptors[type]
+				: null;
+		}
+		public static void Add(Type type, IInterceptor interceptor) {
+			if (!_interceptors.ContainsKey(type)) {
+				_interceptors.Add(type, interceptor);
+			}
+		}
+	}
+
+	public class ProxyClassBuilder
+	{
+		private readonly Repository _repository;
+		private readonly ProxyGenerator _generator;
 
 		public ProxyClassBuilder(Repository repository) {
-			_interceptors = new Dictionary<Type, IInterceptor>();
 			_repository = repository;
 			_generator = new ProxyGenerator();
 		}
 
 		private IInterceptor GetInterceptor<T>() where T : BaseModel {
 			Type type = typeof(T);
-			if (!_interceptors.ContainsKey(type)) {
-				_interceptors[type] = new InstanceProxyHelper<T>();
+			var interceptor = InterceptorRepository.Get(type);
+			if (interceptor == null) {
+				interceptor =  new InstanceProxyHelper<T>();
+				InterceptorRepository.Add(type, interceptor);
 			}
-			return _interceptors[type];
+			return interceptor;
 		}
 
 		public T Build<T>() where T : BaseModel, new() {
@@ -38,16 +53,15 @@
 
 	internal class InstanceProxyHelper<T> : IInterceptor where T : BaseModel
 	{
-		private ModelMapper _modelMapper;
-		private Dictionary<MethodInfo, PropertyInfo> _properties;
-		private Dictionary<string, ModelItem> _modelItems;
+		private readonly Dictionary<MethodInfo, PropertyInfo> _properties;
+		private readonly Dictionary<string, ModelItem> _modelItems;
 
 		public InstanceProxyHelper() {
-			_modelMapper = new ModelMapper();
+			var modelMapper = new ModelMapper();
 			_properties = new Dictionary<MethodInfo, PropertyInfo>();
 			_modelItems = new Dictionary<string, ModelItem>();
 
-			_modelMapper.GetModelItems(typeof(T)).Where(x => x.IsLazy).ForEach(x => {
+			modelMapper.GetModelItems(typeof(T)).Where(x => x.IsLazy).ForEach(x => {
 				_modelItems.Add(x.PropertyInfo.Name, x);
 				_properties.Add(x.PropertyInfo.GetMethod, x.PropertyInfo);
 				_properties.Add(x.PropertyInfo.SetMethod, x.PropertyInfo);
@@ -67,11 +81,11 @@
 			var proxy = GetProxy(invocation);
 			var modelItem = _modelItems[property.Name];
 			if (modelItem.PropertyType == ModelItemType.Reference) {
-				proxy.Repository.FillReferenceValue<T>((T)invocation.InvocationTarget, modelItem);
+				proxy.Repository.FillReferenceValue((T)invocation.InvocationTarget, modelItem);
 			} else if (modelItem.PropertyType == ModelItemType.Detail) {
-				proxy.Repository.FillDetailValue<T>((T)invocation.InvocationTarget, modelItem);
+				proxy.Repository.FillDetailValue((T)invocation.InvocationTarget, modelItem);
 			} else if (modelItem.PropertyType == ModelItemType.Lookup) {
-				proxy.Repository.FillLookupValue<T>((T)invocation.InvocationTarget, modelItem);
+				proxy.Repository.FillLookupValue((T)invocation.InvocationTarget, modelItem);
 			}
 		}
 
