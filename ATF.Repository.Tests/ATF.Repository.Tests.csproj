@@ -1,18 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<OutputType>Library</OutputType>
-		<TargetFrameworks>net472;netstandard2.0</TargetFrameworks>
 		<RootNamespace>ATF.Repository.Tests</RootNamespace>
 		<AssemblyName>ATF.Repository.Tests</AssemblyName>
 		<ProjectGuid>{B7327963-48AF-4B5B-A166-4A115D2821DC}</ProjectGuid>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+		<TargetFramework>net472</TargetFramework>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="BpmonlineMock" Version="7.15.0.634" />
-		<PackageReference Include="BpmonlineTestFramework" Version="7.15.0.634" />
-		<PackageReference Include="CreatioSDK" Version="7.15.2.501" />
+		<PackageReference Include="CreatioMock" Version="7.16.0.4463" />
+		<PackageReference Include="CreatioSDK" Version="7.16.0.4461" />
 		<PackageReference Include="Common.Logging" Version="3.4.1" />
 		<PackageReference Include="Castle.Core" Version="4.4.0" />
+		<PackageReference Include="CreatioTestFramework" Version="7.16.0.4461" />
 		<PackageReference Include="System.Collections.Immutable" Version="1.7.0" />	
 	  <ProjectReference Include="..\ATF.Repository\ATF.Repository.csproj" />
 	</ItemGroup>

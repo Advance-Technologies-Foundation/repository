@@ -2,17 +2,21 @@
 <package>
   <metadata>
     <id>ATF.Repository</id>
-    <version>1.1.0</version>
+    <version>1.2.4</version>
     <title>ATF.Repository</title>
     <authors>ATF</authors>
     <owners>ATF</owners>
     <projectUrl>https://github.com/Advance-Technologies-Foundation/repository</projectUrl>
     <license type="expression">MIT</license>
-    <iconUrl>https://www.bpmonline.com/sites/all/themes/ts_bootstrap_subtheme/img/logo/logo_bpm.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>ATF.Repository is the open-source object-relational mapping (ORM) framework for bpm`online</description>
+    <description>ATF.Repository is the open-source object-relational mapping (ORM) framework for Creatio</description>
     <releaseNotes></releaseNotes>
     <copyright>Copyright ©2019</copyright>
-    <tags>ATF Repository bpmonline ORM</tags>
+    <tags>ATF Repository Creatio ORM</tags>
+    <dependencies>
+      <dependency id="CreatioSDK" version="7.16.0.4461" />
+      <dependency id="Common.Logging" version="3.4.1" />
+      <dependency id="Castle.Core" version="4.4.0" />
+    </dependencies>
   </metadata>
 </package>
