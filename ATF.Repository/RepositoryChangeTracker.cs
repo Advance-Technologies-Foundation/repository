@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace ATF.Repository
 {
-	internal class ChangeTracker: IChangeTracker
+	internal class RepositoryChangeTracker: IChangeTracker
 	{
 		internal Repository Repository { get; set; }
 		public IEnumerable<ITrackedModel<BaseModel>> GetTrackedModels() {
@@ -16,8 +16,14 @@ namespace ATF.Repository
 				.Select(item => ConvertModelToTrackedModel((T)item.Value));
 		}
 
+		public ITrackedModel<T> GetTrackedModel<T>(T model) where T : BaseModel {
+			return Repository.Items.ContainsKey(model.Id)
+				? new TrackedModel<T>(model)
+				: null;
+		}
+
 		private ITrackedModel<T> ConvertModelToTrackedModel<T>(T model) where T : BaseModel {
-			return new TrackedModel<T> { Model = model };
+			return new TrackedModel<T>(model);
 		}
 	}
 }

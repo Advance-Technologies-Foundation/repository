@@ -3,6 +3,7 @@
 	using System;
 	using System.Collections.Generic;
 	using Terrasoft.Core;
+
 	public interface IRepository
 	{
 		bool UseAdminRight { get; set; }
@@ -23,17 +24,4 @@
 
 	}
 
-	
-
-	public interface IChangeTracker
-	{
-		IEnumerable<ITrackedModel<BaseModel>> GetTrackedModels();
-
-		IEnumerable<ITrackedModel<T>> GetTrackedModels<T>() where T : BaseModel;
-	}
-
-	public interface ITrackedModel<out T> where T: BaseModel
-	{
-		T Model { get; }
-	}
 }

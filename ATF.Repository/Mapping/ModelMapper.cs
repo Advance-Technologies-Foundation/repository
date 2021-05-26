@@ -7,45 +7,40 @@
 	using ATF.Repository.Attributes;
 	using Terrasoft.Common;
 
-	internal class ModelMapper
+	internal static class ModelMapper
 	{
-		private IDictionary<Type, List<ModelItem>> _cashedItems;
-		private IDictionary<Type, Func<PropertyInfo, ModelItem>> _typeConverters;
+		private static readonly IDictionary<Type, List<ModelItem>> CashedItems = new Dictionary<Type, List<ModelItem>>();
+		private static readonly IDictionary<Type, Func<PropertyInfo, ModelItem>> TypeConverters = GetTypeConverters();
 
-		public ModelMapper() {
-			_cashedItems = new Dictionary<Type, List<ModelItem>>();
-			_typeConverters = GetTypeConverters();
-		}
-
-		public List<ModelItem> GetModelItems(Type modelType) {
-			if (!_cashedItems.ContainsKey(modelType)) {
-				_cashedItems.Add(modelType, FetchModelItemsFromModelType(modelType));
+		public static List<ModelItem> GetModelItems(Type modelType) {
+			if (!CashedItems.ContainsKey(modelType)) {
+				CashedItems.Add(modelType, FetchModelItemsFromModelType(modelType));
 			}
-			return _cashedItems[modelType];
+			return CashedItems[modelType];
 		}
 
-		public List<ModelItem> GetProperties(Type modelType) {
+		public static List<ModelItem> GetProperties(Type modelType) {
 			var modelItems = GetModelItems(modelType);
 			return modelItems.Where(x => x.PropertyType == ModelItemType.Column).ToList();
 		}
 
 		[Obsolete("Will be removed in 1.3.0")]
-		public List<ModelItem> GetReferences(Type modelType) {
+		public static List<ModelItem> GetReferences(Type modelType) {
 			var modelItems = GetModelItems(modelType);
 			return modelItems.Where(x => x.PropertyType == ModelItemType.Reference).ToList();
 		}
 
-		public List<ModelItem> GetLookups(Type modelType) {
+		public static List<ModelItem> GetLookups(Type modelType) {
 			var modelItems = GetModelItems(modelType);
 			return modelItems.Where(x => x.PropertyType == ModelItemType.Lookup).ToList();
 		}
 
-		public List<ModelItem> GetDetails(Type modelType) {
+		public static List<ModelItem> GetDetails(Type modelType) {
 			var modelItems = GetModelItems(modelType);
 			return modelItems.Where(x => x.PropertyType == ModelItemType.Detail).ToList();
 		}
 
-		protected IDictionary<Type, Func<PropertyInfo, ModelItem>> GetTypeConverters() {
+		private static IDictionary<Type, Func<PropertyInfo, ModelItem>> GetTypeConverters() {
 			return new Dictionary<Type, Func<PropertyInfo, ModelItem>>() {
 				{ typeof(SchemaPropertyAttribute), SchemaPropertyTypeConverter },
 				{ typeof(LookupPropertyAttribute), LookupPropertyTypeConverter },
@@ -54,7 +49,7 @@
 			};
 		}
 
-		protected ModelItem CreatrModelItem(PropertyInfo propertyInfo, ModelItemType modelItemType) {
+		private static ModelItem CreateModelItem(PropertyInfo propertyInfo, ModelItemType modelItemType) {
 			return new ModelItem() {
 				PropertyName = propertyInfo.Name,
 				DataValueType = propertyInfo.PropertyType,
@@ -64,51 +59,47 @@
 			};
 		}
 
-		protected ModelItem SchemaPropertyTypeConverter(PropertyInfo propertyInfo) {
-			ModelItem modelItem = null;
-			var attribute = propertyInfo.GetCustomAttribute(typeof(SchemaPropertyAttribute)) as SchemaPropertyAttribute;
-			if (attribute != null) {
-				modelItem = CreatrModelItem(propertyInfo, ModelItemType.Column);
-				modelItem.EntityColumnName = attribute.Name;
+		private static ModelItem SchemaPropertyTypeConverter(PropertyInfo propertyInfo) {
+			if (!(propertyInfo.GetCustomAttribute(typeof(SchemaPropertyAttribute)) is SchemaPropertyAttribute attr)) {
+				return null;
 			}
+			var modelItem = CreateModelItem(propertyInfo, ModelItemType.Column);
+			modelItem.EntityColumnName = attr.Name;
 			return modelItem;
 		}
 
-		protected ModelItem LookupPropertyTypeConverter(PropertyInfo propertyInfo) {
-			ModelItem modelItem = null;
-			var attribute = propertyInfo.GetCustomAttribute(typeof(LookupPropertyAttribute)) as LookupPropertyAttribute;
-			if (attribute != null) {
-				modelItem = CreatrModelItem(propertyInfo, ModelItemType.Lookup);
-				modelItem.EntityColumnName = attribute.Name;
+		private static ModelItem LookupPropertyTypeConverter(PropertyInfo propertyInfo) {
+			if (!(propertyInfo.GetCustomAttribute(typeof(LookupPropertyAttribute)) is LookupPropertyAttribute attr)) {
+				return null;
 			}
+			var modelItem = CreateModelItem(propertyInfo, ModelItemType.Lookup);
+			modelItem.EntityColumnName = attr.Name;
 			return modelItem;
 		}
 
 		[Obsolete("Will be removed in 1.3.0")]
-		protected ModelItem ReferencePropertyTypeConverter(PropertyInfo propertyInfo) {
-			ModelItem modelItem = null;
-			var attribute = propertyInfo.GetCustomAttribute(typeof(ReferencePropertyAttribute)) as ReferencePropertyAttribute;
-			if (attribute != null) {
-				modelItem = CreatrModelItem(propertyInfo, ModelItemType.Reference);
-				modelItem.EntityColumnName = attribute.Name;
+		private static ModelItem ReferencePropertyTypeConverter(PropertyInfo propertyInfo) {
+			if (!(propertyInfo.GetCustomAttribute(typeof(ReferencePropertyAttribute)) is ReferencePropertyAttribute attr)) {
+				return null;
 			}
+			var modelItem = CreateModelItem(propertyInfo, ModelItemType.Reference);
+			modelItem.EntityColumnName = attr.Name;
 			return modelItem;
 		}
 
-		protected ModelItem DetailPropertyTypeConverter(PropertyInfo propertyInfo) {
-			ModelItem modelItem = null;
-			var attribute = propertyInfo.GetCustomAttribute(typeof(DetailPropertyAttribute)) as DetailPropertyAttribute;
-			if (attribute != null) {
-				Type type = propertyInfo.PropertyType.GenericTypeArguments?.FirstOrDefault();
-				modelItem = CreatrModelItem(propertyInfo, ModelItemType.Detail);
-				modelItem.DataValueType = type;
-				modelItem.MasterEntityColumnName = attribute.MasterEntityColumnName;
-				modelItem.DetailEntityColumnName = attribute.DetailEntityColumnName;
+		private static ModelItem DetailPropertyTypeConverter(PropertyInfo propertyInfo) {
+			if (!(propertyInfo.GetCustomAttribute(typeof(DetailPropertyAttribute)) is DetailPropertyAttribute attr)) {
+				return null;
 			}
+			var type = propertyInfo.PropertyType.GenericTypeArguments?.FirstOrDefault();
+			var modelItem = CreateModelItem(propertyInfo, ModelItemType.Detail);
+			modelItem.DataValueType = type;
+			modelItem.MasterEntityColumnName = attr.MasterLinkPropertyName;
+			modelItem.DetailLinkPropertyName = attr.DetailLinkPropertyName;
 			return modelItem;
 		}
 
-		protected List<ModelItem> FetchModelItemsFromModelType(Type modelType) {
+		private static List<ModelItem> FetchModelItemsFromModelType(Type modelType) {
 			var response = new List<ModelItem>();
 			modelType.GetProperties().ForEach(x => {
 				var modelItem = GetModelItem(x);
@@ -119,9 +110,9 @@
 			return response;
 		}
 
-		protected ModelItem GetModelItem(PropertyInfo propertyInfo) {
+		private static ModelItem GetModelItem(PropertyInfo propertyInfo) {
 			ModelItem modelItem = null;
-			foreach (var item in _typeConverters) {
+			foreach (var item in TypeConverters) {
 				if (modelItem != null) {
 					continue;
 				}

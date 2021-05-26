@@ -33,6 +33,10 @@
 			_repository = repository;
 			_generator = new ProxyGenerator();
 		}
+		public ProxyClassBuilder() {
+			_repository = null;
+			_generator = new ProxyGenerator();
+		}
 
 		private IInterceptor GetInterceptor<T>() where T : BaseModel {
 			Type type = typeof(T);
@@ -57,11 +61,10 @@
 		private readonly Dictionary<string, ModelItem> _modelItems;
 
 		public InstanceProxyHelper() {
-			var modelMapper = new ModelMapper();
 			_properties = new Dictionary<MethodInfo, PropertyInfo>();
 			_modelItems = new Dictionary<string, ModelItem>();
 
-			modelMapper.GetModelItems(typeof(T)).Where(x => x.IsLazy).ForEach(x => {
+			ModelMapper.GetModelItems(typeof(T)).Where(x => x.IsLazy).ForEach(x => {
 				_modelItems.Add(x.PropertyInfo.Name, x);
 				_properties.Add(x.PropertyInfo.GetMethod, x.PropertyInfo);
 				_properties.Add(x.PropertyInfo.SetMethod, x.PropertyInfo);
@@ -80,12 +83,19 @@
 		private void FillProperty(IInvocation invocation, PropertyInfo property) {
 			var proxy = GetProxy(invocation);
 			var modelItem = _modelItems[property.Name];
+			var target = (T) invocation.InvocationTarget;
+			if (target.LazyModelPropertyLoader != null)
+			{
+				target.LoadLazyProperty(modelItem);
+				return;
+			}
+
 			if (modelItem.PropertyType == ModelItemType.Reference) {
-				proxy.Repository.FillReferenceValue((T)invocation.InvocationTarget, modelItem);
+				proxy.Repository.FillReferenceValue(target, modelItem);
 			} else if (modelItem.PropertyType == ModelItemType.Detail) {
-				proxy.Repository.FillDetailValue((T)invocation.InvocationTarget, modelItem);
+				proxy.Repository.FillDetailValue(target, modelItem);
 			} else if (modelItem.PropertyType == ModelItemType.Lookup) {
-				proxy.Repository.FillLookupValue((T)invocation.InvocationTarget, modelItem);
+				proxy.Repository.FillLookupValue(target, modelItem);
 			}
 		}
 

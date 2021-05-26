@@ -7,20 +7,18 @@
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 		<TargetFramework>net472</TargetFramework>
 	</PropertyGroup>
-	<ItemGroup>
-		<PackageReference Include="CreatioMock" Version="7.16.0.4463" />
-		<PackageReference Include="CreatioSDK" Version="7.16.0.4461" />
-		<PackageReference Include="Common.Logging" Version="3.4.1" />
-		<PackageReference Include="Castle.Core" Version="4.4.0" />
-		<PackageReference Include="CreatioTestFramework" Version="7.16.0.4461" />
-		<PackageReference Include="System.Collections.Immutable" Version="1.7.0" />	
+	<ItemGroup>	
 	  <ProjectReference Include="..\ATF.Repository\ATF.Repository.csproj" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="AutoFixture.NUnit3" Version="4.10.0" />
-		<PackageReference Include="NUnit3TestAdapter" Version="3.13.0" />
+		<PackageReference Include="Castle.Core" Version="4.4.1" />
+		<PackageReference Include="CreatioMock" Version="7.17.4.2266" />
+		<PackageReference Include="CreatioSDK" Version="7.17.4.2265" />
+		<PackageReference Include="CreatioTestFramework" Version="7.17.4.2265" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.1.1" />
-		<PackageReference Include="JetBrains.dotMemoryUnit" Version="3.0.20171219.105559" />
+		<PackageReference Include="NUnit" Version="3.12.0" />
+		<PackageReference Include="NUnit3TestAdapter" Version="3.13.0" />
+		<PackageReference Include="System.Collections.Immutable" Version="1.7.0" />
 	</ItemGroup>
 	<ItemGroup>
 		<Folder Include="Properties" />
@@ -42,6 +40,17 @@
 		<Content Include="nunit.engine.dll" />
 		<Content Include="NUnit3.TestAdapter.dll" />
 		<Content Include="NUnit3.TestAdapter.pdb" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Reference Include="ServiceStack.Interfaces, Version=3.9.33.0, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+	    <HintPath>Libs\ServiceStack.Interfaces.dll</HintPath>
+	  </Reference>
+	  <Reference Include="Terrasoft.Core.ServiceModelContract, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+	    <HintPath>Libs\Terrasoft.Core.ServiceModelContract.dll</HintPath>
+	  </Reference>
+	  <Reference Include="UnitTest, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
+	    <HintPath>Libs\UnitTest.dll</HintPath>
+	  </Reference>
 	</ItemGroup>
 	
 </Project>

@@ -5,12 +5,12 @@
 	[AttributeUsage(AttributeTargets.Property, AllowMultiple = false)]
 	public class DetailPropertyAttribute: Attribute
 	{
-		public string MasterEntityColumnName { get; private set; }
+		public string MasterLinkPropertyName { get; internal set; }
 
-		public string DetailEntityColumnName { get; private set; }
+		public string DetailLinkPropertyName { get; private set; }
 
-		public DetailPropertyAttribute(string detailEntityColumnName) {
-			DetailEntityColumnName = detailEntityColumnName;
+		public DetailPropertyAttribute(string detailLinkPropertyName) {
+			DetailLinkPropertyName = detailLinkPropertyName;
 		}
 
 	}

@@ -1,4 +1,8 @@
-﻿namespace ATF.Repository
+﻿using System.Reflection;
+using ATF.Repository.Mapping;
+using Quartz.Xml.JobSchedulingData20;
+
+namespace ATF.Repository
 {
 	using ATF.Repository.Attributes;
 	using System;
@@ -23,9 +27,38 @@
 
 		internal Entity Entity { get; set; }
 
+		internal ILazyModelPropertyLoader LazyModelPropertyLoader;
+
 		public bool IsNew { get; internal set; }
 
 		public bool IsMarkAsDeleted { get; internal set; }
 
+		internal void LoadLazyProperty(ModelItem modelItem)
+		{
+			LazyModelPropertyLoader.LoadLazyProperty(this, modelItem);
+		}
+
+		internal void SetLazyLookupKeyValue(string lookupPropertyName, Guid value) {
+			if (value == Guid.Empty) {
+				return;
+			}
+			var key = GetLazyLookupKey(lookupPropertyName);
+			if (LazyValues.ContainsKey(key)) {
+				LazyValues[key] = value;
+			} else {
+				LazyValues.Add(key, value);
+			}
+		}
+
+		internal Guid GetLazyLookupKeyValue(string lookupPropertyName) {
+			var key = GetLazyLookupKey(lookupPropertyName);
+			return LazyValues.ContainsKey(key)
+				? (Guid) LazyValues[key]
+				: Guid.Empty;
+		}
+
+		private string GetLazyLookupKey(string lookupPropertyName) {
+			return $"Lookup::{lookupPropertyName}";
+		}
 	}
 }

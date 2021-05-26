@@ -33,7 +33,7 @@
 		/// <summary>
 		/// Detail model property name. Like InvoiceProduct.InvoiceId
 		/// </summary>
-		internal string DetailEntityColumnName { get; set; }
+		internal string DetailLinkPropertyName { get; set; }
 
 		/// <summary>
 		/// Lazy load flag
@@ -41,7 +41,7 @@
 		internal bool IsLazy { get; set; }
 
 		/// <summary>
-		/// Property info.
+		/// Parameter info.
 		/// </summary>
 		internal PropertyInfo PropertyInfo { get; set; }
 	}

@@ -26,7 +26,6 @@
 		#region Fields: Private
 
 		internal readonly Dictionary<Guid, BaseModel> Items;
-		private readonly ModelMapper _modelMapper;
 		private readonly ProxyClassBuilder _proxyClassBuilder;
 
 		private static string DefaultPrimaryEntityColumnName = "Id";
@@ -48,9 +47,8 @@
 
 		public Repository() {
 			Items = new Dictionary<Guid, BaseModel>();
-			_modelMapper = new ModelMapper();
 			_proxyClassBuilder = new ProxyClassBuilder(this);
-			ChangeTracker = new ChangeTracker { Repository = this };
+			ChangeTracker = new RepositoryChangeTracker { Repository = this };
 		}
 
 		#endregion
@@ -115,7 +113,7 @@
 				});
 			} catch (Exception e) {
 				LogEvent(
-					$"GetRecordsValues. DetailEntityColumnName: {filter.EntityColumnName}, MasterId: {filter.EntityColumnValue}. \n ErrorMessage: {e.Message}. At: {e.StackTrace}");
+					$"GetRecordsValues. DetailLinkPropertyName: {filter.EntityColumnName}, MasterId: {filter.EntityColumnValue}. \n ErrorMessage: {e.Message}. At: {e.StackTrace}");
 				throw;
 			}
 			return response;
@@ -137,7 +135,7 @@
 				} else {
 					throw new ArgumentException();
 				}
-				_modelMapper.GetProperties(type)
+				ModelMapper.GetProperties(type)
 					.Where(x => !x.IsLazy && x.EntityColumnName != DefaultPrimaryEntityColumnName)
 					.ForEach(x => {
 						try {
@@ -148,7 +146,7 @@
 							throw;
 						}
 					});
-				_modelMapper.GetLookups(type).ForEach(x => {
+				ModelMapper.GetLookups(type).ForEach(x => {
 					try {
 						if (esq.Columns.All(c => c.Name != x.EntityColumnName)) {
 							esq.AddColumn(x.EntityColumnName);
@@ -161,7 +159,7 @@
 				});
 			} catch (Exception e) {
 				LogEvent(
-					$"GetRecordsValues. DetailEntityColumnName: {filter.EntityColumnName}, MasterId: {filter.EntityColumnValue}. \n ErrorMessage: {e.Message}. At: {e.StackTrace}");
+					$"GetRecordsValues. DetailLinkPropertyName: {filter.EntityColumnName}, MasterId: {filter.EntityColumnValue}. \n ErrorMessage: {e.Message}. At: {e.StackTrace}");
 				throw;
 			}
 			return esq;
@@ -175,12 +173,6 @@
 				: string.Empty;
 		}
 
-		private static MethodInfo GetGenericMethod(Type type, Type genericType, string methodName) {
-			MethodInfo response = type.GetMethods()
-				.FirstOrDefault(method => method.Name == methodName && method.ContainsGenericParameters);
-			return response?.MakeGenericMethod(genericType);
-		}
-
 		private T CreateModel<T>() where T : BaseModel, new() {
 			var model = _proxyClassBuilder.Build<T>();
 			model.UserConnection = UserConnection;
@@ -188,7 +180,7 @@
 		}
 
 		private void FillPropertyValues<T>(T model, IDictionary<string, object> values) where T : BaseModel {
-			var properties = _modelMapper.GetProperties(model.GetType());
+			var properties = ModelMapper.GetProperties(model.GetType());
 			foreach (var property in properties) {
 				var value = values.ContainsKey(property.PropertyName)
 					? values[property.PropertyName]
@@ -205,8 +197,8 @@
 		}
 
 		private void FillLookupLinkValues<T>(T model, IDictionary<string, object> values) where T : BaseModel {
-			var properties = _modelMapper.GetProperties(model.GetType());
-			var lookups = _modelMapper.GetLookups(model.GetType())
+			var properties = ModelMapper.GetProperties(model.GetType());
+			var lookups = ModelMapper.GetLookups(model.GetType())
 				.Where(lookup => properties.All(property => property.EntityColumnName != lookup.EntityColumnName));
 
 			foreach (var lookup in lookups) {
@@ -243,7 +235,7 @@
 		}
 
 		private T GetLookupLinkValue<T>(BaseModel model, ModelItem lookup) {
-			var property = _modelMapper
+			var property = ModelMapper
 				.GetProperties(model.GetType())
 				.FirstOrDefault(x => x.EntityColumnName == lookup.EntityColumnName);
 			return property != null
@@ -265,7 +257,7 @@
 
 		[Obsolete("Will be removed in 1.3.0")]
 		private void FillReferenceValues<T>(T model) where T : BaseModel, new() {
-			var references = _modelMapper.GetReferences(model.GetType());
+			var references = ModelMapper.GetReferences(model.GetType());
 			foreach (var reference in references.Where(x => !x.IsLazy)) {
 				FillReferenceValue(model, reference);
 			}
@@ -275,13 +267,13 @@
 		internal void FillReferenceValue<T>(T model, ModelItem reference) where T : BaseModel {
 			var referenceId = GetModelPropertyValue<Guid>(model, reference.EntityColumnName);
 			if (referenceId != Guid.Empty && reference.PropertyInfo != null) {
-				var method = GetGenericMethod(GetType(), reference.DataValueType, "GetItem");
+				var method = RepositoryReflectionUtilities.GetGenericMethod(GetType(), "GetItem", reference.DataValueType);
 				reference.PropertyInfo.SetValue(model, method.Invoke(this, new object[] { referenceId }));
 			}
 		}
 
 		private void FillLookupValues<T>(T model) where T : BaseModel, new() {
-			_modelMapper
+			ModelMapper
 				.GetLookups(model.GetType())
 				.Where(x => !x.IsLazy)
 				.ForEach(lookup => FillLookupValue(model, lookup));
@@ -290,13 +282,13 @@
 		internal void FillLookupValue<T>(T model, ModelItem lookup) where T : BaseModel {
 			var lookupId = GetLookupLinkValue<Guid>(model, lookup);
 			if (lookupId != Guid.Empty && lookup.PropertyInfo != null) {
-				var method = GetGenericMethod(GetType(), lookup.DataValueType, "GetItem");
+				var method = RepositoryReflectionUtilities.GetGenericMethod(GetType(), "GetItem", lookup.DataValueType);
 				lookup.PropertyInfo.SetValue(model, method.Invoke(this, new object[] { lookupId }));
 			}
 		}
 
 		private void FillDetailValues<T>(T model) where T : BaseModel {
-			var details = _modelMapper.GetDetails(model.GetType());
+			var details = ModelMapper.GetDetails(model.GetType());
 			foreach (var detail in details.Where(x => !x.IsLazy)) {
 				FillDetailValue(model, detail);
 			}
@@ -308,16 +300,16 @@
 				: DefaultPrimaryEntityColumnName;
 			var masterId = GetModelPropertyValue<Guid>(model, masterFilterPropertyName);
 			if (detail.PropertyInfo != null) {
-				var method = GetGenericMethod(GetType(), detail.DataValueType, "GetItems");
-				detail.PropertyInfo.SetValue(model, method.Invoke(this, new object[] { detail.DetailEntityColumnName, masterId }));
+				var method = RepositoryReflectionUtilities.GetGenericMethod(GetType(), "GetItems", detail.DataValueType);
+				detail.PropertyInfo.SetValue(model, method.Invoke(this, new object[] { detail.DetailLinkPropertyName, masterId }));
 			}
 		}
 
 		private IDictionary<string, object> GetValuesFromEntity<T>(Entity entity) where T : BaseModel, new() {
 			var response = new Dictionary<string, object>();
 			if (entity != null) {
-				response.AddRangeIfNotExists(GetValuesFromEntity(entity, _modelMapper.GetProperties(typeof(T))));
-				response.AddRangeIfNotExists(GetValuesFromEntity(entity, _modelMapper.GetLookups(typeof(T))));
+				response.AddRangeIfNotExists(GetValuesFromEntity(entity, ModelMapper.GetProperties(typeof(T))));
+				response.AddRangeIfNotExists(GetValuesFromEntity(entity, ModelMapper.GetLookups(typeof(T))));
 			} else {
 				response.Add(DefaultPrimaryEntityColumnName, Guid.NewGuid());
 			}
@@ -342,7 +334,7 @@
 
 		private IDictionary<string, object> GetValuesFromModel<T>(T model) where T : BaseModel {
 			var response = new Dictionary<string, object>();
-			_modelMapper.GetProperties(model.GetType()).ForEach(x => {
+			ModelMapper.GetProperties(model.GetType()).ForEach(x => {
 				response.Add(x.PropertyName, x.PropertyInfo.GetValue(model));
 			});
 			return response;
@@ -385,7 +377,7 @@
 			if (entity == null) {
 				return;
 			}
-			_modelMapper.GetProperties(model.GetType()).ForEach(parameter => {
+			ModelMapper.GetProperties(model.GetType()).ForEach(parameter => {
 				if (valuesToSave.ContainsKey(parameter.PropertyName)) {
 					var value = PrepareModelValueForSave(valuesToSave[parameter.PropertyName], parameter.DataValueType);
 					entity.SetColumnValue(GetColumnNameByPropertyName(model.GetType(), parameter), value);
@@ -403,7 +395,7 @@
 
 		private void UpdateInitValues<T>(T model) where T : BaseModel {
 			model.InitValues.Clear();
-			var parameters = _modelMapper.GetProperties(model.GetType());
+			var parameters = ModelMapper.GetProperties(model.GetType());
 			var currentModelValues = GetValuesFromModel(model);
 			parameters.ForEach(parameter => {
 				model.InitValues.Add(parameter.PropertyName, currentModelValues[parameter.PropertyName]);
@@ -422,7 +414,7 @@
 
 		private IDictionary<string, object> GetChangedValues<T>(T model) where T : BaseModel {
 			var response = new Dictionary<string, object>();
-			var parameters = _modelMapper.GetProperties(model.GetType());
+			var parameters = ModelMapper.GetProperties(model.GetType());
 			var currentModelValues = GetValuesFromModel(model);
 			parameters.ForEach(parameter => {
 				if (GetIsItemExistsAndNotEqual(model.InitValues, currentModelValues, parameter.PropertyName)) {
@@ -494,7 +486,7 @@
 				});
 			} catch (Exception e) {
 				LogEvent(
-					$"GetItems. DetailEntityColumnName: {filterPropertyName}, MasterId: {filterValue}. \n ErrorMessage: {e.Message}. At: {e.StackTrace}");
+					$"GetItems. DetailLinkPropertyName: {filterPropertyName}, MasterId: {filterValue}. \n ErrorMessage: {e.Message}. At: {e.StackTrace}");
 				throw;
 			}
 			return response;

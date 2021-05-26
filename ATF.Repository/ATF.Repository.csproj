@@ -5,12 +5,14 @@
 		<AssemblyName>ATF.Repository</AssemblyName>
 		<ProjectGuid>{F6E64FAD-5F5C-46CD-95C1-07E9258810BA}</ProjectGuid>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-		<TargetFramework>net472</TargetFramework>
+		<TargetFramework>netstandard2.0</TargetFramework>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="CreatioSDK" Version="7.16.0.4461" />
+		<PackageReference Include="CreatioSDK" Version="7.17.4.2265" />
 		<PackageReference Include="Common.Logging" Version="3.4.1" />
-		<PackageReference Include="Castle.Core" Version="4.4.0" />
+		<PackageReference Include="Castle.Core" Version="4.4.1" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="3.1.6" />
+		<PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
 	</ItemGroup>
 	<ItemGroup>
 	  <Folder Include="Properties" />
