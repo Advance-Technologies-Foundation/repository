@@ -1,13 +1,12 @@
-﻿using System.Linq.Expressions;
+﻿using ATF.Repository.ExpressionConverters;
 using ATF.Repository.Queryables;
 
 namespace ATF.Repository.ExpressionAppliers
 {
 	internal class FirstMethodApplier: WhereMethodApplier
 	{
-		internal override bool Apply(ExpressionChainItem expressionChainItem, ModelQueryBuildConfig config) {
-
-			if (expressionChainItem.Expression.Arguments.Count <= 1 || !base.Apply(expressionChainItem, config)) {
+		internal override bool Apply(ExpressionMetadataChainItem expressionMetadataChainItem, ModelQueryBuildConfig config) {
+			if (expressionMetadataChainItem.Expression.Arguments.Count <= 1 || !base.Apply(expressionMetadataChainItem, config)) {
 				return false;
 			}
 			config.SelectQuery.RowCount = 1;

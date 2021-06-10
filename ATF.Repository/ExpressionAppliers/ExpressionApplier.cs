@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using ATF.Repository.ExpressionConverters;
 using ATF.Repository.Mapping;
 using ATF.Repository.Queryables;
 using Terrasoft.Common;
@@ -29,7 +30,8 @@ namespace ATF.Repository.ExpressionAppliers
 			{"Any", typeof(AnyMethodApplier)},
 		};
 
-		internal abstract bool Apply(ExpressionChainItem expression, ModelQueryBuildConfig config);
+		internal abstract bool Apply(ExpressionMetadataChainItem expression, ModelQueryBuildConfig config);
+
 
 		protected SelectQueryColumn GetOrAddColumn(ModelQueryBuildConfig config, string columnPath) {
 			AddColumnIfNotExists(config, columnPath);

@@ -10,11 +10,12 @@ namespace ATF.Repository.ExpressionAppliers
 {
 	internal class OrderMethodApplier : ExpressionApplier
 	{
-		internal override bool Apply(ExpressionChainItem expressionChainItem, ModelQueryBuildConfig config) {
-			var converter = new InitialCallExpressionConverter(expressionChainItem.Expression);
-			var filterMetadata = converter.ConvertNode();
-			var orderedColumn = GetOrderedColumn(filterMetadata, config);
-			ApplyOrderDirectionAndOrderPosition(orderedColumn, expressionChainItem.Expression, config);
+		internal override bool Apply(ExpressionMetadataChainItem expressionMetadataChainItem, ModelQueryBuildConfig config) {
+			if (expressionMetadataChainItem.ExpressionMetadata.NodeType != ExpressionMetadataNodeType.Column)
+				return false;
+
+			var orderedColumn = GetOrAddColumn(config, expressionMetadataChainItem.ExpressionMetadata.Parameter.ColumnPath);
+			ApplyOrderDirectionAndOrderPosition(orderedColumn, expressionMetadataChainItem.Expression, config);
 			return true;
 		}
 
@@ -34,15 +35,6 @@ namespace ATF.Repository.ExpressionAppliers
 
 		private int GetOrderedColumnsCount(ModelQueryBuildConfig config) {
 			return config.SelectQuery.Columns.Items.Count(pair => pair.Value.OrderPosition > -1);
-		}
-
-		private SelectQueryColumn GetOrderedColumn(ExpressionMetadata filterMetadata, ModelQueryBuildConfig config) {
-			var columnFilterMetadata = filterMetadata.Items.FirstOrDefault();
-			if (columnFilterMetadata == null || columnFilterMetadata.NodeType != ExpressionMetadataNodeType.Column) {
-				throw new NotSupportedException();
-			}
-
-			return GetOrAddColumn(config, columnFilterMetadata.Parameter.ColumnPath);
 		}
 	}
 }

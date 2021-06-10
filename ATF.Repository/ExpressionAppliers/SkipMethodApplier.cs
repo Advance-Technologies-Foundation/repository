@@ -1,6 +1,5 @@
 ﻿using System;
-using System.Linq;
-using System.Linq.Expressions;
+using ATF.Repository.ExpressionConverters;
 using ATF.Repository.Queryables;
 
 namespace ATF.Repository.ExpressionAppliers
@@ -8,19 +7,14 @@ namespace ATF.Repository.ExpressionAppliers
 	internal class SkipMethodApplier : ExpressionApplier
 	{
 
-		internal override bool Apply(ExpressionChainItem expressionChainItem, ModelQueryBuildConfig config) {
-			config.SelectQuery.RowsOffset = GetRowsOffsetAmount(expressionChainItem.Expression);
+		internal override bool Apply(ExpressionMetadataChainItem expressionMetadataChainItem, ModelQueryBuildConfig config) {
+			if (expressionMetadataChainItem.ExpressionMetadata.NodeType != ExpressionMetadataNodeType.Property)
+				return false;
+			var rowsOffset = (int)(expressionMetadataChainItem?.ExpressionMetadata?.Parameter?.Value ?? 0);
+			config.SelectQuery.RowsOffset = Math.Max(0, rowsOffset);
 			return true;
 		}
 
-		private static int GetRowsOffsetAmount(MethodCallExpression expression) {
-			var arguments = expression.Arguments;
-			var rowOffsetExpression = arguments.Skip(1).FirstOrDefault();
-			if (rowOffsetExpression != null && RepositoryExpressionUtilities.TryDynamicInvoke(rowOffsetExpression, out var value)) {
-				return (int)value;
-			}
-			throw new NotImplementedException();
-		}
 
 
 	}

@@ -20,17 +20,15 @@ namespace ATF.Repository.ExpressionAppliers
 			{"Sum", AggregationType.Sum},
 		};
 
-		internal override bool Apply(ExpressionChainItem expressionChainItem, ModelQueryBuildConfig config) {
-			var converter = new InitialCallExpressionConverter(expressionChainItem.Expression);
-			var expressionMetadata = converter.ConvertNode();
-			var methodName = expressionChainItem.Expression.Method.Name;
+		internal override bool Apply(ExpressionMetadataChainItem expressionMetadataChainItem, ModelQueryBuildConfig config) {
+			var methodName = expressionMetadataChainItem.Expression.Method.Name;
 			var aggregationColumnName = RepositoryExpressionUtilities.GetAggregationColumnName(methodName);
 			config.SelectQuery.Columns.Items.Clear();
-			config.SelectQuery.Columns.Items.Add(aggregationColumnName, GetAggregationColumn(methodName, expressionMetadata));
+			config.SelectQuery.Columns.Items.Add(aggregationColumnName, GetAggregationColumn(methodName, expressionMetadataChainItem.ExpressionMetadata.Parameter.ColumnPath));
 			return true;
 		}
 
-		private static SelectQueryColumn GetAggregationColumn(string methodName, ExpressionMetadata expressionMetadata) {
+		private static SelectQueryColumn GetAggregationColumn(string methodName, string columnPath) {
 			return new SelectQueryColumn() {
 				Expression = new ColumnExpression() {
 					AggregationType = GetAggregationType(methodName),
@@ -38,22 +36,12 @@ namespace ATF.Repository.ExpressionAppliers
 					FunctionType = FunctionType.Aggregation,
 					FunctionArgument = new ColumnExpression() {
 						ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,
-						ColumnPath = GetColumnPath(expressionMetadata)
+						ColumnPath = columnPath
 					}
 				}
 			};
 		}
 
-		private static string GetColumnPath(ExpressionMetadata expressionMetadata) {
-			if (expressionMetadata.Items == null || expressionMetadata.Items.Count != 1) {
-				throw new NotSupportedException();
-			}
-			var node = expressionMetadata.Items.First();
-			if (node.NodeType != ExpressionMetadataNodeType.Column) {
-				throw new NotSupportedException();
-			}
-			return node.Parameter.ColumnPath;
-		}
 
 		private static AggregationType GetAggregationType(string methodName) {
 			if (AggregationTypes.ContainsKey(methodName)) {

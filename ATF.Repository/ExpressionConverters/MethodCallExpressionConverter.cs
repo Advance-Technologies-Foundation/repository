@@ -1,78 +1,116 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using ATF.Repository.Exceptions;
-using Terrasoft.Common;
-using Terrasoft.Core.Entities;
 
 namespace ATF.Repository.ExpressionConverters
 {
-	using System;
-	using System.Linq.Expressions;
+	internal class MethodCallExpressionConverter: ExpressionConverter {
 
-	internal class MethodCallExpressionConverter : ExpressionConverter
-	{
-
-		private readonly MethodCallExpression _node;
-
-		internal MethodCallExpressionConverter(MethodCallExpression node) {
-			_node = node;
-		}
-		internal override ExpressionMetadata ConvertNode() {
-			return TryDynamicInvoke(_node, out var value)
-				? GetPropertyMetadata(_node, value)
-				: ConvertNodeWithoutInvoke();
+		class MethodConverterItems
+		{
+			public List<string> MethodNames { get; set; }
+			public Type MethodType { get; set; }
 		}
 
-		private ExpressionMetadata ConvertNodeWithoutInvoke() {
-			if (_node?.Object == null) {
-				if (TryConvertToDetailFilterExpression(_node)) {
+		private static readonly List<MethodConverterItems>  ExpressionMethodConverters = new List<MethodConverterItems>() {
+			new MethodConverterItems() {
+				MethodNames = new List<string>() {"Where"},
+				MethodType = typeof(ComparisonExpressionConverter)
+			},
+			new MethodConverterItems() {
+				MethodNames = new List<string>() {"Any", "Count", "First", "FirstOrDefault"},
+				MethodType = typeof(VariableComparisonExpressionConverter)
+			},
 
-				}
+			new MethodConverterItems() {
+				MethodNames = new List<string>() {"Take"},
+				MethodType = typeof(SkipTakeExpressionConverter)
+			},
+			new MethodConverterItems() {
+				MethodNames = new List<string>() {"Skip"},
+				MethodType = typeof(SkipTakeExpressionConverter)
+			},
+			new MethodConverterItems() {
+				MethodNames = new List<string>() {"OrderBy", "OrderByDescending", "ThenBy", "ThenByDescending"},
+				MethodType = typeof(OrderMethodConverter)
+			},
+			new MethodConverterItems() {
+				MethodNames = new List<string>() {"Min", "Max", "Average", "Sum"},
+				MethodType = typeof(SimpleAggregationMethodConverter)
+			},
+
+		};
+
+		private static readonly List<MethodConverterItems>  PropertyMethodConverters = new List<MethodConverterItems>() {
+			new MethodConverterItems() {
+				MethodNames = new List<string>() {"StartsWith"},
+				MethodType = typeof(StringStartWithPropertyMethodConverter)
+			},
+			new MethodConverterItems() {
+				MethodNames = new List<string>() {"EndsWith"},
+				MethodType = typeof(StringEndWithPropertyMethodConverter)
+			},
+			new MethodConverterItems() {
+				MethodNames = new List<string>() {"Contains"},
+				MethodType = typeof(StringContainsPropertyMethodConverter)
+			}
+		};
+
+		private static readonly List<MethodConverterItems>  FieldMethodConverters = new List<MethodConverterItems>() {
+			new MethodConverterItems() {
+				MethodNames = new List<string>() {"Contains"},
+				MethodType = typeof(FieldContainsPropertyMethodConverter)
+			}
+		};
+
+		internal override ExpressionMetadata Convert(Expression expression, ExpressionModelMetadata modelMetadata) {
+			if (!(expression is MethodCallExpression methodCallExpression)) {
 				throw new ExpressionConvertException();
 			}
-			if (IsColumnPathMember(_node.Object)) {
-				return FunctionExpressionConverter.Convert(_node, modelMetadata);
+
+			if (methodCallExpression.Object == null &&
+			    TryGetExpressionMethodConverter(methodCallExpression, out var expressionMethodConverter)) {
+				return expressionMethodConverter.Convert(methodCallExpression, modelMetadata);
 			}
-			if (TryConvertToFunctionExpression(_node, out ExpressionMetadata metadata)) {
-				return metadata;
+
+			if (methodCallExpression.Object != null && IsColumnPathMember(methodCallExpression.Object, modelMetadata) &&
+			    TryGetPropertyMethodConverter(methodCallExpression, out var propertyMethodConverter)) {
+				return propertyMethodConverter.Convert(methodCallExpression, modelMetadata);
+			}
+
+			if (methodCallExpression.Object != null && !IsColumnPathMember(methodCallExpression.Object, modelMetadata) &&
+			    TryGetFieldMethodConverter(methodCallExpression, out var fieldMethodConverter)) {
+				return fieldMethodConverter.Convert(methodCallExpression, modelMetadata);
+			}
+
+			if (TryDynamicInvoke(expression, out var value)) {
+				return GetPropertyMetadata(expression, value);
 			}
 
 			throw new ExpressionConvertException();
 		}
 
-		private bool TryConvertToDetailFilterExpression(MethodCallExpression node) {
-			return false;
+		private bool TryGetPropertyMethodConverter(MethodCallExpression methodCallExpression, out ExpressionConverter converter) {
+			converter = null;
+			var item = PropertyMethodConverters.FirstOrDefault(x => x.MethodNames.Contains(methodCallExpression.Method.Name));
+			return item != null && (converter = GetExpressionConverter(item.MethodType)) != null;
 		}
 
-		private bool TryConvertToFunctionExpression(MethodCallExpression node, out ExpressionMetadata metadata) {
-			metadata = null;
-			if (node.Method?.Name == "Contains" && node.Arguments.Any() && IsColumnPathMember(_node.Arguments.First())) {
-				metadata = ConvertToContainsFunctionExpression(node);
-				return metadata != null;
-			}
-			return false;
+		private static bool TryGetExpressionMethodConverter(MethodCallExpression methodCallExpression,
+			out ExpressionConverter converter) {
+			converter = null;
+			var item = ExpressionMethodConverters.FirstOrDefault(x => x.MethodNames.Contains(methodCallExpression.Method.Name));
+			return item != null && (converter = GetExpressionConverter(item.MethodType)) != null;
 		}
 
-		private ExpressionMetadata ConvertToContainsFunctionExpression(MethodCallExpression node) {
-			var leftExpression = ConvertNode(_node.Arguments.First(), modelMetadata);
-			if (!TryDynamicInvoke(_node.Object, out var collection)) {
-				return null;
-			}
-			var method = RepositoryReflectionUtilities.GetGenericMethod(GetType(), "ConvertCollectionToObjectList",
-				leftExpression.Parameter.Type);
-			var list = (List<object>) method.Invoke(this, new object[] { collection });
-			var rightExpressions = list.Select(value => {
-				var property = GetPropertyMetadata(node, value);
-				property.Parameter.Type = leftExpression.Parameter.Type;
-				return property;
-			}).ToArray();
-
-			return ComparisonConverter.GenerateComparisonExpressionMetadata(leftExpression, FilterComparisonType.Equal,
-				rightExpressions);
+		private static bool TryGetFieldMethodConverter(MethodCallExpression methodCallExpression,
+			out ExpressionConverter converter) {
+			converter = null;
+			var item = FieldMethodConverters.FirstOrDefault(x => x.MethodNames.Contains(methodCallExpression.Method.Name));
+			return item != null && (converter = GetExpressionConverter(item.MethodType)) != null;
 		}
 
-		private List<object> ConvertCollectionToObjectList<T>(IList<T> original) {
-			return original.Select(x => (object) x).ToList();
-		}
 	}
 }

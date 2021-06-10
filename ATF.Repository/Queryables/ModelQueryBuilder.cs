@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using ATF.Repository.ExpressionAppliers;
 using ATF.Repository.ExpressionConverters;
-using ATF.Repository.Mapping;
 using Terrasoft.Common;
-using Terrasoft.Core.Entities;
 using Terrasoft.Nui.ServiceModel.DataContract;
 using FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType;
 
@@ -31,15 +28,15 @@ namespace ATF.Repository.Queryables
 			};
 		}
 
-		public static SelectQuery BuildSelectQuery(ExpressionChain expressionChain, Type finalElementType) {
-			if (!expressionChain.Any()) {
-				var defaultConfig = GenerateModelQueryBuildConfig(finalElementType);
+		public static SelectQuery BuildSelectQuery(ExpressionMetadataChain expressionMetadataChain) {
+			if (expressionMetadataChain.IsEmpty()) {
+				var defaultConfig = GenerateModelQueryBuildConfig(expressionMetadataChain.LastValueType);
 				return defaultConfig.SelectQuery;
 			}
 
-			var modelType = expressionChain.GetModelType();
+			var modelType = expressionMetadataChain.GetModelType();
 			var config = GenerateModelQueryBuildConfig(modelType);
-			expressionChain.OrderBy(x=>x.Position).TakeWhile(x => ApplyExpressionChainItemOnSelectQuery(x, config)).ToList();
+			expressionMetadataChain.Items.TakeWhile(x => ApplyExpressionChainItemOnSelectQuery(x, config)).ToList();
 			OptimizeFilters(config.SelectQuery.Filters);
 			return config.SelectQuery;
 		}
@@ -75,7 +72,7 @@ namespace ATF.Repository.Queryables
 
 		}
 
-		private static bool ApplyExpressionChainItemOnSelectQuery(ExpressionChainItem expressionChainItem, ModelQueryBuildConfig selectQuery) {
+		private static bool ApplyExpressionChainItemOnSelectQuery(ExpressionMetadataChainItem expressionChainItem, ModelQueryBuildConfig selectQuery) {
 			var expressionApplier = ExpressionApplier.GetApplier(expressionChainItem.Expression.Method.Name);
 			expressionChainItem.IsAppliedToQuery = expressionApplier?.Apply(expressionChainItem, selectQuery) ?? false;
 			return expressionChainItem.IsAppliedToQuery;

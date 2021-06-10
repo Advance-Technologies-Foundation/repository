@@ -1,24 +1,21 @@
 ﻿using System;
 using System.Linq;
 using System.Linq.Expressions;
+using ATF.Repository.ExpressionConverters;
 using ATF.Repository.Queryables;
 
 namespace ATF.Repository.ExpressionAppliers
 {
 	internal class TakeMethodApplier : ExpressionApplier
 	{
-		internal override bool Apply(ExpressionChainItem expressionChainItem, ModelQueryBuildConfig config) {
-			config.SelectQuery.RowCount = Math.Min(ModelQueryBuildConfig.MaxRowsCount, GetRowsCountAmount(expressionChainItem.Expression));
+		internal override bool Apply(ExpressionMetadataChainItem expressionMetadataChainItem, ModelQueryBuildConfig config) {
+			if (expressionMetadataChainItem.ExpressionMetadata.NodeType != ExpressionMetadataNodeType.Property)
+				return false;
+			var rowCount = (int)(expressionMetadataChainItem?.ExpressionMetadata?.Parameter?.Value ?? 0);
+			config.SelectQuery.RowCount = Math.Min(ModelQueryBuildConfig.MaxRowsCount, rowCount);
 			return true;
+
 		}
 
-		private static int GetRowsCountAmount(MethodCallExpression expression) {
-			var arguments = expression.Arguments;
-			var rowOffsetExpression = arguments.Skip(1).FirstOrDefault();
-			if (rowOffsetExpression != null && RepositoryExpressionUtilities.TryDynamicInvoke(rowOffsetExpression, out var value)) {
-				return (int)value;
-			}
-			throw new NotImplementedException();
-		}
 	}
 }

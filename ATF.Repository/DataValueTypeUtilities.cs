@@ -26,6 +26,7 @@ namespace ATF.Repository
 		}
 
 		internal static DataValueType ConvertTypeToDataValueType(Type propertyType) {
+			propertyType = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
 			if (ConvertDataValueTypeData.ContainsKey(propertyType)) {
 				return ConvertDataValueTypeData[propertyType];
 			}

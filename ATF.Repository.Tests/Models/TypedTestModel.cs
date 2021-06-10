@@ -35,6 +35,9 @@ namespace ATF.Repository.Tests.Models
 		[LookupProperty("AnotherLookupValue")]
 		public virtual LookupTestModel AnotherLookupValue { get; set; }
 
+		[LookupProperty("Parent")]
+		public virtual TypedTestModel Parent { get; set; }
+
 		[DetailProperty("GuidValueId")]
 		public virtual List<TypedTestModel> DetailModels { get; set; }
 

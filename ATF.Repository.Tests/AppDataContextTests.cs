@@ -168,7 +168,7 @@ namespace ATF.Repository.Tests
 		[Test, TestCaseSource(nameof(TypedPropertyCases))]
 		public void CreateModel_ShouldCreateModelAndFillSchemaProperty(PropertyValue caseData)
 		{
-
+			// Arrange
 			var key = caseData.GetKey();
 			var value = caseData.GetValue();
 			_dataProvider.GetDefaultValues("TypedTestModel").Returns(new DefaultValuesResponse() {
@@ -177,7 +177,11 @@ namespace ATF.Repository.Tests
 					{key, caseData.DataValue}
 				}
 			});
+
+			// Act
 			var model = _appDataContext.CreateModel<TypedTestModel>();
+
+			// Assert
 			Assert.AreNotEqual(Guid.Empty, model.Id);
 			Assert.AreEqual(value, model.GetPropertyValue(caseData.PropertyName));
 		}
@@ -189,6 +193,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenHasLookupAndGuidProperty_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var mainRecordId = Guid.NewGuid();
 			var lookupRecordId = Guid.NewGuid();
 			var lookupName = "LookupName";
@@ -216,8 +221,12 @@ namespace ATF.Repository.Tests
 						{"Name", lookupName}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.Id == mainRecordId);
 			var mainRecord = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(mainRecordId, mainRecord.Id);
 			Assert.AreEqual(lookupRecordId, mainRecord.LookupValueId);
 			Assert.AreEqual(lookupName, mainRecord.LookupValue.Name);
@@ -226,6 +235,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenHasOnlyLookupProperty_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var mainRecordId = Guid.NewGuid();
 			var lookupRecordId = Guid.NewGuid();
 			var lookupName = "LookupName";
@@ -253,8 +263,12 @@ namespace ATF.Repository.Tests
 						{"Name", lookupName}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.Id == mainRecordId);
 			var mainRecord = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(mainRecordId, mainRecord.Id);
 			Assert.AreEqual(lookupName, mainRecord.AnotherLookupValue.Name);
 		}
@@ -266,6 +280,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseVariableAsFilterParameter_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			string filterNumber = "Filter";
 			string expectedNumber = "Order";
@@ -281,8 +296,12 @@ namespace ATF.Repository.Tests
 						{"StringValue", expectedNumber}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.StringValue != filterNumber);
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedNumber, order.StringValue);
 		}
@@ -290,6 +309,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUsePureValueAsFilterParameter_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			string expectedNumber = "Order";
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -304,8 +324,12 @@ namespace ATF.Repository.Tests
 						{"StringValue", expectedNumber}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.StringValue == "Order");
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedNumber, order.StringValue);
 		}
@@ -313,6 +337,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseItemFromListAsFilterParameter_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			string expectedNumber = "Order";
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -328,8 +353,12 @@ namespace ATF.Repository.Tests
 					}
 				}});
 			var list = new List<string>() {expectedNumber};
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.StringValue == list.First());
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedNumber, order.StringValue);
 		}
@@ -337,6 +366,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenFilterUseLookupColumnFilter_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			Guid lookupRecordId = Guid.NewGuid();
 			string filteredValue = "Order";
@@ -367,9 +397,13 @@ namespace ATF.Repository.Tests
 					}
 				}});
 			var list = new List<string>() {filteredValue};
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x =>
 				x.LookupValue.Name != list.First());
 			var orders = queryable.ToList();
+
+			// Assert
 			var order = orders.First();
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedValue, order.StringValue);
@@ -379,6 +413,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseIntAsDecimalInVariableType_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			int expectedNumber = 1000;
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -393,8 +428,12 @@ namespace ATF.Repository.Tests
 						{"DecimalValue", (decimal)expectedNumber}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.DecimalValue == expectedNumber);
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedNumber, order.DecimalValue);
 		}
@@ -402,6 +441,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseIntAsDecimalInLine_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			decimal expectedNumber = 1000;
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -416,8 +456,12 @@ namespace ATF.Repository.Tests
 						{"DecimalValue", expectedNumber}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.DecimalValue == (int)expectedNumber);
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedNumber, order.DecimalValue);
 		}
@@ -425,6 +469,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseShortBooleanAsPositiveFilter_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
@@ -438,8 +483,12 @@ namespace ATF.Repository.Tests
 						{"BooleanValue", true}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.BooleanValue);
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.IsTrue(order.BooleanValue);
 		}
@@ -451,6 +500,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseStringAndEqual_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			string expectedNumber = "Order";
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -465,8 +515,12 @@ namespace ATF.Repository.Tests
 						{"StringValue", expectedNumber}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.StringValue == expectedNumber);
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedNumber, order.StringValue);
 		}
@@ -474,6 +528,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseStringAndNotEqual_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			string filteredNumber = "Filter";
 			string expectedNumber = "Order";
@@ -489,8 +544,12 @@ namespace ATF.Repository.Tests
 						{"StringValue", expectedNumber}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.StringValue != filteredNumber);
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedNumber, order.StringValue);
 		}
@@ -498,6 +557,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseIntAndEqual_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			int expectedNumber = 1000;
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -512,8 +572,12 @@ namespace ATF.Repository.Tests
 						{"IntValue", expectedNumber}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.IntValue == expectedNumber);
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedNumber, order.IntValue);
 		}
@@ -521,6 +585,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseIntAndGreater_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			int expectedNumber = 1000;
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -535,8 +600,12 @@ namespace ATF.Repository.Tests
 						{"IntValue", expectedNumber + 1}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.IntValue > expectedNumber);
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedNumber + 1, order.IntValue);
 		}
@@ -544,6 +613,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseIntAndGreaterOrEqual_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			int expectedNumber = 1000;
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -558,8 +628,12 @@ namespace ATF.Repository.Tests
 						{"IntValue", expectedNumber}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.IntValue >= expectedNumber);
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedNumber, order.IntValue);
 		}
@@ -567,6 +641,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseIntAndLess_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			int expectedNumber = 1000;
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -581,8 +656,12 @@ namespace ATF.Repository.Tests
 						{"IntValue", expectedNumber - 1}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.IntValue < expectedNumber);
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedNumber - 1, order.IntValue);
 		}
@@ -590,6 +669,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseIntAndLessOrEqual_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			int expectedNumber = 1000;
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -604,8 +684,12 @@ namespace ATF.Repository.Tests
 						{"IntValue", expectedNumber}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.IntValue <= expectedNumber);
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedNumber, order.IntValue);
 		}
@@ -613,6 +697,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseDecimalAndEqual_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			decimal expectedNumber = 1000.10m;
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -627,8 +712,12 @@ namespace ATF.Repository.Tests
 						{"DecimalValue", expectedNumber}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.DecimalValue == expectedNumber);
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedNumber, order.DecimalValue);
 		}
@@ -636,6 +725,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseBoolAndEqual_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var expectedId = Guid.NewGuid();
 			const bool expected = true;
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -650,8 +740,12 @@ namespace ATF.Repository.Tests
 						{"BooleanValue", expected}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.BooleanValue == expected);
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expected, order.BooleanValue);
 		}
@@ -659,6 +753,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseBoolAndNotEqual_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			const bool expected = true;
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -673,8 +768,12 @@ namespace ATF.Repository.Tests
 						{"BooleanValue", false}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.BooleanValue != expected);
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(false, order.BooleanValue);
 		}
@@ -682,6 +781,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseDateTimeAndEqual_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			var expected = DateTime.Now;
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -696,8 +796,12 @@ namespace ATF.Repository.Tests
 						{"DateTimeValue", expected}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.DateTimeValue == expected);
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expected, order.DateTimeValue);
 		}
@@ -709,6 +813,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseNotWithShortBooleanFilter_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
@@ -722,8 +827,12 @@ namespace ATF.Repository.Tests
 						{"BooleanValue", false}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => !x.BooleanValue);
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.IsFalse(order.BooleanValue);
 		}
@@ -731,6 +840,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseNotWithConstant_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			var value = true;
@@ -745,8 +855,12 @@ namespace ATF.Repository.Tests
 						{"BooleanValue", false}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.BooleanValue == !value);
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.IsFalse(order.BooleanValue);
 		}
@@ -759,7 +873,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseStartWith_ShouldReturnExpectedValue()
 		{
-
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			var part = "Order";
 			var expectedNumber = $"{part}Number";
@@ -776,8 +890,11 @@ namespace ATF.Repository.Tests
 					}
 				}});
 
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.StringValue.StartsWith(part));
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedNumber, order.StringValue);
 		}
@@ -785,7 +902,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseEndsWith_ShouldReturnExpectedValue()
 		{
-
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			string part = "Order";
 			string expectedNumber = $"Number{part}";
@@ -802,8 +919,11 @@ namespace ATF.Repository.Tests
 					}
 				}});
 
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.StringValue.EndsWith(part));
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedNumber, order.StringValue);
 		}
@@ -811,7 +931,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseStringContains_ShouldReturnExpectedValue()
 		{
-
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			string part = "Order";
 			string expectedNumber = $"Number{part}Box";
@@ -828,8 +948,11 @@ namespace ATF.Repository.Tests
 					}
 				}});
 
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.StringValue.Contains(part));
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedNumber, order.StringValue);
 		}
@@ -837,7 +960,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseStartWithOnLookupProperty_ShouldReturnExpectedValue()
 		{
-
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			string part = "Order";
 			string expectedNumber = $"{part}Number";
@@ -867,8 +990,11 @@ namespace ATF.Repository.Tests
 					}
 				}});
 
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.AnotherLookupValue.Name.StartsWith(part));
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedNumber, order.AnotherLookupValue.Name);
 		}
@@ -880,7 +1006,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseTwoFilters_ShouldReturnExpectedValue()
 		{
-
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			int expectedNumber = 10;
 			decimal expectedDecimalValue = 20m;
@@ -902,8 +1028,11 @@ namespace ATF.Repository.Tests
 					}
 				}});
 
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.IntValue == expectedNumber && x.DecimalValue >= expectedDecimalValue);
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedNumber, order.IntValue);
 		}
@@ -911,7 +1040,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseTwoFilterGroupsFiltersAndOrAnd_ShouldReturnExpectedValue()
 		{
-
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			int expectedNumber = 10;
 			decimal expectedDecimalValue = 20m;
@@ -946,10 +1075,13 @@ namespace ATF.Repository.Tests
 					}
 				}});
 
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x =>
 				x.IntValue == expectedNumber && x.DecimalValue >= expectedDecimalValue ||
 				x.IntValue != expectedNumber && x.DecimalValue < expectedDecimalValue);
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedNumber, order.IntValue);
 		}
@@ -957,7 +1089,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseTwoFilterGroupsFiltersOrAndOr_ShouldReturnExpectedValue()
 		{
-
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			int expectedNumber = 10;
 			decimal expectedDecimalValue = 20m;
@@ -990,10 +1122,13 @@ namespace ATF.Repository.Tests
 					}
 				}});
 
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x =>
 				(x.IntValue == expectedNumber || x.DecimalValue >= expectedDecimalValue) &&
 				(x.IntValue != expectedNumber || x.DecimalValue < expectedDecimalValue));
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.AreEqual(expectedNumber, order.IntValue);
 		}
@@ -1006,6 +1141,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenOneOfFiltersCannotBeConverted_ShouldThrowsExpressionConvertException()
 		{
+			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			var expected = new DateTime(2012, 10, 12, 14, 30, 0);
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -1024,6 +1160,8 @@ namespace ATF.Repository.Tests
 						{"DateTimeValue", expected.AddHours(-4)}
 					}
 				}});
+
+			// Assert
 			Assert.Throws<ExpressionConvertException>(() => {
 				_appDataContext.Models<TypedTestModel>().Where(x => x.IntValue == TestUsedMethod(x.IntValue)).ToList();
 			});
@@ -1036,7 +1174,8 @@ namespace ATF.Repository.Tests
 		[TestCase("DateTimeValue", DataValueType.DateTime)]
 		[TestCase("GuidValueId", DataValueType.Guid, "GuidValue")]
 		[TestCase("BooleanValue", DataValueType.Boolean)]
-		public void Models_WhenUseDateTimeAndIsNullComparison_ShouldReturnExpectedValue(string propertyName, DataValueType dataValueType, string columnName = "") {
+		public void Models_WhenUseIsNullComparison_ShouldReturnExpectedValue(string propertyName, DataValueType dataValueType, string columnName = "") {
+			// Arrange
 			columnName = string.IsNullOrEmpty(columnName) ? propertyName : columnName;
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -1060,8 +1199,12 @@ namespace ATF.Repository.Tests
 			var rightExpression = Expression.Constant(null, nullableType);
 			var comparisonExpression = Expression.Equal(leftExpression, rightExpression);
 			var lambda = Expression.Lambda<Func<TypedTestModel, bool>>(comparisonExpression, parameterExpression);
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(lambda);
 			var orders = queryable.ToList();
+
+			// Assert
 			Assert.AreEqual(1, orders.Count);
 			var order = orders.First();
 			Assert.AreEqual(expectedId, order.Id);
@@ -1075,6 +1218,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseWhereThenWhere_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
@@ -1092,39 +1236,21 @@ namespace ATF.Repository.Tests
 						{"IntValue", 10}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.BooleanValue).Where(x=>x.IntValue > 9);
 			var order = queryable.ToList().First();
+
+			// Assert
 			Assert.AreEqual(expectedId, order.Id);
 			Assert.IsTrue(order.BooleanValue);
 			Assert.AreEqual(10, order.IntValue);
 		}
 
-		/*[Test]
-		public void Models_WhenUseWhereThenWhere2_ShouldReturnExpectedValue()
-		{
-			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<Contact>();
-			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
-					true));
-			expectedSelect.Filters.Items.Add("f2",
-				CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
-					9));
-			_dataProvider
-				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-					}
-				}});
-			var queryable = _appDataContext.Models<Contact>().Where(x =>
-				x.Phone == null && x.Account.AccountCategoryId == new Guid("67c9e487-53fe-412d-800d-ff98c26f55a0") &&
-				x.Account.ExactNoOfEmployees > 20).Take(10).Skip(3).OrderBy(x=>x.Name);
-			var order = queryable.ToList().First();
-		}*/
-
 		[Test]
 		public void Models_WhenUseWhereThenSelect_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
@@ -1139,13 +1265,18 @@ namespace ATF.Repository.Tests
 						{"IntValue", 10}
 					}
 				}});
+
+			// Act
 			var intValue = _appDataContext.Models<TypedTestModel>().Where(x => x.BooleanValue).Select(x=>x.IntValue).First();
+
+			// Assert
 			Assert.AreEqual(10, intValue);
 		}
 
 		[Test]
 		public void Models_WhenUseFirstMethod_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
@@ -1161,13 +1292,18 @@ namespace ATF.Repository.Tests
 						{"IntValue", 10}
 					}
 				}});
+
+			// Act
 			var model = _appDataContext.Models<TypedTestModel>().First(x => x.BooleanValue);
+
+			// Assert
 			Assert.AreEqual(expectedId, model.Id);
 		}
 
 		[Test]
 		public void Models_WhenUseFirstOrDefaultMethod_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
@@ -1183,13 +1319,18 @@ namespace ATF.Repository.Tests
 						{"IntValue", 10}
 					}
 				}});
+
+			// Act
 			var model = _appDataContext.Models<TypedTestModel>().FirstOrDefault(x => x.BooleanValue);
+
+			// Assert
 			Assert.AreEqual(expectedId, model?.Id);
 		}
 
 		[Test]
 		public void Models_WhenUseWhereThenTake_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
@@ -1205,8 +1346,12 @@ namespace ATF.Repository.Tests
 						{"IntValue", 10}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.BooleanValue).Take(1);
 			var models = queryable.ToList();
+
+			// Assert
 			var first = models.FirstOrDefault();
 			Assert.AreEqual(1, models.Count);
 			Assert.AreEqual(10, first?.IntValue);
@@ -1215,6 +1360,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseWhereWithThreeExpressions_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
@@ -1236,8 +1382,52 @@ namespace ATF.Repository.Tests
 						{"IntValue", 10}
 					}
 				}});
+
+			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.BooleanValue && x.IntValue > 10 && x.StringValue.StartsWith("xxx")).Take(1);
 			var models = queryable.ToList();
+
+			// Assert
+			var first = models.FirstOrDefault();
+			Assert.AreEqual(1, models.Count);
+			Assert.AreEqual(10, first?.IntValue);
+		}
+
+		[Test]
+		public void Models_WhenUseWhereWithFourExpressions_ShouldReturnExpectedValue()
+		{
+			// Arrange
+			var expectedId = Guid.NewGuid();
+			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			expectedSelect.RowCount = 1;
+			expectedSelect.RowsOffset = 5;
+			expectedSelect.Filters.Items.Add("f1",
+				CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
+					true));
+			expectedSelect.Filters.Items.Add("f2",
+				CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
+					10));
+			var group = CreateFilterGroup(LogicalOperationStrict.Or);
+			expectedSelect.Filters.Items.Add("f3", group);
+			group.Items.Add("f1", CreateComparisonFilter("DecimalValue", FilterComparisonType.Less, DataValueType.Float2,
+				200.0m));
+			group.Items.Add("f2", CreateComparisonFilter("DecimalValue", FilterComparisonType.Greater, DataValueType.Float2,
+				1000.0m));
+			_dataProvider
+				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
+				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
+					new Dictionary<string, object>() {
+						{"Id", expectedId},
+						{"BooleanValue", true},
+						{"IntValue", 10}
+					}
+				}});
+
+			// Act
+			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.BooleanValue && x.IntValue > 10 && (x.DecimalValue < 200 || x.DecimalValue > 1000)).Take(1).Skip(5);
+			var models = queryable.ToList();
+
+			// Assert
 			var first = models.FirstOrDefault();
 			Assert.AreEqual(1, models.Count);
 			Assert.AreEqual(10, first?.IntValue);
@@ -1247,6 +1437,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseTypicalDifficultQuery_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
@@ -1281,10 +1472,14 @@ namespace ATF.Repository.Tests
 						{"StringValue", "StringValue"},
 					}
 				}});
+
+			// Act
 			var m = _appDataContext.Models<TypedTestModel>().Skip(1).Take(1)
 				.Where(x => x.BooleanValue && x.IntValue > 9).Where(x => x.IntValue < 20).OrderBy(x => x.IntValue)
 				.ThenByDescending(x => x.StringValue);
 			var mList = m.ToList();
+
+			// Assert
 			Assert.AreEqual(2, mList.Count);
 			Assert.AreEqual(10, mList.First().IntValue);
 			Assert.AreEqual(11, mList.Last().IntValue);
@@ -1293,6 +1488,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseQueryWithSkipTakeWhereAndOrderPart_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
@@ -1329,10 +1525,14 @@ namespace ATF.Repository.Tests
 						{"StringValue", "StringValue2"}
 					}
 				}});
+
+			// Act
 			var m = _appDataContext.Models<TypedTestModel>().Skip(1).Take(1)
 				.Where(x => x.BooleanValue && x.IntValue > 9).Where(x => x.IntValue < 20).OrderBy(x => x.IntValue)
 				.ThenByDescending(x => x.StringValue).Select(x => x.DateTimeValue).Select(x=>x.Hour).Select(x=>x + 10);
 			var mList = m.ToList();
+
+			// Assert
 			Assert.AreEqual(2, mList.Count);
 			Assert.AreEqual(22, mList.First());
 			Assert.AreEqual(10, mList.Last());
@@ -1341,6 +1541,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseQueryWithSkipTakeWhereAndOrderPartAndFirstOrDefaultWithoutExpression_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
@@ -1371,9 +1572,13 @@ namespace ATF.Repository.Tests
 						{"DateTimeValue", new DateTime(2001, 1, 1, 12, 10, 0)}
 					}
 				}});
+
+			// Act
 			var m = _appDataContext.Models<TypedTestModel>().Skip(1).Take(1)
 				.Where(x => x.BooleanValue && x.IntValue > 9).Where(x => x.IntValue < 20).OrderBy(x => x.IntValue)
 				.ThenByDescending(x => x.StringValue).FirstOrDefault();
+
+			// Assert
 			Assert.IsNotNull(m);
 			Assert.AreEqual(10, m.IntValue);
 		}
@@ -1381,6 +1586,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseQueryWithSkipTakeWhereAndOrderPartAndFirstOrDefaultWithExpression_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
@@ -1411,9 +1617,13 @@ namespace ATF.Repository.Tests
 						{"DateTimeValue", new DateTime(2001, 1, 1, 12, 10, 0)}
 					}
 				}});
+
+			// Act
 			var m = _appDataContext.Models<TypedTestModel>().Skip(1).Take(1)
 				.Where(x => x.BooleanValue && x.IntValue > 9).OrderBy(x => x.IntValue)
 				.ThenByDescending(x => x.StringValue).FirstOrDefault(x => x.IntValue < 20);
+
+			// Assert
 			Assert.IsNotNull(m);
 			Assert.AreEqual(10, m.IntValue);
 		}
@@ -1421,6 +1631,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenDetailsLinkByPropertyName_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var masterId = Guid.NewGuid();
 			var detailId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -1444,7 +1655,11 @@ namespace ATF.Repository.Tests
 						{"Id", detailId}
 					}
 				}});
+
+			// Act
 			var master = _appDataContext.Models<TypedTestModel>().First(x=>x.Id == masterId);
+
+			// Assert
 			Assert.IsNotNull(master);
 			Assert.AreEqual(masterId, master.Id);
 			Assert.IsNotNull(master.DetailModels);
@@ -1455,6 +1670,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenDetailsLinkByEntityColumnName_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var masterId = Guid.NewGuid();
 			var detailId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -1478,7 +1694,11 @@ namespace ATF.Repository.Tests
 						{"Id", detailId}
 					}
 				}});
+
+			// Act
 			var master = _appDataContext.Models<TypedTestModel>().First(x=>x.Id == masterId);
+
+			// Assert
 			Assert.IsNotNull(master);
 			Assert.AreEqual(masterId, master.Id);
 			Assert.IsNotNull(master.AnotherDetailModels);
@@ -1489,6 +1709,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void Models_WhenUseMaxResultFunction_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Columns = new SelectQueryColumns() {
 				Items = new Dictionary<string, SelectQueryColumn>() {
@@ -1513,13 +1734,18 @@ namespace ATF.Repository.Tests
 						{"MAXValue", 10}
 					}
 				}});
+
+			// Act
 			var maxValue = _appDataContext.Models<TypedTestModel>().Max(x=>x.IntValue);
+
+			// Assert
 			Assert.AreEqual(10, maxValue);
 		}
 
 		[Test]
 		public void Models_WhenUseMinResultFunction_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Columns = new SelectQueryColumns() {
 				Items = new Dictionary<string, SelectQueryColumn>() {
@@ -1544,13 +1770,18 @@ namespace ATF.Repository.Tests
 						{"MINValue", 10}
 					}
 				}});
+
+			// Act
 			var maxValue = _appDataContext.Models<TypedTestModel>().Min(x=>x.IntValue);
+
+			// Assert
 			Assert.AreEqual(10, maxValue);
 		}
 
 		[Test]
 		public void Models_WhenUseAverageResultFunction_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Columns = new SelectQueryColumns() {
 				Items = new Dictionary<string, SelectQueryColumn>() {
@@ -1575,13 +1806,18 @@ namespace ATF.Repository.Tests
 						{"AVERAGEValue", 10}
 					}
 				}});
+
+			// Act
 			var maxValue = _appDataContext.Models<TypedTestModel>().Average(x=>x.IntValue);
+
+			// Assert
 			Assert.AreEqual(10, maxValue);
 		}
 
 		[Test]
 		public void Models_WhenUseSumResultFunction_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Columns = new SelectQueryColumns() {
 				Items = new Dictionary<string, SelectQueryColumn>() {
@@ -1606,13 +1842,18 @@ namespace ATF.Repository.Tests
 						{"SUMValue", 10}
 					}
 				}});
+
+			// Act
 			var maxValue = _appDataContext.Models<TypedTestModel>().Sum(x=>x.IntValue);
+
+			// Assert
 			Assert.AreEqual(10, maxValue);
 		}
 
 		[Test]
 		public void Models_WhenUseCountWithInnerFilterResultFunction_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Columns = new SelectQueryColumns() {
 				Items = new Dictionary<string, SelectQueryColumn>() {
@@ -1638,13 +1879,18 @@ namespace ATF.Repository.Tests
 						{"COUNTValue", 10}
 					}
 				}});
+
+			// Act
 			var maxValue = _appDataContext.Models<TypedTestModel>().Count(model => model.BooleanValue);
+
+			// Assert
 			Assert.AreEqual(10, maxValue);
 		}
 
 		[Test]
 		public void Models_WhenUseCountWithoutInnerFilterResultFunction_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Columns = new SelectQueryColumns() {
 				Items = new Dictionary<string, SelectQueryColumn>() {
@@ -1668,13 +1914,18 @@ namespace ATF.Repository.Tests
 						{"COUNTValue", 10}
 					}
 				}});
+
+			// Act
 			var maxValue = _appDataContext.Models<TypedTestModel>().Count();
+
+			// Assert
 			Assert.AreEqual(10, maxValue);
 		}
 
 		[Test]
 		public void Models_WhenUseAnyWithInnerFilterResultFunction_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Columns = new SelectQueryColumns() {
 				Items = new Dictionary<string, SelectQueryColumn>() {
@@ -1700,13 +1951,18 @@ namespace ATF.Repository.Tests
 						{"ANYValue", 10}
 					}
 				}});
+
+			// Act
 			var actual = _appDataContext.Models<TypedTestModel>().Any(x=>x.BooleanValue);
+
+			// Assert
 			Assert.AreEqual(true, actual);
 		}
 
 		[Test]
 		public void Models_WhenUseAnyWithoutInnerFilterResultFunction_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Columns = new SelectQueryColumns() {
 				Items = new Dictionary<string, SelectQueryColumn>() {
@@ -1730,13 +1986,18 @@ namespace ATF.Repository.Tests
 						{"ANYValue", 10}
 					}
 				}});
+
+			// Act
 			var actual = _appDataContext.Models<TypedTestModel>().Any();
+
+			// Assert
 			Assert.AreEqual(true, actual);
 		}
 
 		[Test]
 		public void Models_WhenRequestSameModelTwoTimes_ShouldReturnExpectedValue()
 		{
+			// Arrange
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
@@ -1750,7 +2011,11 @@ namespace ATF.Repository.Tests
 						{"Id", expectedId}
 					}
 				}});
+
+			// Act
 			var model = _appDataContext.Models<TypedTestModel>().First(x => x.Id == expectedId);
+
+			// Assert
 			Assert.AreEqual(expectedId, model.Id);
 			var model2 = _appDataContext.Models<TypedTestModel>().First(x => x.Id == expectedId);
 			model2.IntValue = 20;
@@ -1760,6 +2025,7 @@ namespace ATF.Repository.Tests
 
 		[Test]
 		public void Models_WhenUseStringInFilter_ShouldReturnExpectedValue() {
+			// Arrange
 			var list = new List<string>() {"Part1", "Part2", "Part3"};
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -1776,13 +2042,16 @@ namespace ATF.Repository.Tests
 					}
 				}});
 
+			// Act
 			var model = _appDataContext.Models<TypedTestModel>().First(x => list.Contains(x.StringValue));
 
+			// Assert
 			Assert.AreEqual(expectedId, model.Id);
 		}
 
 		[Test]
 		public void Models_WhenUseStringNotInFilter_ShouldReturnExpectedValue() {
+			// Arrange
 			var list = new List<string>() {"Part1", "Part2", "Part3"};
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -1799,13 +2068,16 @@ namespace ATF.Repository.Tests
 					}
 				}});
 
+			// Act
 			var model = _appDataContext.Models<TypedTestModel>().First(x => !list.Contains(x.StringValue));
 
+			// Assert
 			Assert.AreEqual(expectedId, model.Id);
 		}
 
 		[Test]
 		public void Models_WhenUseGuidInFilter_ShouldReturnExpectedValue() {
+			// Arrange
 			var list = new List<Guid>() {Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()};
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -1822,13 +2094,16 @@ namespace ATF.Repository.Tests
 					}
 				}});
 
+			// Act
 			var model = _appDataContext.Models<TypedTestModel>().First(x => list.Contains(x.GuidValueId));
 
+			// Assert
 			Assert.AreEqual(expectedId, model.Id);
 		}
 
 		[Test]
 		public void Models_WhenUseIntInFilter_ShouldReturnExpectedValue() {
+			// Arrange
 			var list = new List<int>() {1, 2, 3};
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -1845,13 +2120,16 @@ namespace ATF.Repository.Tests
 					}
 				}});
 
+			// Act
 			var model = _appDataContext.Models<TypedTestModel>().First(x => list.Contains(x.IntValue));
 
+			// Assert
 			Assert.AreEqual(expectedId, model.Id);
 		}
 
 		[Test]
 		public void Models_WhenUseFloatInFilter_ShouldReturnExpectedValue() {
+			// Arrange
 			var list = new List<decimal>() {1.1m, 1.2m, 1.3m};
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -1868,13 +2146,16 @@ namespace ATF.Repository.Tests
 					}
 				}});
 
+			// Act
 			var model = _appDataContext.Models<TypedTestModel>().First(x => list.Contains(x.DecimalValue));
 
+			// Assert
 			Assert.AreEqual(expectedId, model.Id);
 		}
 
 		[Test]
 		public void Models_WhenUseBoolInFilter_ShouldReturnExpectedValue() {
+			// Arrange
 			var list = new List<bool>() {true, false};
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -1891,13 +2172,16 @@ namespace ATF.Repository.Tests
 					}
 				}});
 
+			// Act
 			var model = _appDataContext.Models<TypedTestModel>().First(x => list.Contains(x.BooleanValue));
 
+			// Assert
 			Assert.AreEqual(expectedId, model.Id);
 		}
 
 		[Test]
 		public void Models_WhenUseDateTimeInFilter_ShouldReturnExpectedValue() {
+			// Arrange
 			var list = new List<DateTime>() {DateTime.Now, DateTime.Now.AddDays(-10)};
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
@@ -1914,14 +2198,17 @@ namespace ATF.Repository.Tests
 					}
 				}});
 
+			// Act
 			var model = _appDataContext.Models<TypedTestModel>().First(x => list.Contains(x.DateTimeValue));
 
+			// Assert
 			Assert.AreEqual(expectedId, model.Id);
 		}
 
 		[Test]
 		public void ChangeTracker_WhenNoChangedExistedModel_ShouldReturnExpectedValues()
 		{
+			// Arrange
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
@@ -1935,8 +2222,12 @@ namespace ATF.Repository.Tests
 						{"Id", expectedId}
 					}
 				}});
+
+			// Act
 			var model = _appDataContext.Models<TypedTestModel>().First(x => x.Id == expectedId);
 			var changeTracker = _appDataContext.ChangeTracker.GetTrackedModels<TypedTestModel>();
+
+			// Assert
 			Assert.IsNotNull(changeTracker);
 			var changeItem = changeTracker.FirstOrDefault();
 			Assert.IsNotNull(changeItem);
@@ -1948,6 +2239,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void ChangeTracker_WhenChangeExistedModel_ShouldReturnExpectedValues()
 		{
+			// Arrange
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
@@ -1961,9 +2253,13 @@ namespace ATF.Repository.Tests
 						{"Id", expectedId}
 					}
 				}});
+
+			// Act
 			var model = _appDataContext.Models<TypedTestModel>().First(x => x.Id == expectedId);
 			model.IntValue = 10;
 			var changeTracker = _appDataContext.ChangeTracker.GetTrackedModels<TypedTestModel>();
+
+			// Assert
 			Assert.IsNotNull(changeTracker);
 			var changeItem = changeTracker.FirstOrDefault();
 			Assert.IsNotNull(changeItem);
@@ -1976,9 +2272,14 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void ChangeTracker_WhenNoChangedNewModel_ShouldReturnExpectedValues()
 		{
+			// Arrange
 			_dataProvider.GetDefaultValues("TypedTestModel").Returns(new DefaultValuesResponse() {Success = true, DefaultValues = new Dictionary<string, object>()});
 			var model = _appDataContext.CreateModel<TypedTestModel>();
+
+			// Act
 			var changeTracker = _appDataContext.ChangeTracker.GetTrackedModels<TypedTestModel>();
+
+			// Assert
 			Assert.IsNotNull(changeTracker);
 			var changeItem = changeTracker.FirstOrDefault();
 			Assert.IsNotNull(changeItem);
@@ -1990,9 +2291,14 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void ChangeTracker_WhenChangeNewModel_ShouldReturnExpectedValues()
 		{
+			// Arrange
 			_dataProvider.GetDefaultValues("TypedTestModel").Returns(new DefaultValuesResponse() {Success = true, DefaultValues = new Dictionary<string, object>()});
 			var model = _appDataContext.CreateModel<TypedTestModel>();
+
+			// Act
 			var changeTracker = _appDataContext.ChangeTracker.GetTrackedModels<TypedTestModel>();
+
+			// Assert
 			model.IntValue = 10;
 			Assert.IsNotNull(changeTracker);
 			var changeItem = changeTracker.FirstOrDefault();
@@ -2005,9 +2311,14 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void ChangeTracker_WhenDeleteNewModel_ShouldReturnExpectedValues()
 		{
+			// Arrange
 			_dataProvider.GetDefaultValues("TypedTestModel").Returns(new DefaultValuesResponse() {Success = true, DefaultValues = new Dictionary<string, object>()});
 			var model = _appDataContext.CreateModel<TypedTestModel>();
+
+			// Act
 			var changeTracker = _appDataContext.ChangeTracker.GetTrackedModels<TypedTestModel>();
+
+			// Assert
 			model.IntValue = 10;
 			_appDataContext.DeleteModel(model);
 			Assert.IsNotNull(changeTracker);
@@ -2021,6 +2332,7 @@ namespace ATF.Repository.Tests
 		[Test]
 		public void ChangeTracker_WhenDeleteExistedModel_ShouldReturnExpectedValues()
 		{
+			// Arrange
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
@@ -2037,7 +2349,11 @@ namespace ATF.Repository.Tests
 			var model = _appDataContext.Models<TypedTestModel>().First(x => x.Id == expectedId);
 			model.IntValue = 10;
 			_appDataContext.DeleteModel(model);
+
+			// Act
 			var changeTracker = _appDataContext.ChangeTracker.GetTrackedModels<TypedTestModel>();
+
+			// Assert
 			Assert.IsNotNull(changeTracker);
 			var changeItem = changeTracker.FirstOrDefault();
 			Assert.IsNotNull(changeItem);
@@ -2048,7 +2364,7 @@ namespace ATF.Repository.Tests
 		}
 
 
-		/*[Test]
+		[Test]
 		public void Models_WhenUseDetailAnyFilterWithoutInnerFilters_ShouldReturnExpectedValue() {
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<Account>();
@@ -2072,12 +2388,41 @@ namespace ATF.Repository.Tests
 						{"Id", expectedId}
 					}
 				}});
-			var models = _appDataContext.Models<Account>().Where(x=>x.Contacts.Any()).ToList();
+			var models = _appDataContext.Models<TypedTestModel>().Where(x=>x.Parent.DetailModels.Any()).ToList();
 			Assert.AreEqual(1, models.Count);
 			Assert.AreEqual(expectedId, models.First().Id);
 		}
 
 		[Test]
+		public void Models_WhenUseDetailAnyFilterWithoutInnerFilters2_ShouldReturnExpectedValue() {
+			var expectedId = Guid.NewGuid();
+			var expectedSelect = GetTestSelectQuery<Account>();
+			expectedSelect.Filters.Items.Add("f1", new Filter() {
+				FilterType = FilterType.Exists,
+				ComparisonType = FilterComparisonType.Exists,
+				LeftExpression = new ColumnExpression() {
+					ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,
+					ColumnPath = "[Contact:Account].Id"
+				},
+				SubFilters = new Filters() {
+					RootSchemaName = "Contact",
+					FilterType = FilterType.FilterGroup,
+					Items = new Dictionary<string, Filter>()
+				}
+			});
+			_dataProvider
+				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
+				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
+					new Dictionary<string, object>() {
+						{"Id", expectedId}
+					}
+				}});
+			var models = _appDataContext.Models<Account>().Where(x=>x.Contacts.Any() == false).ToList();
+			Assert.AreEqual(1, models.Count);
+			Assert.AreEqual(expectedId, models.First().Id);
+		}
+
+		/*[Test]
 		public void Models_WhenUseDetailCountFilterWithoutInnerFilters_ShouldReturnExpectedValue() {
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<Account>();

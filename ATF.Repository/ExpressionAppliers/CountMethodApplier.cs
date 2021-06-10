@@ -1,4 +1,5 @@
 ﻿using System.Linq.Expressions;
+using ATF.Repository.ExpressionConverters;
 using ATF.Repository.Queryables;
 using Terrasoft.Common;
 using Terrasoft.Core.Entities;
@@ -8,11 +9,13 @@ namespace ATF.Repository.ExpressionAppliers
 {
 	internal class CountMethodApplier: WhereMethodApplier
 	{
-		internal override bool Apply(ExpressionChainItem expressionChainItem, ModelQueryBuildConfig config) {
-			if (expressionChainItem.Expression.Arguments.Count > 1 && !base.Apply(expressionChainItem, config)) {
+
+		internal override bool Apply(ExpressionMetadataChainItem expressionMetadataChainItem, ModelQueryBuildConfig config) {
+			if (expressionMetadataChainItem.Expression.Arguments.Count > 1 &&
+			    !base.Apply(expressionMetadataChainItem, config)) {
 				return false;
 			}
-			var methodName = expressionChainItem.Expression.Method.Name;
+			var methodName = expressionMetadataChainItem.Expression.Method.Name;
 			var aggregationColumnName = RepositoryExpressionUtilities.GetAggregationColumnName(methodName);
 			config.SelectQuery.Columns.Items.Clear();
 			config.SelectQuery.Columns.Items.Add(aggregationColumnName, new SelectQueryColumn() {

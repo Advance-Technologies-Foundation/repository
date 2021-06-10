@@ -7,6 +7,7 @@
 	using System.Linq;
 	using System.Linq.Expressions;
 	using ATF.Repository.ExpressionAppliers;
+	using ATF.Repository.ExpressionConverters;
 	using Terrasoft.Common;
 	using ATF.Repository.Providers;
 
@@ -16,9 +17,6 @@
 		private readonly AppDataContext _appDataContext;
 		private readonly Type _elementType;
 
-		private ExpressionChain _expressionChain;
-		private ExpressionChain ExpressionChain => _expressionChain ?? (_expressionChain = new ExpressionChain());
-
 		internal ModelQueryProvider(IDataProvider dataProvider, AppDataContext appDataContext, Type elementType) {
 			_dataProvider = dataProvider;
 			_appDataContext = appDataContext;
@@ -26,25 +24,26 @@
 		}
 
 		public IEnumerable<T> ExecuteEnumerable<T>(Expression expression) {
-			var dataCollection = LoadDataCollection();
-			var models = LoadModelCollection(dataCollection);
-			return ApplyCollectionProjector<T>(models.ToList<object>());
+			var chain = ExpressionToMetadataConverter.Convert(expression, _elementType);
+			var dataCollection = LoadDataCollection(chain);
+			var models = LoadModelCollection(dataCollection, chain);
+			return ApplyCollectionProjector<T>(models.ToList<object>(), chain);
 		}
 
-		private IEnumerable<T> ApplyCollectionProjector<T>(IReadOnlyCollection<object> sourceItems) {
-			var notAppliedChainItems = ExpressionChain.Where(x => !x.IsAppliedToQuery).OrderBy(x => x.Position).ToList();
+		private IEnumerable<T> ApplyCollectionProjector<T>(IReadOnlyCollection<object> sourceItems, ExpressionMetadataChain chain) {
+			var notAppliedChainItems = chain.Items.Where(x => !x.IsAppliedToQuery).ToList();
 			if (notAppliedChainItems.Any()) {
 				var method = RepositoryReflectionUtilities.GetGenericMethod(this.GetType(), "ApplyTypedCollectionProjector", typeof(T),
 					notAppliedChainItems.First().InputDtoType.Type);
-				return (IEnumerable<T>)method.Invoke(this, new object[] {sourceItems});
+				return (IEnumerable<T>)method.Invoke(this, new object[] {sourceItems, chain});
 			}
 			return sourceItems.Select(x => (T) x).AsEnumerable();
 		}
 
-		private IEnumerable<T> ApplyTypedCollectionProjector<T, TItem>(IEnumerable<object> rawSourceItems) {
+		private IEnumerable<T> ApplyTypedCollectionProjector<T, TItem>(IEnumerable<object> rawSourceItems, ExpressionMetadataChain chain) {
 			var sourceItems = rawSourceItems.Select(x => (TItem) x).ToList();
 			Expression sourceExpression = Expression.Constant(sourceItems.AsQueryable());
-			ExpressionChain.Where(x=>!x.IsAppliedToQuery).OrderBy(x=>x.Position).ForEach(x => {
+			chain.Items.Where(x=>!x.IsAppliedToQuery).ForEach(x => {
 				sourceExpression = Expression.Call(null, x.Expression.Method, sourceExpression,
 					x.Expression.Arguments.Skip(1).First());
 			});
@@ -63,23 +62,7 @@
 
 		public IQueryable<TElement> CreateQuery<TElement>(Expression expression) {
 			expression.CheckArgumentNull(nameof(expression));
-			AddExpressionToChain(expression);
 			return new ModelQuery<TElement>(_dataProvider, this, expression);
-		}
-
-		private void AddExpressionToChain(Expression expression) {
-			var item = MakeExpressionChainItem(expression);
-			if (item != null) {
-				item.Position = ExpressionChain.Count;
-				ExpressionChain.Add(item);
-			}
-		}
-
-		private ExpressionChainItem MakeExpressionChainItem(Expression expression) {
-			if (!(expression is MethodCallExpression methodCallExpression)) {
-				throw new InvalidTypeCastException(nameof(expression), typeof(MethodCallExpression));
-			}
-			return new ExpressionChainItem(methodCallExpression);
 		}
 
 		public object Execute(Expression expression) {
@@ -87,13 +70,12 @@
 		}
 
 		public TResult Execute<TResult>(Expression expression) {
-			AddExpressionToChain(expression);
 			return ExecuteScalar<TResult>(expression);
 		}
 
-		private List<BaseModel> LoadModelCollection(List<Dictionary<string, object>> dataCollection) {
+		private List<BaseModel> LoadModelCollection(List<Dictionary<string, object>> dataCollection, ExpressionMetadataChain chain) {
 			var method = RepositoryReflectionUtilities.GetGenericMethod(GetType(),
-				"LoadTypedModelCollection", ExpressionChain.Any() ? ExpressionChain.GetModelType() : _elementType);
+				"LoadTypedModelCollection", chain.GetModelType());
 			var models = (List<BaseModel>)method?.Invoke(this, new object[] {dataCollection});
 			return models;
 		}
@@ -103,8 +85,8 @@
 			return models.Select(x=>(BaseModel)x).ToList();
 		}
 
-		private List<Dictionary<string, object>> LoadDataCollection() {
-			var selectQuery = ModelQueryBuilder.BuildSelectQuery(ExpressionChain, _elementType);
+		private List<Dictionary<string, object>> LoadDataCollection(ExpressionMetadataChain chain) {
+			var selectQuery = ModelQueryBuilder.BuildSelectQuery(chain);
 			var response = _dataProvider.GetItems(selectQuery);
 			return response != null && response.Success
 				? response.Items
@@ -112,21 +94,16 @@
 		}
 
 		private T ExecuteScalar<T>(Expression expression) {
-			var dataCollection = LoadDataCollection();
-			if (ExpressionChain.GetModelType() == ExpressionChain.OutputAppliedType()) {
-				var models = LoadModelCollection(dataCollection);
-				return ApplyScalarProjector<T>(models.ToList<object>());
-			}
-
+			var chain = ExpressionToMetadataConverter.Convert(expression, _elementType);
+			var dataCollection = LoadDataCollection(chain);
 			if (RepositoryExpressionUtilities.IsAggregationMethodExpression(expression)) {
 				return GetAggregationValue<T>(expression, dataCollection);
 			}
-
 			if (RepositoryExpressionUtilities.IsAnyMethodExpression(expression)) {
 				return GetAnyValue<T>(dataCollection);
 			}
-
-			throw new NotImplementedException();
+			var models = LoadModelCollection(dataCollection, chain);
+			return ApplyScalarProjector<T>(models.ToList<object>(), chain);
 		}
 
 		private static T GetAnyValue<T>(IReadOnlyCollection<Dictionary<string, object>>
@@ -177,21 +154,21 @@
 			return (T)converter.ConvertTo(value, typeof(T));
 		}
 
-		private T ApplyScalarProjector<T>(List<object> sourceItems) {
-			var notAppliedChainItems = ExpressionChain.Where(x => !x.IsAppliedToQuery).OrderBy(x => x.Position).ToList();
+		private T ApplyScalarProjector<T>(List<object> sourceItems, ExpressionMetadataChain chain) {
+			var notAppliedChainItems = chain.Items.Where(x => !x.IsAppliedToQuery).ToList();
 			if (!notAppliedChainItems.Any()) {
 				return sourceItems.Any() ? (T) sourceItems.First() : default(T);
 			}
 			var method = RepositoryReflectionUtilities.GetGenericMethod(this.GetType(), "ApplyTypedScalarProjector", typeof(T),
 				notAppliedChainItems.First().InputDtoType.Type);
-			return (T)method.Invoke(this, new object[] {sourceItems});
+			return (T)method.Invoke(this, new object[] {sourceItems, chain});
 
 		}
 
-		private T ApplyTypedScalarProjector<T, TItem>(List<object> rawSourceItems) {
+		private T ApplyTypedScalarProjector<T, TItem>(List<object> rawSourceItems, ExpressionMetadataChain chain) {
 			var sourceItems = rawSourceItems.Select(x => (TItem) x).ToList();
 			Expression sourceExpression = Expression.Constant(sourceItems.AsQueryable());
-			ExpressionChain.Where(x=>!x.IsAppliedToQuery).OrderBy(x=>x.Position).ForEach(x => {
+			chain.Items.Where(x=>!x.IsAppliedToQuery).ForEach(x => {
 				if (x.Expression.Arguments.Count == 1) {
 					sourceExpression = Expression.Call(null, x.Expression.Method, sourceExpression);
 				} else if (x.Expression.Arguments.Count == 2) {
