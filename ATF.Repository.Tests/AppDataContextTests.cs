@@ -2393,7 +2393,7 @@ namespace ATF.Repository.Tests
 			Assert.AreEqual(expectedId, models.First().Id);
 		}
 
-		[Test]
+		/*[Test]
 		public void Models_WhenUseDetailAnyFilterWithoutInnerFilters2_ShouldReturnExpectedValue() {
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = GetTestSelectQuery<Account>();
@@ -2420,7 +2420,7 @@ namespace ATF.Repository.Tests
 			var models = _appDataContext.Models<Account>().Where(x=>x.Contacts.Any() == false).ToList();
 			Assert.AreEqual(1, models.Count);
 			Assert.AreEqual(expectedId, models.First().Id);
-		}
+		}*/
 
 		/*[Test]
 		public void Models_WhenUseDetailCountFilterWithoutInnerFilters_ShouldReturnExpectedValue() {
