@@ -1,4 +1,4 @@
-﻿namespace ATF.Repository.Tests.Models
+﻿namespace ATF.Repository.UnitTests.Models
 {
 	using ATF.Repository.Attributes;
 

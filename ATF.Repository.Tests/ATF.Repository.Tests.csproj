@@ -42,12 +42,12 @@
 		<Content Include="NUnit3.TestAdapter.pdb" />
 	</ItemGroup>
 	<ItemGroup>
-	  <Reference Include="ServiceStack.Interfaces, Version=3.9.33.0, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+	  <!--<Reference Include="ServiceStack.Interfaces, Version=3.9.33.0, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
 	    <HintPath>Libs\ServiceStack.Interfaces.dll</HintPath>
 	  </Reference>
 	  <Reference Include="Terrasoft.Core.ServiceModelContract, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
 	    <HintPath>Libs\Terrasoft.Core.ServiceModelContract.dll</HintPath>
-	  </Reference>
+	  </Reference>-->
 	  <Reference Include="UnitTest, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null">
 	    <HintPath>Libs\UnitTest.dll</HintPath>
 	  </Reference>

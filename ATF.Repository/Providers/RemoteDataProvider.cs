@@ -166,5 +166,47 @@
 		public List<JObject> Rows { get; set; }
 	}
 
+	internal class BatchResponse
+	{
+		public ResponseStatus ResponseStatus { get; set; }
+
+		public List<object> QueryResults { get; set; }
+
+		public bool HasErrors { get; set; }
+	}
+
+	internal class ResponseStatus
+	{
+		public ResponseStatus(string errorCode) => this.ErrorCode = errorCode;
+
+		public ResponseStatus(string errorCode, string message)
+			: this(errorCode) {
+			this.Message = message;
+		}
+
+		[JsonProperty(PropertyName = "ErrorCode")]
+		public string ErrorCode { get; set; }
+
+		[JsonProperty(PropertyName = "Message")]
+		public string Message { get; set; }
+
+		[JsonProperty(PropertyName = "StackTrace")]
+		public string StackTrace { get; set; }
+
+		[JsonProperty(PropertyName = "Errors")]
+		public List<ResponseError> Errors { get; set; }
+
+	}
+
+	internal class ResponseError
+	{
+		public string ErrorCode { get; set; }
+
+		public string FieldName { get; set; }
+
+		public string Message { get; set; }
+
+		public Dictionary<string, string> Meta { get; set; }
+	}
 
 }

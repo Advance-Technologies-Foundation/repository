@@ -5,16 +5,42 @@ using System.Linq.Expressions;
 using ATF.Repository.Exceptions;
 using ATF.Repository.Mapping;
 using ATF.Repository.Providers;
-using ATF.Repository.Tests.Models;
+using ATF.Repository.UnitTests.Models;
+using ATF.Repository.UnitTests.Utilities;
 using NSubstitute;
 using NUnit.Framework;
 using Terrasoft.Common;
 using Terrasoft.Core.Entities;
 using Terrasoft.Nui.ServiceModel.DataContract;
 using FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType;
+using QueryComparison = ATF.Repository.UnitTests.Utilities.QueryComparison;
 
-namespace ATF.Repository.Tests
+namespace ATF.Repository.UnitTests
 {
+	public class PropertyValue
+	{
+		public string PropertyName { get; set; }
+		private string ColumnName { get; set; }
+		public object DataValue { get; set; }
+		private object ExpectedValue { get; set; }
+
+		internal PropertyValue(string propertyName, object dataValue, string columnName = "",
+			object expectedValue = null) {
+			PropertyName = propertyName;
+			DataValue = dataValue;
+			ColumnName = columnName;
+			ExpectedValue = expectedValue;
+		}
+
+		public object GetValue() {
+			return ExpectedValue ?? DataValue;
+		}
+
+		public string GetKey() {
+			return string.IsNullOrEmpty(ColumnName) ? PropertyName : ColumnName;
+		}
+	}
+
 	[TestFixture]
 	public class AppDataContextTests
 	{
@@ -22,125 +48,22 @@ namespace ATF.Repository.Tests
 		private IAppDataContext _appDataContext;
 
 		[SetUp]
-		public void SetUp()
-		{
+		public void SetUp() {
 			_dataProvider = Substitute.For<IDataProvider>();
 			_appDataContext = AppDataContextFactory.GetAppDataContext(_dataProvider);
 		}
 
+		#region Simple tests
+
 		[Test]
-		public void CreateModel_ShouldCreateSimpleModel()
-		{
-			_dataProvider.GetDefaultValues("TypedTestModel").Returns(new DefaultValuesResponse() { Success = true, DefaultValues = new Dictionary<string, object>()});
+		public void CreateModel_ShouldCreateSimpleModel() {
+			_dataProvider.GetDefaultValues("TypedTestModel").Returns(new DefaultValuesResponse()
+				{Success = true, DefaultValues = new Dictionary<string, object>()});
 			var model = _appDataContext.CreateModel<TypedTestModel>();
 			Assert.AreNotEqual(Guid.Empty, model.Id);
 		}
 
-		public class PropertyValue
-		{
-			public string PropertyName { get; set; }
-			private string ColumnName { get; set; }
-			public object DataValue { get; set; }
-			private object ExpectedValue { get; set; }
-
-			internal PropertyValue(string propertyName, object dataValue, string columnName = "",
-				object expectedValue = null)
-			{
-				PropertyName = propertyName;
-				DataValue = dataValue;
-				ColumnName = columnName;
-				ExpectedValue = expectedValue;
-			}
-
-			public object GetValue()
-			{
-				return ExpectedValue ?? DataValue;
-			}
-
-			public string GetKey()
-			{
-				return string.IsNullOrEmpty(ColumnName) ? PropertyName : ColumnName;
-			}
-		}
-
-		private SelectQuery GetTestSelectQuery<T>(Action<Filters> enrichFilter = null) where T: BaseModel {
-			var modelType = typeof(T);
-			var schemaName = ModelUtilities.GetSchemaName(modelType);
-			var columns = new SelectQueryColumns() {Items = new Dictionary<string, SelectQueryColumn>()};
-			ModelMapper.GetModelItems(modelType).Where(modelItem =>
-					modelItem.PropertyType == ModelItemType.Column || modelItem.PropertyType == ModelItemType.Lookup)
-				.ForEach(property => {
-					if (!columns.Items.ContainsKey(property.EntityColumnName)) {
-						columns.Items.Add(property.EntityColumnName, new SelectQueryColumn() {
-							Expression = new ColumnExpression() {
-								ColumnPath = property.EntityColumnName,
-								ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn
-							},
-							OrderDirection = OrderDirection.None,
-							OrderPosition = -1
-						});
-					}
-				});
-			var filters = new Filters() {
-				FilterType = FilterType.FilterGroup,
-				LogicalOperation = LogicalOperationStrict.And,
-				Items = new Dictionary<string, Filter>()
-			};
-			enrichFilter?.Invoke(filters);
-
-			return new SelectQuery() {
-				RootSchemaName = schemaName,
-				AllColumns = false,
-				IsDistinct = false,
-				RowCount = 100,
-				Columns = columns,
-				Filters = filters
-			};
-		}
-
-		private Filter CreateComparisonFilter(string columnPath, FilterComparisonType comparisonType,
-			DataValueType dataValueType, params object[] values) {
-			var rightExpressions = values.Select(value => new BaseExpression() {
-				ExpressionType = EntitySchemaQueryExpressionType.Parameter,
-				Parameter = new Parameter() {
-					Value = GetQueryValue(value, dataValueType),
-					DataValueType = dataValueType
-				}
-			}).ToList();
-			return new Filter() {
-				FilterType = rightExpressions.Count > 1 ? FilterType.InFilter : FilterType.CompareFilter,
-				ComparisonType = comparisonType,
-				IsEnabled = true,
-				LeftExpression = new ColumnExpression() {
-					ColumnPath = columnPath,
-					ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn
-				},
-				RightExpression = rightExpressions.Count == 1 ? rightExpressions.First() : null,
-				RightExpressions = rightExpressions.Count > 1 ? rightExpressions.ToArray() : null
-			};
-		}
-
-		private static object GetQueryValue(object rawValue, DataValueType dataValueType) {
-			if (DataValueTypeUtilities.IsDateDataValueType(dataValueType) && rawValue != null) {
-				return $"\"{((DateTime)rawValue):yyyy-MM-ddTHH:mm:ss.fff}\"";
-			}
-
-			return rawValue;
-		}
-
-
-		private Filter CreateFilterGroup(LogicalOperationStrict logicalOperation) {
-			return new Filter() {
-				FilterType = FilterType.FilterGroup,
-				LogicalOperation = logicalOperation,
-				Items = new Dictionary<string, Filter>()
-			};
-		}
-
-		#region Simple types
-
-		private static IEnumerable<PropertyValue> TypedPropertyCases()
-		{
+		private static IEnumerable<PropertyValue> TypedPropertyCases() {
 			yield return new PropertyValue("DecimalValue", 10.0m, "DecimalValue", 10.0m);
 			yield return new PropertyValue("DecimalValue", 0.0m);
 			yield return new PropertyValue("DecimalValue", 1010.101m);
@@ -157,7 +80,8 @@ namespace ATF.Repository.Tests
 			yield return new PropertyValue("DateTimeValue", new DateTime(2001, 1, 1, 10, 30, 30, 100));
 			yield return new PropertyValue("GuidValueId", Guid.Empty, "GuidValue");
 			yield return new PropertyValue("GuidValueId", null, "GuidValue", Guid.Empty);
-			yield return new PropertyValue("GuidValueId", new Guid("56208F72-DEF0-44FE-83C3-51D701A22A9E"), "GuidValue", new Guid("56208F72-DEF0-44FE-83C3-51D701A22A9E"));
+			yield return new PropertyValue("GuidValueId", new Guid("56208F72-DEF0-44FE-83C3-51D701A22A9E"), "GuidValue",
+				new Guid("56208F72-DEF0-44FE-83C3-51D701A22A9E"));
 			yield return new PropertyValue("BooleanValue", true);
 			yield return new PropertyValue("BooleanValue", false);
 			yield return new PropertyValue("BooleanValue", 0, "BooleanValue", false);
@@ -166,8 +90,7 @@ namespace ATF.Repository.Tests
 		}
 
 		[Test, TestCaseSource(nameof(TypedPropertyCases))]
-		public void CreateModel_ShouldCreateModelAndFillSchemaProperty(PropertyValue caseData)
-		{
+		public void CreateModel_ShouldCreateModelAndFillSchemaProperty(PropertyValue caseData) {
 			// Arrange
 			var key = caseData.GetKey();
 			var value = caseData.GetValue();
@@ -191,36 +114,39 @@ namespace ATF.Repository.Tests
 		#region Lookups
 
 		[Test]
-		public void Models_WhenHasLookupAndGuidProperty_ShouldReturnExpectedValue()
-		{
+		public void Models_WhenHasLookupAndGuidProperty_ShouldReturnExpectedValue() {
 			// Arrange
 			var mainRecordId = Guid.NewGuid();
 			var lookupRecordId = Guid.NewGuid();
 			var lookupName = "LookupName";
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
+				TestSelectBuilder.CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
 					mainRecordId));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", mainRecordId},
-						{"LookupValue", lookupRecordId}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", mainRecordId},
+							{"LookupValue", lookupRecordId}
+						}
 					}
-				}});
-			var expectedLookupSelect = GetTestSelectQuery<LookupTestModel>();
+				});
+			var expectedLookupSelect = TestSelectBuilder.GetTestSelectQuery<LookupTestModel>();
 			expectedLookupSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
+				TestSelectBuilder.CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
 					lookupRecordId));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedLookupSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", lookupRecordId},
-						{"Name", lookupName}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", lookupRecordId},
+							{"Name", lookupName}
+						}
 					}
-				}});
+				});
 
 			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.Id == mainRecordId);
@@ -233,36 +159,39 @@ namespace ATF.Repository.Tests
 		}
 
 		[Test]
-		public void Models_WhenHasOnlyLookupProperty_ShouldReturnExpectedValue()
-		{
+		public void Models_WhenHasOnlyLookupProperty_ShouldReturnExpectedValue() {
 			// Arrange
 			var mainRecordId = Guid.NewGuid();
 			var lookupRecordId = Guid.NewGuid();
 			var lookupName = "LookupName";
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
+				TestSelectBuilder.CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
 					mainRecordId));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", mainRecordId},
-						{"AnotherLookupValue", lookupRecordId}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", mainRecordId},
+							{"AnotherLookupValue", lookupRecordId}
+						}
 					}
-				}});
-			var expectedLookupSelect = GetTestSelectQuery<LookupTestModel>();
+				});
+			var expectedLookupSelect = TestSelectBuilder.GetTestSelectQuery<LookupTestModel>();
 			expectedLookupSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
+				TestSelectBuilder.CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
 					lookupRecordId));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedLookupSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", lookupRecordId},
-						{"Name", lookupName}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", lookupRecordId},
+							{"Name", lookupName}
+						}
 					}
-				}});
+				});
 
 			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.Id == mainRecordId);
@@ -278,24 +207,26 @@ namespace ATF.Repository.Tests
 		#region Filter Sources
 
 		[Test]
-		public void Models_WhenUseVariableAsFilterParameter_ShouldReturnExpectedValue()
-		{
+		public void Models_WhenUseVariableAsFilterParameter_ShouldReturnExpectedValue() {
 			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			string filterNumber = "Filter";
 			string expectedNumber = "Order";
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("StringValue", FilterComparisonType.NotEqual, DataValueType.Text,
+				TestSelectBuilder.CreateComparisonFilter("StringValue", FilterComparisonType.NotEqual,
+					DataValueType.Text,
 					filterNumber));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{"StringValue", expectedNumber}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", expectedId},
+							{"StringValue", expectedNumber}
+						}
 					}
-				}});
+				});
 
 			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.StringValue != filterNumber);
@@ -307,23 +238,24 @@ namespace ATF.Repository.Tests
 		}
 
 		[Test]
-		public void Models_WhenUsePureValueAsFilterParameter_ShouldReturnExpectedValue()
-		{
+		public void Models_WhenUsePureValueAsFilterParameter_ShouldReturnExpectedValue() {
 			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			string expectedNumber = "Order";
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("StringValue", FilterComparisonType.Equal, DataValueType.Text,
+				TestSelectBuilder.CreateComparisonFilter("StringValue", FilterComparisonType.Equal, DataValueType.Text,
 					expectedNumber));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{"StringValue", expectedNumber}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", expectedId},
+							{"StringValue", expectedNumber}
+						}
 					}
-				}});
+				});
 
 			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.StringValue == "Order");
@@ -335,23 +267,24 @@ namespace ATF.Repository.Tests
 		}
 
 		[Test]
-		public void Models_WhenUseItemFromListAsFilterParameter_ShouldReturnExpectedValue()
-		{
+		public void Models_WhenUseItemFromListAsFilterParameter_ShouldReturnExpectedValue() {
 			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			string expectedNumber = "Order";
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("StringValue", FilterComparisonType.Equal, DataValueType.Text,
+				TestSelectBuilder.CreateComparisonFilter("StringValue", FilterComparisonType.Equal, DataValueType.Text,
 					expectedNumber));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{"StringValue", expectedNumber}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", expectedId},
+							{"StringValue", expectedNumber}
+						}
 					}
-				}});
+				});
 			var list = new List<string>() {expectedNumber};
 
 			// Act
@@ -364,38 +297,42 @@ namespace ATF.Repository.Tests
 		}
 
 		[Test]
-		public void Models_WhenFilterUseLookupColumnFilter_ShouldReturnExpectedValue()
-		{
+		public void Models_WhenFilterUseLookupColumnFilter_ShouldReturnExpectedValue() {
 			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			Guid lookupRecordId = Guid.NewGuid();
 			string filteredValue = "Order";
 			string expectedValue = "Order";
 			string expectedLookupValue = "Order2";
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
-			expectedSelect.Filters.Items.Add("f1", CreateComparisonFilter("LookupValue.Name", FilterComparisonType.NotEqual, DataValueType.Text,
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
+			expectedSelect.Filters.Items.Add("f1", TestSelectBuilder.CreateComparisonFilter("LookupValue.Name",
+				FilterComparisonType.NotEqual, DataValueType.Text,
 				filteredValue));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{ "StringValue", expectedValue},
-						{"LookupValue", lookupRecordId}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", expectedId},
+							{"StringValue", expectedValue},
+							{"LookupValue", lookupRecordId}
+						}
 					}
-				}});
-			var expectedLookupSelect = GetTestSelectQuery<LookupTestModel>();
+				});
+			var expectedLookupSelect = TestSelectBuilder.GetTestSelectQuery<LookupTestModel>();
 			expectedLookupSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
+				TestSelectBuilder.CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
 					lookupRecordId));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedLookupSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", lookupRecordId},
-						{"Name", expectedLookupValue}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", lookupRecordId},
+							{"Name", expectedLookupValue}
+						}
 					}
-				}});
+				});
 			var list = new List<string>() {filteredValue};
 
 			// Act
@@ -411,23 +348,25 @@ namespace ATF.Repository.Tests
 		}
 
 		[Test]
-		public void Models_WhenUseIntAsDecimalInVariableType_ShouldReturnExpectedValue()
-		{
+		public void Models_WhenUseIntAsDecimalInVariableType_ShouldReturnExpectedValue() {
 			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			int expectedNumber = 1000;
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("DecimalValue", FilterComparisonType.Equal, DataValueType.Float2,
-					(decimal)expectedNumber));
+				TestSelectBuilder.CreateComparisonFilter("DecimalValue", FilterComparisonType.Equal,
+					DataValueType.Float2,
+					(decimal) expectedNumber));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{"DecimalValue", (decimal)expectedNumber}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", expectedId},
+							{"DecimalValue", (decimal) expectedNumber}
+						}
 					}
-				}});
+				});
 
 			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.DecimalValue == expectedNumber);
@@ -439,26 +378,28 @@ namespace ATF.Repository.Tests
 		}
 
 		[Test]
-		public void Models_WhenUseIntAsDecimalInLine_ShouldReturnExpectedValue()
-		{
+		public void Models_WhenUseIntAsDecimalInLine_ShouldReturnExpectedValue() {
 			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			decimal expectedNumber = 1000;
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("DecimalValue", FilterComparisonType.Equal, DataValueType.Float2,
+				TestSelectBuilder.CreateComparisonFilter("DecimalValue", FilterComparisonType.Equal,
+					DataValueType.Float2,
 					expectedNumber));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{"DecimalValue", expectedNumber}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", expectedId},
+							{"DecimalValue", expectedNumber}
+						}
 					}
-				}});
+				});
 
 			// Act
-			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.DecimalValue == (int)expectedNumber);
+			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.DecimalValue == (int) expectedNumber);
 			var order = queryable.ToList().First();
 
 			// Assert
@@ -467,22 +408,24 @@ namespace ATF.Repository.Tests
 		}
 
 		[Test]
-		public void Models_WhenUseShortBooleanAsPositiveFilter_ShouldReturnExpectedValue()
-		{
+		public void Models_WhenUseShortBooleanAsPositiveFilter_ShouldReturnExpectedValue() {
 			// Arrange
 			Guid expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
+				TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal,
+					DataValueType.Boolean,
 					true));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{"BooleanValue", true}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", expectedId},
+							{"BooleanValue", true}
+						}
 					}
-				}});
+				});
 
 			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.BooleanValue);
@@ -498,23 +441,24 @@ namespace ATF.Repository.Tests
 		#region Filter data value type and compatison type
 
 		[Test]
-		public void Models_WhenUseStringAndEqual_ShouldReturnExpectedValue()
-		{
+		public void Models_WhenUseStringAndEqual_ShouldReturnExpectedValue() {
 			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			string expectedNumber = "Order";
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("StringValue", FilterComparisonType.Equal, DataValueType.Text,
+				TestSelectBuilder.CreateComparisonFilter("StringValue", FilterComparisonType.Equal, DataValueType.Text,
 					expectedNumber));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{"StringValue", expectedNumber}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", expectedId},
+							{"StringValue", expectedNumber}
+						}
 					}
-				}});
+				});
 
 			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.StringValue == expectedNumber);
@@ -526,24 +470,26 @@ namespace ATF.Repository.Tests
 		}
 
 		[Test]
-		public void Models_WhenUseStringAndNotEqual_ShouldReturnExpectedValue()
-		{
+		public void Models_WhenUseStringAndNotEqual_ShouldReturnExpectedValue() {
 			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			string filteredNumber = "Filter";
 			string expectedNumber = "Order";
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("StringValue", FilterComparisonType.NotEqual, DataValueType.Text,
+				TestSelectBuilder.CreateComparisonFilter("StringValue", FilterComparisonType.NotEqual,
+					DataValueType.Text,
 					filteredNumber));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{"StringValue", expectedNumber}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", expectedId},
+							{"StringValue", expectedNumber}
+						}
 					}
-				}});
+				});
 
 			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.StringValue != filteredNumber);
@@ -555,23 +501,24 @@ namespace ATF.Repository.Tests
 		}
 
 		[Test]
-		public void Models_WhenUseIntAndEqual_ShouldReturnExpectedValue()
-		{
+		public void Models_WhenUseIntAndEqual_ShouldReturnExpectedValue() {
 			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			int expectedNumber = 1000;
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("IntValue", FilterComparisonType.Equal, DataValueType.Integer,
+				TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Equal, DataValueType.Integer,
 					expectedNumber));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{"IntValue", expectedNumber}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", expectedId},
+							{"IntValue", expectedNumber}
+						}
 					}
-				}});
+				});
 
 			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.IntValue == expectedNumber);
@@ -583,23 +530,25 @@ namespace ATF.Repository.Tests
 		}
 
 		[Test]
-		public void Models_WhenUseIntAndGreater_ShouldReturnExpectedValue()
-		{
+		public void Models_WhenUseIntAndGreater_ShouldReturnExpectedValue() {
 			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			int expectedNumber = 1000;
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
+				TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Greater,
+					DataValueType.Integer,
 					expectedNumber));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{"IntValue", expectedNumber + 1}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", expectedId},
+							{"IntValue", expectedNumber + 1}
+						}
 					}
-				}});
+				});
 
 			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.IntValue > expectedNumber);
@@ -611,23 +560,25 @@ namespace ATF.Repository.Tests
 		}
 
 		[Test]
-		public void Models_WhenUseIntAndGreaterOrEqual_ShouldReturnExpectedValue()
-		{
+		public void Models_WhenUseIntAndGreaterOrEqual_ShouldReturnExpectedValue() {
 			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			int expectedNumber = 1000;
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("IntValue", FilterComparisonType.GreaterOrEqual, DataValueType.Integer,
+				TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.GreaterOrEqual,
+					DataValueType.Integer,
 					expectedNumber));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{"IntValue", expectedNumber}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", expectedId},
+							{"IntValue", expectedNumber}
+						}
 					}
-				}});
+				});
 
 			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.IntValue >= expectedNumber);
@@ -639,23 +590,24 @@ namespace ATF.Repository.Tests
 		}
 
 		[Test]
-		public void Models_WhenUseIntAndLess_ShouldReturnExpectedValue()
-		{
+		public void Models_WhenUseIntAndLess_ShouldReturnExpectedValue() {
 			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			int expectedNumber = 1000;
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("IntValue", FilterComparisonType.Less, DataValueType.Integer,
+				TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Less, DataValueType.Integer,
 					expectedNumber));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{"IntValue", expectedNumber - 1}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", expectedId},
+							{"IntValue", expectedNumber - 1}
+						}
 					}
-				}});
+				});
 
 			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.IntValue < expectedNumber);
@@ -667,23 +619,25 @@ namespace ATF.Repository.Tests
 		}
 
 		[Test]
-		public void Models_WhenUseIntAndLessOrEqual_ShouldReturnExpectedValue()
-		{
+		public void Models_WhenUseIntAndLessOrEqual_ShouldReturnExpectedValue() {
 			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			int expectedNumber = 1000;
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("IntValue", FilterComparisonType.LessOrEqual, DataValueType.Integer,
+				TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.LessOrEqual,
+					DataValueType.Integer,
 					expectedNumber));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{"IntValue", expectedNumber}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", expectedId},
+							{"IntValue", expectedNumber}
+						}
 					}
-				}});
+				});
 
 			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.IntValue <= expectedNumber);
@@ -695,23 +649,25 @@ namespace ATF.Repository.Tests
 		}
 
 		[Test]
-		public void Models_WhenUseDecimalAndEqual_ShouldReturnExpectedValue()
-		{
+		public void Models_WhenUseDecimalAndEqual_ShouldReturnExpectedValue() {
 			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			decimal expectedNumber = 1000.10m;
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("DecimalValue", FilterComparisonType.Equal, DataValueType.Float2,
+				TestSelectBuilder.CreateComparisonFilter("DecimalValue", FilterComparisonType.Equal,
+					DataValueType.Float2,
 					expectedNumber));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{"DecimalValue", expectedNumber}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", expectedId},
+							{"DecimalValue", expectedNumber}
+						}
 					}
-				}});
+				});
 
 			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.DecimalValue == expectedNumber);
@@ -723,23 +679,25 @@ namespace ATF.Repository.Tests
 		}
 
 		[Test]
-		public void Models_WhenUseBoolAndEqual_ShouldReturnExpectedValue()
-		{
+		public void Models_WhenUseBoolAndEqual_ShouldReturnExpectedValue() {
 			// Arrange
 			var expectedId = Guid.NewGuid();
 			const bool expected = true;
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
+				TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal,
+					DataValueType.Boolean,
 					expected));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{"BooleanValue", expected}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", expectedId},
+							{"BooleanValue", expected}
+						}
 					}
-				}});
+				});
 
 			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.BooleanValue == expected);
@@ -751,23 +709,25 @@ namespace ATF.Repository.Tests
 		}
 
 		[Test]
-		public void Models_WhenUseBoolAndNotEqual_ShouldReturnExpectedValue()
-		{
+		public void Models_WhenUseBoolAndNotEqual_ShouldReturnExpectedValue() {
 			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			const bool expected = true;
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("BooleanValue", FilterComparisonType.NotEqual, DataValueType.Boolean,
+				TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.NotEqual,
+					DataValueType.Boolean,
 					expected));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{"BooleanValue", false}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", expectedId},
+							{"BooleanValue", false}
+						}
 					}
-				}});
+				});
 
 			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.BooleanValue != expected);
@@ -779,23 +739,25 @@ namespace ATF.Repository.Tests
 		}
 
 		[Test]
-		public void Models_WhenUseDateTimeAndEqual_ShouldReturnExpectedValue()
-		{
+		public void Models_WhenUseDateTimeAndEqual_ShouldReturnExpectedValue() {
 			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			var expected = DateTime.Now;
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("DateTimeValue", FilterComparisonType.Equal, DataValueType.DateTime,
+				TestSelectBuilder.CreateComparisonFilter("DateTimeValue", FilterComparisonType.Equal,
+					DataValueType.DateTime,
 					expected));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{"DateTimeValue", expected}
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", expectedId},
+							{"DateTimeValue", expected}
+						}
 					}
-				}});
+				});
 
 			// Act
 			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.DateTimeValue == expected);
@@ -808,6 +770,7 @@ namespace ATF.Repository.Tests
 
 		#endregion
 
+		
 		#region Not
 
 		[Test]
@@ -815,9 +778,9 @@ namespace ATF.Repository.Tests
 		{
 			// Arrange
 			Guid expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("BooleanValue", FilterComparisonType.NotEqual, DataValueType.Boolean,
+				TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.NotEqual, DataValueType.Boolean,
 					true));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -842,10 +805,10 @@ namespace ATF.Repository.Tests
 		{
 			// Arrange
 			Guid expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			var value = true;
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
+				TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 					false));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -877,9 +840,9 @@ namespace ATF.Repository.Tests
 			Guid expectedId = Guid.NewGuid();
 			var part = "Order";
 			var expectedNumber = $"{part}Number";
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("StringValue", FilterComparisonType.StartWith, DataValueType.Text,
+				TestSelectBuilder.CreateComparisonFilter("StringValue", FilterComparisonType.StartWith, DataValueType.Text,
 					part));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -906,9 +869,9 @@ namespace ATF.Repository.Tests
 			Guid expectedId = Guid.NewGuid();
 			string part = "Order";
 			string expectedNumber = $"Number{part}";
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("StringValue", FilterComparisonType.EndWith, DataValueType.Text,
+				TestSelectBuilder.CreateComparisonFilter("StringValue", FilterComparisonType.EndWith, DataValueType.Text,
 					part));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -935,9 +898,9 @@ namespace ATF.Repository.Tests
 			Guid expectedId = Guid.NewGuid();
 			string part = "Order";
 			string expectedNumber = $"Number{part}Box";
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("StringValue", FilterComparisonType.Contain, DataValueType.Text,
+				TestSelectBuilder.CreateComparisonFilter("StringValue", FilterComparisonType.Contain, DataValueType.Text,
 					part));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -965,9 +928,9 @@ namespace ATF.Repository.Tests
 			string part = "Order";
 			string expectedNumber = $"{part}Number";
 			Guid lookupRecordId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("AnotherLookupValue.Name", FilterComparisonType.StartWith, DataValueType.Text,
+				TestSelectBuilder.CreateComparisonFilter("AnotherLookupValue.Name", FilterComparisonType.StartWith, DataValueType.Text,
 					part));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -977,9 +940,9 @@ namespace ATF.Repository.Tests
 						{"AnotherLookupValue", lookupRecordId},
 					}
 				}});
-			var expectedLookupSelect = GetTestSelectQuery<LookupTestModel>();
+			var expectedLookupSelect = TestSelectBuilder.GetTestSelectQuery<LookupTestModel>();
 			expectedLookupSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
+				TestSelectBuilder.CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
 					lookupRecordId));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedLookupSelect, x)))
@@ -1010,12 +973,12 @@ namespace ATF.Repository.Tests
 			Guid expectedId = Guid.NewGuid();
 			int expectedNumber = 10;
 			decimal expectedDecimalValue = 20m;
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>(filters => {
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>(filters => {
 				filters.Items.Add("f1",
-					CreateComparisonFilter("IntValue", FilterComparisonType.Equal, DataValueType.Integer,
+					TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Equal, DataValueType.Integer,
 						expectedNumber));
 				filters.Items.Add("f2",
-					CreateComparisonFilter("DecimalValue", FilterComparisonType.GreaterOrEqual, DataValueType.Float2,
+					TestSelectBuilder.CreateComparisonFilter("DecimalValue", FilterComparisonType.GreaterOrEqual, DataValueType.Float2,
 						expectedDecimalValue));
 			});
 			_dataProvider
@@ -1044,25 +1007,25 @@ namespace ATF.Repository.Tests
 			Guid expectedId = Guid.NewGuid();
 			int expectedNumber = 10;
 			decimal expectedDecimalValue = 20m;
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>(filters => {
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>(filters => {
 
-				var filterGroup = CreateFilterGroup(LogicalOperationStrict.Or);
+				var filterGroup = TestSelectBuilder.CreateFilterGroup(LogicalOperationStrict.Or);
 				filters.Items.Add("filterGroup", filterGroup);
-				var filterGroup1 = CreateFilterGroup(LogicalOperationStrict.And);
+				var filterGroup1 = TestSelectBuilder.CreateFilterGroup(LogicalOperationStrict.And);
 				filterGroup.Items.Add("filterGroup1", filterGroup1);
 				filterGroup1.Items.Add("f1",
-					CreateComparisonFilter("IntValue", FilterComparisonType.Equal, DataValueType.Integer,
+					TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Equal, DataValueType.Integer,
 						expectedNumber));
 				filterGroup1.Items.Add("f2",
-					CreateComparisonFilter("DecimalValue", FilterComparisonType.GreaterOrEqual, DataValueType.Float2,
+					TestSelectBuilder.CreateComparisonFilter("DecimalValue", FilterComparisonType.GreaterOrEqual, DataValueType.Float2,
 						expectedDecimalValue));
-				var filterGroup2 = CreateFilterGroup(LogicalOperationStrict.And);
+				var filterGroup2 = TestSelectBuilder.CreateFilterGroup(LogicalOperationStrict.And);
 				filterGroup.Items.Add("filterGroup2", filterGroup2);
 				filterGroup2.Items.Add("f1",
-					CreateComparisonFilter("IntValue", FilterComparisonType.NotEqual, DataValueType.Integer,
+					TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.NotEqual, DataValueType.Integer,
 						expectedNumber));
 				filterGroup2.Items.Add("f2",
-					CreateComparisonFilter("DecimalValue", FilterComparisonType.Less, DataValueType.Float2,
+					TestSelectBuilder.CreateComparisonFilter("DecimalValue", FilterComparisonType.Less, DataValueType.Float2,
 						expectedDecimalValue));
 			});
 			_dataProvider
@@ -1093,23 +1056,23 @@ namespace ATF.Repository.Tests
 			Guid expectedId = Guid.NewGuid();
 			int expectedNumber = 10;
 			decimal expectedDecimalValue = 20m;
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>(filters => {
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>(filters => {
 
-				var filterGroup1 = CreateFilterGroup(LogicalOperationStrict.Or);
+				var filterGroup1 = TestSelectBuilder.CreateFilterGroup(LogicalOperationStrict.Or);
 				filters.Items.Add("filterGroup1", filterGroup1);
 				filterGroup1.Items.Add("f1",
-					CreateComparisonFilter("IntValue", FilterComparisonType.Equal, DataValueType.Integer,
+					TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Equal, DataValueType.Integer,
 						expectedNumber));
 				filterGroup1.Items.Add("f2",
-					CreateComparisonFilter("DecimalValue", FilterComparisonType.GreaterOrEqual, DataValueType.Float2,
+					TestSelectBuilder.CreateComparisonFilter("DecimalValue", FilterComparisonType.GreaterOrEqual, DataValueType.Float2,
 						expectedDecimalValue));
-				var filterGroup2 = CreateFilterGroup(LogicalOperationStrict.Or);
+				var filterGroup2 = TestSelectBuilder.CreateFilterGroup(LogicalOperationStrict.Or);
 				filters.Items.Add("filterGroup2", filterGroup2);
 				filterGroup2.Items.Add("f1",
-					CreateComparisonFilter("IntValue", FilterComparisonType.NotEqual, DataValueType.Integer,
+					TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.NotEqual, DataValueType.Integer,
 						expectedNumber));
 				filterGroup2.Items.Add("f2",
-					CreateComparisonFilter("DecimalValue", FilterComparisonType.Less, DataValueType.Float2,
+					TestSelectBuilder.CreateComparisonFilter("DecimalValue", FilterComparisonType.Less, DataValueType.Float2,
 						expectedDecimalValue));
 			});
 			_dataProvider
@@ -1144,9 +1107,9 @@ namespace ATF.Repository.Tests
 			// Arrange
 			Guid expectedId = Guid.NewGuid();
 			var expected = new DateTime(2012, 10, 12, 14, 30, 0);
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("DateTimeValue", FilterComparisonType.Equal, DataValueType.DateTime,
+				TestSelectBuilder.CreateComparisonFilter("DateTimeValue", FilterComparisonType.Equal, DataValueType.DateTime,
 					expected));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -1178,7 +1141,7 @@ namespace ATF.Repository.Tests
 			// Arrange
 			columnName = string.IsNullOrEmpty(columnName) ? propertyName : columnName;
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
 				QueryBuilderUtilities.CreateNullFilter(columnName, dataValueType));
 			_dataProvider
@@ -1220,12 +1183,12 @@ namespace ATF.Repository.Tests
 		{
 			// Arrange
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
+				TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 					true));
 			expectedSelect.Filters.Items.Add("f2",
-				CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
+				TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
 					9));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -1252,9 +1215,9 @@ namespace ATF.Repository.Tests
 		{
 			// Arrange
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
+				TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 					true));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -1278,10 +1241,10 @@ namespace ATF.Repository.Tests
 		{
 			// Arrange
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
+				TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 					true));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -1305,10 +1268,10 @@ namespace ATF.Repository.Tests
 		{
 			// Arrange
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
+				TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 					true));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -1332,10 +1295,10 @@ namespace ATF.Repository.Tests
 		{
 			// Arrange
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
+				TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 					true));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -1362,16 +1325,16 @@ namespace ATF.Repository.Tests
 		{
 			// Arrange
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
+				TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 					true));
 			expectedSelect.Filters.Items.Add("f2",
-				CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
+				TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
 					10));
 			expectedSelect.Filters.Items.Add("f3",
-				CreateComparisonFilter("StringValue", FilterComparisonType.StartWith, DataValueType.Text,
+				TestSelectBuilder.CreateComparisonFilter("StringValue", FilterComparisonType.StartWith, DataValueType.Text,
 					"xxx"));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -1398,20 +1361,20 @@ namespace ATF.Repository.Tests
 		{
 			// Arrange
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
 			expectedSelect.RowsOffset = 5;
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
+				TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 					true));
 			expectedSelect.Filters.Items.Add("f2",
-				CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
+				TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
 					10));
-			var group = CreateFilterGroup(LogicalOperationStrict.Or);
+			var group = TestSelectBuilder.CreateFilterGroup(LogicalOperationStrict.Or);
 			expectedSelect.Filters.Items.Add("f3", group);
-			group.Items.Add("f1", CreateComparisonFilter("DecimalValue", FilterComparisonType.Less, DataValueType.Float2,
+			group.Items.Add("f1", TestSelectBuilder.CreateComparisonFilter("DecimalValue", FilterComparisonType.Less, DataValueType.Float2,
 				200.0m));
-			group.Items.Add("f2", CreateComparisonFilter("DecimalValue", FilterComparisonType.Greater, DataValueType.Float2,
+			group.Items.Add("f2", TestSelectBuilder.CreateComparisonFilter("DecimalValue", FilterComparisonType.Greater, DataValueType.Float2,
 				1000.0m));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -1439,14 +1402,14 @@ namespace ATF.Repository.Tests
 		{
 			// Arrange
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
 			expectedSelect.RowsOffset = 1;
-			expectedSelect.Filters.Items.Add("f1", CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
+			expectedSelect.Filters.Items.Add("f1", TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 				true));
-			expectedSelect.Filters.Items.Add("f2", CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
+			expectedSelect.Filters.Items.Add("f2", TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
 				9));
-			expectedSelect.Filters.Items.Add("f3", CreateComparisonFilter("IntValue", FilterComparisonType.Less, DataValueType.Integer,
+			expectedSelect.Filters.Items.Add("f3", TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Less, DataValueType.Integer,
 				20));
 			var intValueColumn = expectedSelect.Columns.Items.Select(x=>x.Value).First(x => x.Expression.ColumnPath == "IntValue");
 			intValueColumn.OrderPosition = 1;
@@ -1490,15 +1453,15 @@ namespace ATF.Repository.Tests
 		{
 			// Arrange
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
 			expectedSelect.RowsOffset = 1;
 
-			expectedSelect.Filters.Items.Add("f1", CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
+			expectedSelect.Filters.Items.Add("f1", TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 				true));
-			expectedSelect.Filters.Items.Add("f2", CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
+			expectedSelect.Filters.Items.Add("f2", TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
 				9));
-			expectedSelect.Filters.Items.Add("f3", CreateComparisonFilter("IntValue", FilterComparisonType.Less, DataValueType.Integer,
+			expectedSelect.Filters.Items.Add("f3", TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Less, DataValueType.Integer,
 				20));
 
 			var intValueColumn = expectedSelect.Columns.Items.Select(x=>x.Value).First(x => x.Expression.ColumnPath == "IntValue");
@@ -1543,15 +1506,15 @@ namespace ATF.Repository.Tests
 		{
 			// Arrange
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
 			expectedSelect.RowsOffset = 1;
 
-			expectedSelect.Filters.Items.Add("f1", CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
+			expectedSelect.Filters.Items.Add("f1", TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 				true));
-			expectedSelect.Filters.Items.Add("f2", CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
+			expectedSelect.Filters.Items.Add("f2", TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
 				9));
-			expectedSelect.Filters.Items.Add("f3", CreateComparisonFilter("IntValue", FilterComparisonType.Less, DataValueType.Integer,
+			expectedSelect.Filters.Items.Add("f3", TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Less, DataValueType.Integer,
 				20));
 
 			var intValueColumn = expectedSelect.Columns.Items.Select(x=>x.Value).First(x => x.Expression.ColumnPath == "IntValue");
@@ -1588,15 +1551,15 @@ namespace ATF.Repository.Tests
 		{
 			// Arrange
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
 			expectedSelect.RowsOffset = 1;
 
-			expectedSelect.Filters.Items.Add("f1", CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
+			expectedSelect.Filters.Items.Add("f1", TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 				true));
-			expectedSelect.Filters.Items.Add("f2", CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
+			expectedSelect.Filters.Items.Add("f2", TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
 				9));
-			expectedSelect.Filters.Items.Add("f3", CreateComparisonFilter("IntValue", FilterComparisonType.Less, DataValueType.Integer,
+			expectedSelect.Filters.Items.Add("f3", TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Less, DataValueType.Integer,
 				20));
 
 			var intValueColumn = expectedSelect.Columns.Items.Select(x=>x.Value).First(x => x.Expression.ColumnPath == "IntValue");
@@ -1634,9 +1597,9 @@ namespace ATF.Repository.Tests
 			// Arrange
 			var masterId = Guid.NewGuid();
 			var detailId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
-			expectedSelect.Filters.Items.Add("f1", CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
+			expectedSelect.Filters.Items.Add("f1", TestSelectBuilder.CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
 				masterId));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -1645,8 +1608,8 @@ namespace ATF.Repository.Tests
 						{"Id", masterId}
 					}
 				}});
-			var detailSelect = GetTestSelectQuery<TypedTestModel>();
-			detailSelect.Filters.Items.Add("f1", CreateComparisonFilter("GuidValue", FilterComparisonType.Equal, DataValueType.Guid,
+			var detailSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
+			detailSelect.Filters.Items.Add("f1", TestSelectBuilder.CreateComparisonFilter("GuidValue", FilterComparisonType.Equal, DataValueType.Guid,
 				masterId));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(detailSelect, x)))
@@ -1673,9 +1636,9 @@ namespace ATF.Repository.Tests
 			// Arrange
 			var masterId = Guid.NewGuid();
 			var detailId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
-			expectedSelect.Filters.Items.Add("f1", CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
+			expectedSelect.Filters.Items.Add("f1", TestSelectBuilder.CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
 				masterId));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -1684,8 +1647,8 @@ namespace ATF.Repository.Tests
 						{"Id", masterId}
 					}
 				}});
-			var detailSelect = GetTestSelectQuery<TypedTestModel>();
-			detailSelect.Filters.Items.Add("f1", CreateComparisonFilter("GuidValue", FilterComparisonType.Equal, DataValueType.Guid,
+			var detailSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
+			detailSelect.Filters.Items.Add("f1", TestSelectBuilder.CreateComparisonFilter("GuidValue", FilterComparisonType.Equal, DataValueType.Guid,
 				masterId));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(detailSelect, x)))
@@ -1710,7 +1673,7 @@ namespace ATF.Repository.Tests
 		public void Models_WhenUseMaxResultFunction_ShouldReturnExpectedValue()
 		{
 			// Arrange
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Columns = new SelectQueryColumns() {
 				Items = new Dictionary<string, SelectQueryColumn>() {
 					{"MAXValue", new SelectQueryColumn() {
@@ -1746,7 +1709,7 @@ namespace ATF.Repository.Tests
 		public void Models_WhenUseMinResultFunction_ShouldReturnExpectedValue()
 		{
 			// Arrange
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Columns = new SelectQueryColumns() {
 				Items = new Dictionary<string, SelectQueryColumn>() {
 					{"MINValue", new SelectQueryColumn() {
@@ -1782,7 +1745,7 @@ namespace ATF.Repository.Tests
 		public void Models_WhenUseAverageResultFunction_ShouldReturnExpectedValue()
 		{
 			// Arrange
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Columns = new SelectQueryColumns() {
 				Items = new Dictionary<string, SelectQueryColumn>() {
 					{"AVERAGEValue", new SelectQueryColumn() {
@@ -1818,7 +1781,7 @@ namespace ATF.Repository.Tests
 		public void Models_WhenUseSumResultFunction_ShouldReturnExpectedValue()
 		{
 			// Arrange
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Columns = new SelectQueryColumns() {
 				Items = new Dictionary<string, SelectQueryColumn>() {
 					{"SUMValue", new SelectQueryColumn() {
@@ -1854,7 +1817,7 @@ namespace ATF.Repository.Tests
 		public void Models_WhenUseCountWithInnerFilterResultFunction_ShouldReturnExpectedValue()
 		{
 			// Arrange
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Columns = new SelectQueryColumns() {
 				Items = new Dictionary<string, SelectQueryColumn>() {
 					{"COUNTValue", new SelectQueryColumn() {
@@ -1870,7 +1833,7 @@ namespace ATF.Repository.Tests
 					}}
 				}
 			};
-			expectedSelect.Filters.Items.Add("f1", CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
+			expectedSelect.Filters.Items.Add("f1", TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 				true));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -1891,7 +1854,7 @@ namespace ATF.Repository.Tests
 		public void Models_WhenUseCountWithoutInnerFilterResultFunction_ShouldReturnExpectedValue()
 		{
 			// Arrange
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Columns = new SelectQueryColumns() {
 				Items = new Dictionary<string, SelectQueryColumn>() {
 					{"COUNTValue", new SelectQueryColumn() {
@@ -1926,7 +1889,7 @@ namespace ATF.Repository.Tests
 		public void Models_WhenUseAnyWithInnerFilterResultFunction_ShouldReturnExpectedValue()
 		{
 			// Arrange
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Columns = new SelectQueryColumns() {
 				Items = new Dictionary<string, SelectQueryColumn>() {
 					{"ANYValue", new SelectQueryColumn() {
@@ -1942,7 +1905,7 @@ namespace ATF.Repository.Tests
 					}}
 				}
 			};
-			expectedSelect.Filters.Items.Add("f1", CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
+			expectedSelect.Filters.Items.Add("f1", TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 				true));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -1963,7 +1926,7 @@ namespace ATF.Repository.Tests
 		public void Models_WhenUseAnyWithoutInnerFilterResultFunction_ShouldReturnExpectedValue()
 		{
 			// Arrange
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.Columns = new SelectQueryColumns() {
 				Items = new Dictionary<string, SelectQueryColumn>() {
 					{"ANYValue", new SelectQueryColumn() {
@@ -1999,10 +1962,10 @@ namespace ATF.Repository.Tests
 		{
 			// Arrange
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
+				TestSelectBuilder.CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
 					expectedId));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -2028,9 +1991,9 @@ namespace ATF.Repository.Tests
 			// Arrange
 			var list = new List<string>() {"Part1", "Part2", "Part3"};
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
-			var filter = CreateComparisonFilter("StringValue", FilterComparisonType.Equal, DataValueType.Text,
+			var filter = TestSelectBuilder.CreateComparisonFilter("StringValue", FilterComparisonType.Equal, DataValueType.Text,
 				list.ToArray());
 			filter.FilterType = FilterType.InFilter;
 			expectedSelect.Filters.Items.Add("f1", filter);
@@ -2054,9 +2017,9 @@ namespace ATF.Repository.Tests
 			// Arrange
 			var list = new List<string>() {"Part1", "Part2", "Part3"};
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
-			var filter = CreateComparisonFilter("StringValue", FilterComparisonType.NotEqual, DataValueType.Text,
+			var filter = TestSelectBuilder.CreateComparisonFilter("StringValue", FilterComparisonType.NotEqual, DataValueType.Text,
 				list.ToArray());
 			filter.FilterType = FilterType.InFilter;
 			expectedSelect.Filters.Items.Add("f1", filter);
@@ -2080,9 +2043,9 @@ namespace ATF.Repository.Tests
 			// Arrange
 			var list = new List<Guid>() {Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid()};
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
-			var filter = CreateComparisonFilter("GuidValue", FilterComparisonType.Equal, DataValueType.Guid,
+			var filter = TestSelectBuilder.CreateComparisonFilter("GuidValue", FilterComparisonType.Equal, DataValueType.Guid,
 				list.Select(x=>(object)x).ToArray());
 			filter.FilterType = FilterType.InFilter;
 			expectedSelect.Filters.Items.Add("f1", filter);
@@ -2106,9 +2069,9 @@ namespace ATF.Repository.Tests
 			// Arrange
 			var list = new List<int>() {1, 2, 3};
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
-			var filter = CreateComparisonFilter("IntValue", FilterComparisonType.Equal, DataValueType.Integer,
+			var filter = TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Equal, DataValueType.Integer,
 				list.Select(x=>(object)x).ToArray());
 			filter.FilterType = FilterType.InFilter;
 			expectedSelect.Filters.Items.Add("f1", filter);
@@ -2132,9 +2095,9 @@ namespace ATF.Repository.Tests
 			// Arrange
 			var list = new List<decimal>() {1.1m, 1.2m, 1.3m};
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
-			var filter = CreateComparisonFilter("DecimalValue", FilterComparisonType.Equal, DataValueType.Float2,
+			var filter = TestSelectBuilder.CreateComparisonFilter("DecimalValue", FilterComparisonType.Equal, DataValueType.Float2,
 				list.Select(x=>(object)x).ToArray());
 			filter.FilterType = FilterType.InFilter;
 			expectedSelect.Filters.Items.Add("f1", filter);
@@ -2158,9 +2121,9 @@ namespace ATF.Repository.Tests
 			// Arrange
 			var list = new List<bool>() {true, false};
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
-			var filter = CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
+			var filter = TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 				list.Select(x=>(object)x).ToArray());
 			filter.FilterType = FilterType.InFilter;
 			expectedSelect.Filters.Items.Add("f1", filter);
@@ -2184,9 +2147,9 @@ namespace ATF.Repository.Tests
 			// Arrange
 			var list = new List<DateTime>() {DateTime.Now, DateTime.Now.AddDays(-10)};
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
-			var filter = CreateComparisonFilter("DateTimeValue", FilterComparisonType.Equal, DataValueType.DateTime,
+			var filter = TestSelectBuilder.CreateComparisonFilter("DateTimeValue", FilterComparisonType.Equal, DataValueType.DateTime,
 				list.Select(x=>(object)x).ToArray());
 			filter.FilterType = FilterType.InFilter;
 			expectedSelect.Filters.Items.Add("f1", filter);
@@ -2210,10 +2173,10 @@ namespace ATF.Repository.Tests
 		{
 			// Arrange
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
+				TestSelectBuilder.CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
 					expectedId));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -2241,10 +2204,10 @@ namespace ATF.Repository.Tests
 		{
 			// Arrange
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
+				TestSelectBuilder.CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
 					expectedId));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -2334,10 +2297,10 @@ namespace ATF.Repository.Tests
 		{
 			// Arrange
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
 			expectedSelect.Filters.Items.Add("f1",
-				CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
+				TestSelectBuilder.CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
 					expectedId));
 			_dataProvider
 				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
@@ -2363,40 +2326,10 @@ namespace ATF.Repository.Tests
 			Assert.AreEqual(10, changeItem.GetChanges().First(x=>x.Key == "IntValue").Value);
 		}
 
-
 		[Test]
-		public void Models_WhenUseDetailAnyFilterWithoutInnerFilters_ShouldReturnExpectedValue() {
-			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<Account>();
-			expectedSelect.Filters.Items.Add("f1", new Filter() {
-				FilterType = FilterType.Exists,
-				ComparisonType = FilterComparisonType.Exists,
-				LeftExpression = new ColumnExpression() {
-					ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,
-					ColumnPath = "[Contact:Account].Id"
-				},
-				SubFilters = new Filters() {
-					RootSchemaName = "Contact",
-					FilterType = FilterType.FilterGroup,
-					Items = new Dictionary<string, Filter>()
-				}
-			});
-			_dataProvider
-				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId}
-					}
-				}});
-			var models = _appDataContext.Models<TypedTestModel>().Where(x=>x.Parent.DetailModels.Any()).ToList();
-			Assert.AreEqual(1, models.Count);
-			Assert.AreEqual(expectedId, models.First().Id);
-		}
-
-		/*[Test]
 		public void Models_WhenUseDetailAnyFilterWithoutInnerFilters2_ShouldReturnExpectedValue() {
 			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<Account>();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<Account>();
 			expectedSelect.Filters.Items.Add("f1", new Filter() {
 				FilterType = FilterType.Exists,
 				ComparisonType = FilterComparisonType.Exists,
@@ -2420,115 +2353,6 @@ namespace ATF.Repository.Tests
 			var models = _appDataContext.Models<Account>().Where(x=>x.Contacts.Any() == false).ToList();
 			Assert.AreEqual(1, models.Count);
 			Assert.AreEqual(expectedId, models.First().Id);
-		}*/
-
-		/*[Test]
-		public void Models_WhenUseDetailCountFilterWithoutInnerFilters_ShouldReturnExpectedValue() {
-			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<Account>();
-			expectedSelect.Filters.Items.Add("f1", new Filter() {
-				FilterType = FilterType.Exists,
-				ComparisonType = FilterComparisonType.Exists,
-				LeftExpression = new ColumnExpression() {
-					ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,
-					ColumnPath = "[Contact:Account].Id"
-				},
-				SubFilters = new Filters() {
-					RootSchemaName = "Contact",
-					FilterType = FilterType.FilterGroup,
-					Items = new Dictionary<string, Filter>()
-				}
-			});
-			_dataProvider
-				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId}
-					}
-				}});
-			var models = _appDataContext.Models<Account>().Where(x=>x.Contacts.Count > 10).ToList();
-			Assert.AreEqual(1, models.Count);
-			Assert.AreEqual(expectedId, models.First().Id);
 		}
-
-		[Test]
-		public void Models_WhenUseDetailCountFilterWithInnerFilters_ShouldReturnExpectedValue() {
-			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<Account>();
-			expectedSelect.Filters.Items.Add("f1", new Filter() {
-				FilterType = FilterType.Exists,
-				ComparisonType = FilterComparisonType.Exists,
-				LeftExpression = new ColumnExpression() {
-					ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,
-					ColumnPath = "[Contact:Account].Id"
-				},
-				SubFilters = new Filters() {
-					RootSchemaName = "Contact",
-					FilterType = FilterType.FilterGroup,
-					Items = new Dictionary<string, Filter>()
-				}
-			});
-			_dataProvider
-				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId}
-					}
-				}});
-			var models = _appDataContext.Models<Account>().Where(x=>x.Contacts.Where(y=>y.Age > 10).Count() > 10).ToList();
-			Assert.AreEqual(1, models.Count);
-			Assert.AreEqual(expectedId, models.First().Id);
-		}*/
-		/*[Test]
-		public void ModelsTemp_Case5_ShouldReturnExpectedValue()
-		{
-			var expectedId = Guid.NewGuid();
-			var expectedSelect = GetTestSelectQuery<TypedTestModel>();
-			expectedSelect.RowCount = 1;
-			expectedSelect.RowsOffset = 1;
-
-			var filterI1 = CreateFilterGroup(LogicalOperationStrict.And);
-			filterI1.Items.Add("f1", CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
-				true));
-			filterI1.Items.Add("f2", CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
-				9));
-			expectedSelect.Filters.Items.Add("f1", filterI1);
-
-			var filterI2 = CreateFilterGroup(LogicalOperationStrict.And);
-			filterI2.Items.Add("f2", CreateComparisonFilter("IntValue", FilterComparisonType.Less, DataValueType.Integer,
-				20));
-			expectedSelect.Filters.Items.Add("f2", filterI2);
-
-			var intValueColumn = expectedSelect.Columns.Items.Select(x=>x.Value).First(x => x.Expression.ColumnPath == "IntValue");
-			intValueColumn.OrderPosition = 1;
-			intValueColumn.OrderDirection = OrderDirection.Ascending;
-			var stringValueColumn = expectedSelect.Columns.Items.Select(x=>x.Value).First(x => x.Expression.ColumnPath == "StringValue");
-			stringValueColumn.OrderPosition = 2;
-			stringValueColumn.OrderDirection = OrderDirection.Descending;
-
-			_dataProvider
-				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
-				.Returns(new List<Dictionary<string, object>>() {
-					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{"BooleanValue", true},
-						{"IntValue", 10},
-						{"StringValue", "StringValue"},
-						{"DateTimeValue", new DateTime(2001, 1, 1, 12, 10, 0)}
-					}
-				});
-			var m = _appDataContext.Models<TypedTestModel>()
-				.Where(x => x.BooleanValue && x.IntValue > 9).GroupBy(x=> new {
-					x.IntValue, x.DecimalValue
-				}, x=>x, (groopedValue, models) => new {
-					IntValue = groopedValue.IntValue,
-					DecimalValue = groopedValue.DecimalValue,
-					MaxIntValue = models.Max(s=>s.IntValue),
-					MinIntValue = models.Min(s=>s.IntValue),
-					AverageIntValue = models.Average(s=>s.IntValue),
-				});
-			Assert.IsNotNull(m);
-			Assert.AreEqual(10, m.First().IntValue);
-		}*/
 	}
 }

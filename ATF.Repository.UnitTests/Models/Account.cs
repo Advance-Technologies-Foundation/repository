@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using ATF.Repository.Attributes;
 
-namespace ATF.Repository.Tests.Models
+namespace ATF.Repository.UnitTests.Models
 {
 	[Schema("Account")]
 	public class Account: BaseModel

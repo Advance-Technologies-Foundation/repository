@@ -6,7 +6,7 @@ using Terrasoft.Core.Entities;
 using Terrasoft.Nui.ServiceModel.DataContract;
 using FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType;
 
-namespace ATF.Repository.Tests
+namespace ATF.Repository.UnitTests.Utilities
 {
 	public class QueryBuilderUtilities
 	{

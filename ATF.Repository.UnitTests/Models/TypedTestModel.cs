@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using ATF.Repository.Attributes;
-using NUnit.Framework;
 
-namespace ATF.Repository.Tests.Models
+namespace ATF.Repository.UnitTests.Models
 {
 	[Schema("TypedTestModel")]
 	public class TypedTestModel: BaseModel

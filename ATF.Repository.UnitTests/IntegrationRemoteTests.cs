@@ -1,13 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using ATF.Repository.Providers;
+using ATF.Repository.UnitTests.Models;
+using NUnit.Framework;
 
-namespace ATF.Repository.Tests
+namespace ATF.Repository.UnitTests
 {
-	using System;
-	using System.Linq;
-	using ATF.Repository.Providers;
-	using ATF.Repository.Tests.Models;
-	using NUnit.Framework;
-
 	[TestFixture]
 	public class IntegrationRemoteTests
 	{
@@ -16,7 +15,7 @@ namespace ATF.Repository.Tests
 
 		[OneTimeSetUp]
 		public void OneTimeSetUp() {
-			_remoteDataProvider = new RemoteDataProvider("", "", "");
+			_remoteDataProvider = new RemoteDataProvider("https://nurturing.creatio.com", "Supervisor", "Supervisor123");
 			_appDataContext = AppDataContextFactory.GetAppDataContext(_remoteDataProvider);
 		}
 
@@ -485,7 +484,7 @@ namespace ATF.Repository.Tests
 			Assert.IsNotNull(model.Cities);
 		}
 
-		[Test]
+		[Test, Order(2)]
 		public void CaseUpdate() {
 			// Arrange
 			var model = _appDataContext.Models<Lead>()
@@ -499,7 +498,7 @@ namespace ATF.Repository.Tests
 			Assert.IsNotNull(model);
 		}
 
-		[Test]
+		[Test, Order(1)]
 		public void CaseInsert() {
 			// Arrange
 			var model = _appDataContext.CreateModel<PainChain>();
@@ -521,7 +520,7 @@ namespace ATF.Repository.Tests
 			Assert.AreEqual(ModelState.Unchanged, trackerAfterSave.GetStatus());
 		}
 
-		[Test]
+		[Test, Order(3)]
 		public void CaseDelete() {
 			// Arrange
 			var model = _appDataContext.Models<PainChain>()

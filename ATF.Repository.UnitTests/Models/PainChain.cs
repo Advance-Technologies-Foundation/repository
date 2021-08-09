@@ -1,7 +1,7 @@
 ﻿using System;
 using ATF.Repository.Attributes;
 
-namespace ATF.Repository.Tests.Models
+namespace ATF.Repository.UnitTests.Models
 {
 	[Schema("PainChain")]
 	public class PainChain: BaseModel

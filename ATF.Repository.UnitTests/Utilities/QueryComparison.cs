@@ -6,7 +6,7 @@ using Terrasoft.Core.Entities;
 using Terrasoft.Nui.ServiceModel.DataContract;
 using FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType;
 
-namespace ATF.Repository.Tests
+namespace ATF.Repository.UnitTests.Utilities
 {
 	public static class QueryComparison
 	{
@@ -69,10 +69,11 @@ namespace ATF.Repository.Tests
 				case EntitySchemaQueryExpressionType.SchemaColumn:
 					return expected.ColumnPath == actual.ColumnPath;
 				case EntitySchemaQueryExpressionType.Parameter:
-					return (expected.Parameter.Value == null && actual.Parameter.Value == null) || (expected.Parameter.Value != null &&
-						expected.Parameter.DataValueType == actual.Parameter.DataValueType &&
-						((expected.Parameter.Value == null && (actual.Parameter.Value == null) ||
-						 expected.Parameter.Value.Equals(actual.Parameter.Value))));
+					return (expected.Parameter.Value == null && actual.Parameter.Value == null) ||
+						(expected.Parameter.Value != null &&
+							expected.Parameter.DataValueType == actual.Parameter.DataValueType &&
+							((expected.Parameter.Value == null && (actual.Parameter.Value == null) ||
+								expected.Parameter.Value.Equals(actual.Parameter.Value))));
 				default:
 					throw new NotImplementedException();
 			}
@@ -99,9 +100,9 @@ namespace ATF.Repository.Tests
 
 		private static bool AreSelectQueryColumnsEqual(SelectQuery expected, SelectQuery actual) {
 			var areEqual = expected.Columns.Items.Count == actual.Columns.Items.Count &&
-			               expected.Columns.Items.All(item =>
-				               actual.Columns.Items.ContainsKey(item.Key) &&
-				               AreSelectQueryColumnEqual(item.Value, actual.Columns.Items[item.Key]));
+				expected.Columns.Items.All(item =>
+					actual.Columns.Items.ContainsKey(item.Key) &&
+					AreSelectQueryColumnEqual(item.Value, actual.Columns.Items[item.Key]));
 			return areEqual;
 		}
 

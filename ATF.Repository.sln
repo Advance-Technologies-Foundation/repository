@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ATF.Repository", "ATF.Repos
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ATF.Repository.Tests", "ATF.Repository.Tests\ATF.Repository.Tests.csproj", "{B7327963-48AF-4B5B-A166-4A115D2821DC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ATF.Repository.UnitTests", "ATF.Repository.UnitTests\ATF.Repository.UnitTests.csproj", "{2E164B9D-C3A7-4369-98CF-3E6351C1E3DF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{B7327963-48AF-4B5B-A166-4A115D2821DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B7327963-48AF-4B5B-A166-4A115D2821DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B7327963-48AF-4B5B-A166-4A115D2821DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2E164B9D-C3A7-4369-98CF-3E6351C1E3DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E164B9D-C3A7-4369-98CF-3E6351C1E3DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E164B9D-C3A7-4369-98CF-3E6351C1E3DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E164B9D-C3A7-4369-98CF-3E6351C1E3DF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
