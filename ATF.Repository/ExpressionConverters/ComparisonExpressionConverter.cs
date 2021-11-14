@@ -165,10 +165,25 @@ namespace ATF.Repository.ExpressionConverters
 				return GetPropertyMetadata(expression, value);
 			}
 			if (IsDetailPathMember(expression, modelMetadata)) {
-				throw new NotSupportedException();
+				return ExtractDetailElementExpression(expression, modelMetadata);
 			}
 
 			return ConvertModelQueryExpression(expression, modelMetadata);
 		}
+
+		private static ExpressionMetadata ExtractDetailElementExpression(Expression expression,
+			ExpressionModelMetadata modelMetadata) {
+			var detailModelMetadata = ExpressionToMetadataConverter.CreateDetailExpressionModelMetadata(expression, modelMetadata);
+
+			//var startedChain = ExpressionToMetadataConverter.ConvertExpressionToChain(expression);
+			//var chain = ExpressionToMetadataConverter.Convert(expression, startedChain.Items.First().InputDtoType.Type);
+
+			throw new NotImplementedException();
+		}
+
+
+
+
+
 	}
 }

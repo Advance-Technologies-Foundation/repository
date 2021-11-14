@@ -21,5 +21,8 @@ namespace ATF.Repository.UnitTests.Models
 
 		[DetailProperty("AccountId")]
 		public virtual List<Contact> Contacts { get; set; }
+
+		[LookupProperty("MasterAccount")]
+		public virtual Account MasterAccount { get; set; }
 	}
 }

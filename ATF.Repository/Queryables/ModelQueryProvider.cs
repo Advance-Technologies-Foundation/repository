@@ -177,7 +177,6 @@
 				} else {
 					throw new System.NotSupportedException();
 				}
-
 			});
 
 			return (T)Expression.Lambda(sourceExpression).Compile().DynamicInvoke();

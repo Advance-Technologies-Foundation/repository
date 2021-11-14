@@ -6,7 +6,7 @@ namespace ATF.Repository.ExpressionConverters
 {
 	internal static class ExpressionToMetadataConverter
 	{
-		public static ExpressionMetadataChain Convert(Expression expression, Type lastValueType) {
+		internal static ExpressionMetadataChain Convert(Expression expression, Type lastValueType) {
 			var chain = ConvertExpressionToChain(expression);
 			chain.Items.ForEach(x => {
 				x.ExpressionMetadata = CreateExpressionMetadata(x, chain);
@@ -48,6 +48,14 @@ namespace ATF.Repository.ExpressionConverters
 			chain.Items.Insert(0, new ExpressionMetadataChainItem(methodCallExpression));
 			ConvertExpressionToChain(methodCallExpression.Arguments.First(), chain);
 			return chain;
+		}
+
+		internal static ExpressionModelMetadata CreateDetailExpressionModelMetadata(Expression expression,
+			ExpressionModelMetadata parentExpressionModelMetadata) {
+
+
+
+			throw new NotImplementedException();
 		}
 	}
 }

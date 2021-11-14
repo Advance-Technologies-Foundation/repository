@@ -2335,7 +2335,7 @@ namespace ATF.Repository.UnitTests
 				ComparisonType = FilterComparisonType.Exists,
 				LeftExpression = new ColumnExpression() {
 					ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,
-					ColumnPath = "[Contact:Account].Id"
+					ColumnPath = "MasterAccount.[Contact:Account].Id"
 				},
 				SubFilters = new Filters() {
 					RootSchemaName = "Contact",
@@ -2350,7 +2350,7 @@ namespace ATF.Repository.UnitTests
 						{"Id", expectedId}
 					}
 				}});
-			var models = _appDataContext.Models<Account>().Where(x=>x.Contacts.Any() == false).ToList();
+			var models = _appDataContext.Models<Account>().Where(x=>x.MasterAccount.Contacts.Any() == false).ToList();
 			Assert.AreEqual(1, models.Count);
 			Assert.AreEqual(expectedId, models.First().Id);
 		}
