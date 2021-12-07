@@ -13,6 +13,24 @@ This is an external library and not a part of **Creatio** kernel.
 - [Introduction](#introduction)
 - [General features](#general-features)
 - [Installation](#installation)
+	- [Install as a nuget package to the project](#install-as-a-nuget-package-to-the-project)
+	- [Install as Creatio-package to the Creatio-solution](#install-as-creatio-package-to-the-creatio-solution)
+- [Repository](#repository)
+	- [Repository instance](#repository-instance)
+		- [Creating a data provider instance](#creating-a-data-provider-instance)
+			- [Creating a local data provider (ATF.Repository.LocalDataProvider)](#creating-a-local-data-provider-atfrepositorylocaldataprovider)
+			- [Creating a remote data provider (ATF.Repository.RemoteDataProvider)](#creating-a-remote-data-provider-atfrepositoryremotedataprovider)
+		- [Creating a repository instance](#creating-a-repository-instance)
+	- [Saving changes](#saving-changes)
+	- [Model](#model)
+		- [Direct connection setup](#direct-connection-setup)
+		- [Reverse connection setup](#reverse-connection-setup)
+		- [Creating a new model instance](#creating-a-new-model-instance)
+		- [Receiving the model by existing data from the repository](#receiving-the-model-by-existing-data-from-the-repository)
+		- [Model data changing](#model-data-changing)
+		- [Deleting model instance from the repository](#deleting-model-instance-from-the-repository)
+	- [Using different types of filtration](#deleting-model-instance-from-the-repository)
+	
 
 # Installation
 
@@ -46,13 +64,13 @@ You can open the `.csproj` file to see the added reference:
 clio push-pkg ATF.Repository.gz
 ```
 
-3. After the command completes, look at `WorkspaceExplorer` to make sure the package was installed. to check 
+3. After the command completes, look at `WorkspaceExplorer` to make sure the package was installed.
 
 # Repository
 
 **Repository** (*ATF.Repository.IAppDataContext*) - is a storage and model generator. All models should be created via the repository. All changes are applied via the repository. 
 
-## Creating a repository instance:
+## Repository instance:
 For creating repository instance we have to create *DataProvider* as repository data source.
 
 ### Creating a data provider instance:
@@ -72,13 +90,13 @@ string password = "Password"; // Creatio User Password
 IDataProvider remoteDataProvider = new RemoteDataProvider(url, login, password);
 ```
 
-### Creating a repository instance :
+### Creating a repository instance:
 For creating repository instance we should use *AppDataContextFactory.GetAppDataContext*.
 ```csharp
 var appDataContext = AppDataContextFactory.GetAppDataContext(dataProvider);
 ```
 
-### Saving changes:
+## Saving changes:
 
 ```csharp
 appDataContext.Save();
