@@ -1,7 +1,7 @@
 # Introduction
-**ATF.Repository** - is an object-oriented data access technology. It is an object-relational mapping (ORM) solution for **bpm`online** from **Advanced Technologies Foundation**.
+**ATF.Repository** - is an object-oriented data access technology. It is an object-relational mapping (ORM) solution for **Creatio** from **Advanced Technologies Foundation**.
 
-This is an external library and not a part of **bpm`online** kernel.
+This is an external library and not a part of **Creatio** kernel.
 
 # General features:
 - working with data via models;
