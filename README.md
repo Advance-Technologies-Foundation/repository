@@ -8,21 +8,42 @@ This is an external library and not a part of **bpm`online** kernel.
 - building direct and reverse data dependencies via models;
 - creating, modifying and deleting data with the help of models with business logic implementation.
 
+# 
+
 # Repository
 
-**Repository** (*ATF.Repository.Repository*) - is a storage and model generator. All models should be created via the repository. All changes are applied via the repository. 
+**Repository** (*ATF.Repository.IAppDataContext*) - is a storage and model generator. All models should be created via the repository. All changes are applied via the repository. 
 
-### Creating a repository instance:
+## Creating a repository instance:
+For creating repository instance we have to create *DataProvider* as repository data source.
+
+### Creating a data provider instance:
+We can, depending on our needs, create either a local or a remote data provider.
+
+#### Creating a local data provider (*ATF.Repository.LocalDataProvider*):
 
 ```csharp
-var repository = ClassFactory.Get<IRepository>();
-repository.UserConnection = UserConnection;
+IDataProvider localDataProvider = new LocalDataProvider(UserConnection);
+```
+#### Creating a remote data provider (*ATF.Repository.RemoteDataProvider*):
+
+```csharp
+string url = "https://site.url";
+string login = "Login"; // Creatio User Login
+string password = "Password"; // Creatio User Password
+IDataProvider remoteDataProvider = new RemoteDataProvider(url, login, password);
+```
+
+### Creating a repository instance :
+For creating repository instance we should use *AppDataContextFactory.GetAppDataContext*.
+```csharp
+var appDataContext = AppDataContextFactory.GetAppDataContext(dataProvider);
 ```
 
 ### Saving changes:
 
 ```csharp
-repository.Save();
+appDataContext.Save();
 ```
 
 ## Model
@@ -33,7 +54,7 @@ It is marked with the **Schema** attribute (*ATF.Repository.Attributes.Schema*).
 Model properties, connected to the **Entity** fields, are marked with **SchemaProperty** attribute (*ATF.Repository.Attributes.SchemaProperty*).
 
 
-**Attention!** The type of property must be the same as the type of data  in connected column.
+**Attention!** The type of property must be the same as the type of data in connected column.
 
 **Note**. It is not required that the title of the model and its properties matches the title of the schema and its fields.
 
@@ -61,6 +82,7 @@ public class Expense : BaseModel {
 ### Direct connection setup
 
 To set up direct connection, add a property of a model type to the model and mark it with the **LookupProperty** attribute (*ATF.Repository.Attributes.LookupProperty*).
+For dirrect connection, we should always use key word *virtual*;
 
 ##### Example:
 
@@ -89,13 +111,15 @@ public class Order : BaseModel {
 ```
 
 ##### Example of using direct connection
+
 ```csharp
 var amount = expenceBonus.Order.Amount;
 ```
 
 ### Reverse connection setup
 
-To set up reverse connection, add a property of ```List<T>``` type to a master model, where "T" states for a detail model. 
+To set up reverse connection, add a property of ```List<T>``` type to a master model, where "T" states for a detail model. As argument for *DetailProperty* attribute we should use name of connected property from detail model.
+For reverse connection, we should always use key word *virtual*;
 
 ##### Example:
 ```csharp
@@ -103,7 +127,7 @@ To set up reverse connection, add a property of ```List<T>``` type to a master m
 public class Expense : BaseModel {
 
 	// Setting up reverse connection with the ExpenseProduct model, using the name of detail entity schema column for link.
-	[DetailProperty("TsOrderExpense")]
+	[DetailProperty("TsOrderExpenseId")]
 	public virtual List<ExpenseProduct> ExpenseProducts { get; set; }
 
 }
@@ -117,6 +141,10 @@ public class ExpenseProduct : BaseModel {
 	// Connection with the "Amount" Decimal field
 	[SchemaProperty("Amount")]
 	public decimal Amount { get; set; }
+	
+	// Connected with Expense model by that property
+	[SchemaProperty("TsOrderExpenseId")]
+	public Guid TsOrderExpenseId { get; set; }
 
 }
 ```
@@ -131,14 +159,14 @@ var expenseProducts = expense.ExpenseProducts.Where(x => x.Amount > 100m);
 A model is created by calling a ```CreateItem<T>``` method and specifying the model type. Upon that, properties, connected to the Entity, will be populated with default values.
 
 ```csharp
-var bonusModel = repository.CreateItem<Bonus>();
+var bonusModel = appDataContext.CreateItem<Bonus>();
 ```
 
 ### Receiving the model by existing data from the repository
 Existing model is read by means of calling a ```GetItem<T>``` method, where Id - is the identifier of the existing record.
 
 ```csharp
-var bonusModel = Repository.GetItem<Bonus>(Id);
+var bonusModel = appDataContext.GetItem<Bonus>(Id);
 ```
 
 ### Model data changing
@@ -150,61 +178,92 @@ bonusModel.Amount = 100m;
 Model instance is deleted by calling ```DeleteItem<T>``` method, where  model - is the instance to be deleted.
 
 ```csharp
-Repository.DeleteItem<Bonus>(model);
+appDataContext.DeleteItem<Bonus>(model);
 ```
 
-## Lazy loading
+## Using different types of filtration
 
-Models setup allows lazy loading of models by direct and indirect connections. To launch lazy loading add **virtual** modifier to the property. 
-
-In the following example values of  **Order** and **Products** properties will be loaded at once. Values of **Document** and **Expenses** properties will be loaded at the moment of the first applying.
-
-**Note**. If possible, lazy loading is recommended.
+### Load models where Age greater or equal 50
 
 ```csharp
-[Schema("TsOrderExpense")]
-public class Invoice : BaseModel {
-
-	[LookupProperty("Document")]
-	public virtual Document Document { get; set; }
-
-	[LookupProperty("Order")]
-	public Order Order { get; set; }
-
-	[DetailProperty("InvoiceId")]
-	public virtual List<Expense> Expenses { get; set; }
-
-	[DetailProperty("InvoiceId")]
-	public List<InvoiceProduct> Products { get; set; }
-
-}
+var models = _appDataContext.Models<Contact>().Where(x => x.Age > 50 ).ToList();
 ```
 
-## Using basic mechanisms of data access
-
-Working with models does not exclude usage of data access basic mechanisms - both via **EntitySchemaQuery** (*Terrasoft.Core.Entities.EntitySchemaQuery*) and **Select** (*Terrasoft.Core.DB.Select*).
-
-These approaches are shown in the following example:
+### Load models where Active is true
 
 ```csharp
-[Schema("TsOrderExpense")]
-public class Expense : BaseModel {
+var models = _appDataContext.Models<Contact>().Where(x => x.Active).ToList();
+or
+var models = _appDataContext.Models<Contact>().Where(x => x.Active == true).ToList();
+```
 
-	public decimal BonusProductAmountSumm() {
-		var select = new Select(UserConnection)
-			.From("BonusProduct")
-			.Column(Func.Sum("Amount"))
-			.Where("Id").IsEqual(new QueryParameter(Id)) as Select;
-		return select.ExecuteScalar<decimal>();
-	}
+### Load Top 10, Skip 20 models where Name contains substring and order by CreatedOn
 
-	public decimal BonusProductPrimaryAmountSymm() {
-		var esq = new EntitySchemaQuery(UserConnection.EntitySchemaManager, "BonusProduct");
-		var primaryAmountColumnName = esq.AddColumn(esq.CreateAggregationFunction(AggregationTypeStrict.Sum, "PrimaryAmount"));
-		var collection = esq.GetEntityCollection(UserConnection);
-		return collection.Count > 0
-			? collection[0].GetTypedColumnValue<decimal>(primaryAmountColumnName.Name)
-			: 0m;
-	}
-}
+```csharp
+var models = _appDataContext.Models<Contact>().Take(10).Skip(20).Where(x => x.Name.Contains("Abc"))
+	.OrderBy(x => x.CreatedOn).ToList();
+```
+
+### Load models with some conditions
+
+```csharp
+var models = _appDataContext.Models<Contact>().Where(x => x.Age > 10)
+	.Where(x => x.TypeId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")).ToList();
+```
+
+### Load first model with some conditions and orders
+
+```csharp
+var model = _appDataContext.Models<Contact>().Where(x => x.Age > 10)
+	.Where(x => x.TypeId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")).OrderBy(x => x.Age)
+	.ThenByDescending(x => x.Name).FirstOrDefault();
+```
+
+### Load sum by the column with some conditions
+
+```csharp
+var age = _appDataContext.Models<Contact>().Where(x => x.Age > 10)
+	.Where(x => x.TypeId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")).Sum(x=>x.Age);
+```
+
+### Load count by the column with some conditions
+
+```csharp
+var age = _appDataContext.Models<Contact>().Where(x => x.Age > 10)
+	.Count(x => x.TypeId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef"));
+```
+
+### Load Max by the column with some conditions
+
+```csharp
+var maxAge = _appDataContext.Models<Contact>().Where(x => x.Age > 10)
+	.Where(x => x.TypeId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")).Max(x=>x.Age);
+```
+
+### Load Min by the column with some conditions
+
+```csharp
+var minAge = _appDataContext.Models<Contact>().Where(x => x.Age > 10)
+	.Where(x => x.TypeId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")).Min(x=>x.Age);
+```
+
+### Load Average by the column with some conditions
+
+```csharp
+var minAge = _appDataContext.Models<Contact>().Where(x => x.Age > 10)
+	.Where(x => x.TypeId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")).Average(x=>x.Age);
+```
+
+### Load records with conditions in detail models
+
+```csharp
+var model = _appDataContext.Models<Contact>().Where(x =>
+	x.ContactInTags.Any(y => y.TagId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef"))).ToList();
+```
+
+### Load records with conditions in detail models and inner detail models
+
+```csharp
+var models = _appDataContext.Models<Account>().Where(x =>
+	x.Contacts.Where(y=>y.ContactInTags.Any(z => z.TagId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")))).ToList();
 ```
