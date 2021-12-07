@@ -8,7 +8,43 @@ This is an external library and not a part of **Creatio** kernel.
 - building direct and reverse data dependencies via models;
 - creating, modifying and deleting data with the help of models with business logic implementation.
 
-# 
+# Content table
+	[Introduction](#introduction)
+	[Installation](#installation)
+
+# Installation
+
+## Install as a nuget package to the project
+
+1. Open a command line and switch to the directory that contains your project file.
+
+2. Use the following command to install a NuGet package:
+
+```
+dotnet add package ATF.Repository
+```
+
+3. After the command completes, look at the project file to make sure the package was installed.
+
+You can open the `.csproj` file to see the added reference:
+
+```
+<ItemGroup>
+  <PackageReference Include="ATF.Repository" Version="2.0.0" />
+</ItemGroup>
+```
+
+## Install as Creatio-package to the Creatio-solution
+
+1. Open a command line and switch to the directory that contains `ATF.Repository.gz`.
+
+2. Use the following command to install ATF.Repository package by clio:
+
+```
+clio push-pkg ATF.Repository.gz
+```
+
+3. After the command completes, look at `WorkspaceExplorer` to make sure the package was installed. to check 
 
 # Repository
 
