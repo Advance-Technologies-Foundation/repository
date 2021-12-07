@@ -82,7 +82,8 @@ public class Expense : BaseModel {
 ### Direct connection setup
 
 To set up direct connection, add a property of a model type to the model and mark it with the **LookupProperty** attribute (*ATF.Repository.Attributes.LookupProperty*).
-For dirrect connection, we should always use key word *virtual*;
+
+**Important! For dirrect connection, we should always use key word *virtual* **;
 
 ##### Example:
 
@@ -119,7 +120,8 @@ var amount = expenceBonus.Order.Amount;
 ### Reverse connection setup
 
 To set up reverse connection, add a property of ```List<T>``` type to a master model, where "T" states for a detail model. As argument for *DetailProperty* attribute we should use name of connected property from detail model.
-For reverse connection, we should always use key word *virtual*;
+
+**Important! For reverse connection, we should always use key word *virtual* **;
 
 ##### Example:
 ```csharp
