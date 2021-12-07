@@ -22,7 +22,7 @@ This is an external library and not a part of **Creatio** kernel.
 
 2. Use the following command to install a NuGet package:
 
-```
+```dotnetcli
 dotnet add package ATF.Repository
 ```
 
@@ -30,7 +30,7 @@ dotnet add package ATF.Repository
 
 You can open the `.csproj` file to see the added reference:
 
-```
+```xml
 <ItemGroup>
   <PackageReference Include="ATF.Repository" Version="2.0.0" />
 </ItemGroup>
@@ -42,7 +42,7 @@ You can open the `.csproj` file to see the added reference:
 
 2. Use the following command to install ATF.Repository package by clio:
 
-```
+```dotnetcli
 clio push-pkg ATF.Repository.gz
 ```
 
