@@ -15,7 +15,7 @@ namespace ATF.Repository.UnitTests
 
 		[OneTimeSetUp]
 		public void OneTimeSetUp() {
-			_remoteDataProvider = new RemoteDataProvider("https://nurturing.creatio.com", "Supervisor", "Supervisor123");
+			_remoteDataProvider = new RemoteDataProvider("", "", "");
 			_appDataContext = AppDataContextFactory.GetAppDataContext(_remoteDataProvider);
 		}
 
@@ -26,7 +26,7 @@ namespace ATF.Repository.UnitTests
 
 			// Assert
 			Assert.IsNotNull(models);
-			Assert.AreEqual(9, models.Count);
+			Assert.AreEqual(11, models.Count);
 			Assert.IsTrue(models.All(x=>x.Id != Guid.Empty));
 			Assert.IsTrue(models.All(x=>!string.IsNullOrEmpty(x.Name)));
 		}
@@ -539,6 +539,78 @@ namespace ATF.Repository.UnitTests
 			var trackerAfterSave = _appDataContext.ChangeTracker.GetTrackedModel(model);
 			Assert.IsNull(trackerAfterSave);
 			Assert.IsTrue(model.IsMarkAsDeleted);
+		}
+
+		[Test]
+		public void Models_WhenCallModelWithDetailProperty_ShouldReturnsExpectedValue() {
+			// Act
+			var model = _appDataContext.Models<Contact>().Where(x =>
+				x.AccountId == new Guid("46162896-9553-485d-80d6-5f7e526e5029") &&
+				x.ContactInTags.Any(y => y.TagId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef"))).ToList();
+
+			// Assert
+			Assert.IsNotNull(model);
+			Assert.AreEqual(4, model.Count);
+		}
+
+		[Test]
+		public void Models_WhenCallModelWithDetailSumProperty_ShouldReturnsExpectedValue() {
+			// Act
+			var model = _appDataContext.Models<Account>().Where(x =>
+				x.Id == new Guid("46162896-9553-485d-80d6-5f7e526e5029") &&
+				x.Contacts.Where(y=>y.ContactInTags.Any(z => z.TagId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef"))).Sum(y=>y.Age) > 10 ).ToList();
+
+			// Assert
+			Assert.IsNotNull(model);
+			Assert.AreEqual(1, model.Count);
+		}
+
+		[Test]
+		public void Models_WhenCallModelWithDetailMaxProperty_ShouldReturnsExpectedValue() {
+			// Act
+			var model = _appDataContext.Models<Account>().Where(x =>
+				x.Id == new Guid("46162896-9553-485d-80d6-5f7e526e5029") &&
+				x.Contacts.Where(y=>y.ContactInTags.Any(z => z.TagId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef"))).Max(y=>y.Age) > 10 ).ToList();
+
+			// Assert
+			Assert.IsNotNull(model);
+			Assert.AreEqual(1, model.Count);
+		}
+
+		[Test]
+		public void Models_WhenCallModelWithDetailPartMinProperty_ShouldReturnsExpectedValue() {
+			// Act
+			var model = _appDataContext.Models<Account>().Where(x =>
+				x.Id == new Guid("46162896-9553-485d-80d6-5f7e526e5029") &&
+				x.Contacts.Where(y=>y.ContactInTags.Any(z => z.TagId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")) && y.Age < 38).Max(y=>y.Age) == 37 ).ToList();
+
+			// Assert
+			Assert.IsNotNull(model);
+			Assert.AreEqual(1, model.Count);
+		}
+
+		[Test]
+		public void Models_WhenCallModelWithDetailCountProperty_ShouldReturnsExpectedValue() {
+			// Act
+			var model = _appDataContext.Models<Account>().Where(x =>
+				x.Id == new Guid("46162896-9553-485d-80d6-5f7e526e5029") &&
+				x.Contacts.Count(y => y.ContactInTags.Any(z => z.TagId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")) && y.Age < 38) == 2 ).ToList();
+
+			// Assert
+			Assert.IsNotNull(model);
+			Assert.AreEqual(1, model.Count);
+		}
+
+		[Test]
+		public void Models_WhenCallModelWithDetailPartMaxProperty_ShouldReturnsExpectedValue() {
+			// Act
+			var model = _appDataContext.Models<Account>().Where(x =>
+				x.Id == new Guid("46162896-9553-485d-80d6-5f7e526e5029") &&
+				x.Contacts.Where(y=>y.ContactInTags.Any(z => z.TagId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")) && y.Age > 38).Max(y=>y.Age) == 41 ).ToList();
+
+			// Assert
+			Assert.IsNotNull(model);
+			Assert.AreEqual(1, model.Count);
 		}
 	}
 }

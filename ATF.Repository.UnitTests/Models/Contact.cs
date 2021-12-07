@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using ATF.Repository.Attributes;
 
 namespace ATF.Repository.UnitTests.Models
@@ -29,6 +30,9 @@ namespace ATF.Repository.UnitTests.Models
 
 		[SchemaProperty("Phone")]
 		public string Phone { get; set; }
+
+		[DetailProperty("EntityId")]
+		public virtual List<ContactInTag> ContactInTags { get; set; }
 
 	}
 }

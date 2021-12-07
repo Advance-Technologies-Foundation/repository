@@ -41,6 +41,44 @@ namespace ATF.Repository.UnitTests
 		}
 	}
 
+	public class DataProviderMock : IDataProvider
+	{
+		private Dictionary<string, IDefaultValuesResponse> _defaultValuesResponses;
+		private Dictionary<SelectQuery, IItemsResponse> _selectQueries;
+
+		public DataProviderMock() {
+			_defaultValuesResponses = new Dictionary<string, IDefaultValuesResponse>();
+			_selectQueries = new Dictionary<SelectQuery, IItemsResponse>();
+		}
+		public void SetDefaultValues(string schemaName, IDefaultValuesResponse defaultValuesResponse) {
+			if (_defaultValuesResponses.ContainsKey(schemaName)) {
+				_defaultValuesResponses[schemaName] = defaultValuesResponse;
+			} else {
+				_defaultValuesResponses.Add(schemaName, defaultValuesResponse);
+			}
+
+		}
+		public IDefaultValuesResponse GetDefaultValues(string schemaName) {
+			if (_defaultValuesResponses.ContainsKey(schemaName)) {
+				return _defaultValuesResponses[schemaName];
+			}
+
+			return null;
+		}
+
+		public void SetItemsResponse(SelectQuery selectQuery, IItemsResponse response) {
+			_selectQueries.Add(selectQuery, response);
+		}
+		public IItemsResponse GetItems(SelectQuery selectQuery) {
+			var item = _selectQueries.FirstOrDefault(x => QueryComparison.AreSelectQueryEqual(selectQuery, x.Key));
+			return item.Value;
+		}
+
+		public IExecuteResponse BatchExecute(List<BaseQuery> queries) {
+			throw new NotImplementedException();
+		}
+	}
+
 	[TestFixture]
 	public class AppDataContextTests
 	{
@@ -49,9 +87,13 @@ namespace ATF.Repository.UnitTests
 
 		[SetUp]
 		public void SetUp() {
-			_dataProvider = Substitute.For<IDataProvider>();
+			_dataProvider = Substitute.For<IDataProvider>(); // new DataProviderMock();
 			_appDataContext = AppDataContextFactory.GetAppDataContext(_dataProvider);
 		}
+
+		/*public void SetDataProviderItemsResponse(SelectQuery selectQuery, IItemsResponse response) {
+			((DataProviderMock)_dataProvider).SetItemsResponse(selectQuery, response);
+		}*/
 
 		#region Simple tests
 
@@ -369,7 +411,7 @@ namespace ATF.Repository.UnitTests
 				});
 
 			// Act
-			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.DecimalValue == expectedNumber);
+			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.DecimalValue == (decimal) expectedNumber);
 			var order = queryable.ToList().First();
 
 			// Assert
@@ -2327,12 +2369,12 @@ namespace ATF.Repository.UnitTests
 		}
 
 		[Test]
-		public void Models_WhenUseDetailAnyFilterWithoutInnerFilters2_ShouldReturnExpectedValue() {
+		public void Models_WhenUseDetailNotAnyFilterWithoutInnerFilters_ShouldReturnExpectedValue() {
 			var expectedId = Guid.NewGuid();
 			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<Account>();
 			expectedSelect.Filters.Items.Add("f1", new Filter() {
-				FilterType = FilterType.Exists,
-				ComparisonType = FilterComparisonType.Exists,
+				FilterType = FilterType.CompareFilter,
+				ComparisonType = FilterComparisonType.NotExists,
 				LeftExpression = new ColumnExpression() {
 					ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,
 					ColumnPath = "MasterAccount.[Contact:Account].Id"
@@ -2353,6 +2395,261 @@ namespace ATF.Repository.UnitTests
 			var models = _appDataContext.Models<Account>().Where(x=>x.MasterAccount.Contacts.Any() == false).ToList();
 			Assert.AreEqual(1, models.Count);
 			Assert.AreEqual(expectedId, models.First().Id);
+		}
+
+		[Test]
+		public void Models_WhenUseDetailShortNotAnyFilterWithoutInnerFilters_ShouldReturnExpectedValue() {
+			var expectedId = Guid.NewGuid();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<Account>();
+			expectedSelect.Filters.Items.Add("f1", new Filter() {
+				FilterType = FilterType.CompareFilter,
+				ComparisonType = FilterComparisonType.NotExists,
+				LeftExpression = new ColumnExpression() {
+					ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,
+					ColumnPath = "MasterAccount.[Contact:Account].Id"
+				},
+				SubFilters = new Filters() {
+					RootSchemaName = "Contact",
+					FilterType = FilterType.FilterGroup,
+					Items = new Dictionary<string, Filter>()
+				}
+			});
+			_dataProvider
+				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
+				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
+					new Dictionary<string, object>() {
+						{"Id", expectedId}
+					}
+				}});
+			var models = _appDataContext.Models<Account>().Where(x=>!x.MasterAccount.Contacts.Any()).ToList();
+			Assert.AreEqual(1, models.Count);
+			Assert.AreEqual(expectedId, models.First().Id);
+		}
+
+		[Test]
+		public void Models_WhenUseDetailShortAnyFilterWithoutInnerFilters_ShouldReturnExpectedValue() {
+			var expectedId = Guid.NewGuid();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<Account>();
+			expectedSelect.Filters.Items.Add("f1", new Filter() {
+				FilterType = FilterType.CompareFilter,
+				ComparisonType = FilterComparisonType.Exists,
+				LeftExpression = new ColumnExpression() {
+					ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,
+					ColumnPath = "MasterAccount.[Contact:Account].Id"
+				},
+				SubFilters = new Filters() {
+					RootSchemaName = "Contact",
+					FilterType = FilterType.FilterGroup,
+					Items = new Dictionary<string, Filter>()
+				}
+			});
+			_dataProvider
+				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
+				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
+					new Dictionary<string, object>() {
+						{"Id", expectedId}
+					}
+				}});
+			var models = _appDataContext.Models<Account>().Where(x=>x.MasterAccount.Contacts.Any()).ToList();
+			Assert.AreEqual(1, models.Count);
+			Assert.AreEqual(expectedId, models.First().Id);
+		}
+
+		[Test]
+		public void Models_WhenUseDetailAnyFilterWithoutInnerFilters_ShouldReturnExpectedValue() {
+			var expectedId = Guid.NewGuid();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<Account>();
+			expectedSelect.Filters.Items.Add("f1", new Filter() {
+				FilterType = FilterType.CompareFilter,
+				ComparisonType = FilterComparisonType.Exists,
+				LeftExpression = new ColumnExpression() {
+					ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,
+					ColumnPath = "MasterAccount.[Contact:Account].Id"
+				},
+				SubFilters = new Filters() {
+					RootSchemaName = "Contact",
+					FilterType = FilterType.FilterGroup,
+					Items = new Dictionary<string, Filter>()
+				}
+			});
+			_dataProvider
+				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
+				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
+					new Dictionary<string, object>() {
+						{"Id", expectedId}
+					}
+				}});
+			var models = _appDataContext.Models<Account>().Where(x=>x.MasterAccount.Contacts.Any() == true).ToList();
+			Assert.AreEqual(1, models.Count);
+			Assert.AreEqual(expectedId, models.First().Id);
+		}
+
+		[Test]
+		public void Models_WhenUseDetailShortAnyFilterWithInnerFilters_ShouldReturnExpectedValue() {
+			var expectedId = Guid.NewGuid();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<Account>();
+			expectedSelect.Filters.Items.Add("f1", new Filter() {
+				FilterType = FilterType.CompareFilter,
+				ComparisonType = FilterComparisonType.Exists,
+				LeftExpression = new ColumnExpression() {
+					ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,
+					ColumnPath = "MasterAccount.[Contact:Account].Id"
+				},
+				SubFilters = new Filters() {
+					RootSchemaName = "Contact",
+					FilterType = FilterType.FilterGroup,
+					Items = new Dictionary<string, Filter>() {
+						{"f1", TestSelectBuilder.CreateComparisonFilter("Age", FilterComparisonType.Greater, DataValueType.Integer,
+							10)
+						}
+					}
+				}
+			});
+			_dataProvider
+				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
+				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
+					new Dictionary<string, object>() {
+						{"Id", expectedId}
+					}
+				}});
+			var models = _appDataContext.Models<Account>().Where(x=>x.MasterAccount.Contacts.Any(y=>y.Age > 10)).ToList();
+			Assert.AreEqual(1, models.Count);
+			Assert.AreEqual(expectedId, models.First().Id);
+		}
+
+		[Test]
+		public void Models_WhenUseDetailShortAnyFilterWithMultiInnerFilters_ShouldReturnExpectedValue() {
+			var expectedId = Guid.NewGuid();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<Account>();
+			expectedSelect.Filters.Items.Add("f1", new Filter() {
+				FilterType = FilterType.CompareFilter,
+				ComparisonType = FilterComparisonType.Exists,
+				LeftExpression = new ColumnExpression() {
+					ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,
+					ColumnPath = "[Contact:Account].Id"
+				},
+				SubFilters = new Filters() {
+					RootSchemaName = "Contact",
+					FilterType = FilterType.FilterGroup,
+					Items = new Dictionary<string, Filter>() {
+						{"f1", TestSelectBuilder.CreateComparisonFilter("Age", FilterComparisonType.Greater, DataValueType.Integer,
+							10)
+						},
+						{"f2", TestSelectBuilder.CreateComparisonFilter("Age", FilterComparisonType.LessOrEqual, DataValueType.Integer,
+							100)
+						}
+					}
+				}
+			});
+			_dataProvider
+				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
+				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
+					new Dictionary<string, object>() {
+						{"Id", expectedId}
+					}
+				}});
+			var models = _appDataContext.Models<Account>().Where(x=>x.Contacts.Where(y=>y.Age <= 100).Any(y=>y.Age > 10)).ToList();
+			Assert.AreEqual(1, models.Count);
+			Assert.AreEqual(expectedId, models.First().Id);
+		}
+
+		[Test]
+		public void Models_WhenUseDetailCountFilterWithMultiInnerFilters_ShouldReturnExpectedValue() {
+			var expectedId = Guid.NewGuid();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<Account>();
+			expectedSelect.Filters.Items.Add("f1", new Filter() {
+				FilterType = FilterType.CompareFilter,
+				ComparisonType = FilterComparisonType.Greater,
+				LeftExpression = new ColumnExpression() {
+					ExpressionType = EntitySchemaQueryExpressionType.SubQuery,
+					FunctionType = FunctionType.Aggregation,
+					AggregationType = AggregationType.Count,
+					ColumnPath = "[Contact:Account].Id",
+					SubFilters = new Filters() {
+						RootSchemaName = "Contact",
+						FilterType = FilterType.FilterGroup,
+						Items = new Dictionary<string, Filter>() {
+							{"f1", TestSelectBuilder.CreateComparisonFilter("Age", FilterComparisonType.Greater, DataValueType.Integer,
+								10)
+							},
+							{"f2", TestSelectBuilder.CreateComparisonFilter("Age", FilterComparisonType.LessOrEqual, DataValueType.Integer,
+								100)
+							}
+						}
+					}
+				},
+				RightExpression = new BaseExpression() {
+					ExpressionType = EntitySchemaQueryExpressionType.Parameter,
+					Parameter = new Parameter() {
+						Value = 3,
+						DataValueType = DataValueType.Integer
+					}
+				}
+			});
+			_dataProvider
+				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
+				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
+					new Dictionary<string, object>() {
+						{"Id", expectedId}
+					}
+				}});
+			var models = _appDataContext.Models<Account>().Where(x=>x.Contacts.Where(y=>y.Age <= 100).Count(y=>y.Age > 10) > 3).ToList();
+			Assert.AreEqual(1, models.Count);
+			Assert.AreEqual(expectedId, models.First().Id);
+		}
+
+		[Test]
+		public void Models_WhenUseDetailSumFilterWithMultiInnerFilters_ShouldReturnExpectedValue() {
+			var expectedId = Guid.NewGuid();
+			var expectedSelect = TestSelectBuilder.GetTestSelectQuery<Account>();
+			expectedSelect.Filters.Items.Add("f1", new Filter() {
+				FilterType = FilterType.CompareFilter,
+				ComparisonType = FilterComparisonType.Greater,
+				LeftExpression = new ColumnExpression() {
+					ExpressionType = EntitySchemaQueryExpressionType.SubQuery,
+					FunctionType = FunctionType.Aggregation,
+					AggregationType = AggregationType.Sum,
+					ColumnPath = "[Contact:Account].Age",
+					SubFilters = new Filters() {
+						RootSchemaName = "Contact",
+						FilterType = FilterType.FilterGroup,
+						Items = new Dictionary<string, Filter>() {
+							{"f1", TestSelectBuilder.CreateComparisonFilter("Age", FilterComparisonType.Greater, DataValueType.Integer,
+								10)
+							},
+							{"f2", TestSelectBuilder.CreateComparisonFilter("Age", FilterComparisonType.LessOrEqual, DataValueType.Integer,
+								100)
+							}
+						}
+					}
+				},
+				RightExpression = new BaseExpression() {
+					ExpressionType = EntitySchemaQueryExpressionType.Parameter,
+					Parameter = new Parameter() {
+						Value = 3,
+						DataValueType = DataValueType.Integer
+					}
+				}
+			});
+			_dataProvider
+				.GetItems(Arg.Is<SelectQuery>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
+				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
+					new Dictionary<string, object>() {
+						{"Id", expectedId}
+					}
+				}});
+			var models = _appDataContext.Models<Account>().Where(x=>x.Contacts.Where(y=>y.Age <= 100).Where(y=>y.Age > 10).Sum(y=>y.Age) > 3).ToList();
+			Assert.AreEqual(1, models.Count);
+			Assert.AreEqual(expectedId, models.First().Id);
+		}
+
+		[Test]
+		public void Models_WhenUseFirstInDetail_ShouldThrowsExpressionConvertException()
+		{
+			// Assert
+			Assert.Throws<ExpressionConvertException>(() => {
+				_appDataContext.Models<Account>().Where(x => x.Contacts.First().Age > 10).ToList();
+			});
 		}
 	}
 }

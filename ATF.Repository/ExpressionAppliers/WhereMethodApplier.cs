@@ -8,6 +8,7 @@ namespace ATF.Repository.ExpressionAppliers
 	{
 		internal override bool Apply(ExpressionMetadataChainItem expression, ModelQueryBuildConfig config) {
 			var filter = ModelQueryFilterBuilder.GenerateFilter(expression.ExpressionMetadata);
+
 			config.SelectQuery.Filters.Items.Add(Guid.NewGuid().ToString(), filter);
 			return true;
 		}

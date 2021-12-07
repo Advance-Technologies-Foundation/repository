@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using ATF.Repository.Exceptions;
 using Terrasoft.Common;
 
 namespace ATF.Repository.ExpressionConverters
@@ -25,6 +26,17 @@ namespace ATF.Repository.ExpressionConverters
 
 		internal Type GetOutputType() {
 			return Items.Any() ? Items.Last().OutputDtoType.Type : LastValueType;
+		}
+
+		public void ValidateChainItems(List<string> availableMethods) {
+			Items.ForEach(x=>ValidateChainItem(x, availableMethods));
+		}
+
+		private void ValidateChainItem(ExpressionMetadataChainItem expressionMetadataChainItem, List<string> availableMethods) {
+			var methodName = expressionMetadataChainItem.ExpressionMetadata?.MethodName;
+			if (!string.IsNullOrEmpty(methodName) && !availableMethods.Contains(methodName)) {
+				throw new FormatException($"Method {methodName} is not available for expression");
+			}
 		}
 	}
 }

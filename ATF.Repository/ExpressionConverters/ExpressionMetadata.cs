@@ -1,4 +1,7 @@
 ﻿
+using System.Linq;
+using System.Linq.Expressions;
+
 namespace ATF.Repository.ExpressionConverters
 {
 	using System.Collections.Generic;
@@ -8,6 +11,12 @@ namespace ATF.Repository.ExpressionConverters
 	internal class ExpressionMetadata {
 		internal ExpressionMetadataNodeType NodeType { get; set; }
 		internal ExpressionMetadata LeftExpression { get; set; }
+
+		internal ExpressionMetadata RightExpression {
+			get => RightExpressions.FirstOrDefault();
+			set => RightExpressions.Add(value);
+		}
+
 		internal List<ExpressionMetadata> RightExpressions { get; set; }
 		internal FilterComparisonType ComparisonType { get; set; }
 		internal LogicalOperationStrict LogicalOperation { get; set; }
@@ -15,9 +24,11 @@ namespace ATF.Repository.ExpressionConverters
 
 		internal ExpressionMetadataParameter Parameter { get; set; }
 
-		internal ExpressionModelMetadata ModelMetadata { get; set; }
+		internal string MethodName { get; set; }
 
 		internal bool IsNot { get; set; }
+
+		internal ExpressionMetadataChain DetailChain { get; set; }
 
 		internal ExpressionMetadata() {
 			RightExpressions = new List<ExpressionMetadata>();

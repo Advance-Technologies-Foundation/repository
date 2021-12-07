@@ -74,9 +74,23 @@ namespace ATF.Repository.UnitTests.Utilities
 							expected.Parameter.DataValueType == actual.Parameter.DataValueType &&
 							((expected.Parameter.Value == null && (actual.Parameter.Value == null) ||
 								expected.Parameter.Value.Equals(actual.Parameter.Value))));
+				case EntitySchemaQueryExpressionType.SubQuery:
+					return CompareSubQuery(expected, actual);
 				default:
 					throw new NotImplementedException();
 			}
+		}
+
+		private static bool CompareSubQuery(BaseExpression expected, BaseExpression actual) {
+			var isParametersEqual = expected.ExpressionType == actual.ExpressionType &&
+				expected.AggregationType == actual.AggregationType &&
+				expected.FunctionType == actual.FunctionType &&
+				expected.ColumnPath == actual.ColumnPath;
+			var isSubFiltersEqual = AreSelectQueryFilterGroupEqual(expected.SubFilters, actual.SubFilters);
+			var expectedFilter = JsonConvert.SerializeObject(expected.SubFilters);
+			var actualFilter = JsonConvert.SerializeObject(actual.SubFilters);
+
+			return isParametersEqual && isSubFiltersEqual;
 		}
 
 		private static bool AreSelectQueryExpressionEqual(BaseExpression[] expected, BaseExpression[] actual) {

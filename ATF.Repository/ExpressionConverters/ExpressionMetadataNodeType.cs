@@ -5,6 +5,7 @@
 		Property,
 		Column,
 		Comparison,
-		Group
+		Group,
+		Detail
 	}
 }

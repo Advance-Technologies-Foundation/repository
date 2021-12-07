@@ -2,8 +2,7 @@
 
 namespace ATF.Repository.Exceptions
 {
-	public class ExpressionConvertException: Exception
+	public class ExpressionApplierException: Exception
 	{
-
 	}
 }

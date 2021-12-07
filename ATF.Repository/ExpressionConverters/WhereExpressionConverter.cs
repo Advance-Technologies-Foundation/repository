@@ -6,7 +6,7 @@ using ATF.Repository.ExpressionConverters;
 
 namespace ATF.Repository.ExpressionConverters
 {
-	internal class SkipTakeExpressionConverter: BaseExpressionConverter
+	public class WhereExpressionConverter
 	{
 		internal static ExpressionMetadata Convert(MethodCallExpression methodCallExpression, ExpressionModelMetadata modelMetadata) {
 			if (methodCallExpression.Arguments.Count < 2) {
@@ -14,11 +14,7 @@ namespace ATF.Repository.ExpressionConverters
 			}
 
 			var body = methodCallExpression.Arguments.Skip(1).First();
-			if (!ExpressionConverterUtilities.TryDynamicInvoke(body, out var value)) {
-				throw new NotSupportedException();
-			}
-
-			var expressionMetadata = ExpressionConverterUtilities.GetPropertyMetadata(body, value);
+			var expressionMetadata = FilterConverter.Convert(body, modelMetadata);
 			expressionMetadata.MethodName = methodCallExpression.Method.Name;
 			return expressionMetadata;
 		}
