@@ -83,7 +83,7 @@ public class Expense : BaseModel {
 
 To set up direct connection, add a property of a model type to the model and mark it with the **LookupProperty** attribute (*ATF.Repository.Attributes.LookupProperty*).
 
-**Important! For dirrect connection, we should always use key word *virtual* **;
+**Attention!** For dirrect connection, we should always use key word *virtual*.
 
 ##### Example:
 
@@ -121,9 +121,10 @@ var amount = expenceBonus.Order.Amount;
 
 To set up reverse connection, add a property of ```List<T>``` type to a master model, where "T" states for a detail model. As argument for *DetailProperty* attribute we should use name of connected property from detail model.
 
-**Important! For reverse connection, we should always use key word *virtual* **;
+**Attention!** For reverse connection, we should always use key word *virtual*.
 
 ##### Example:
+
 ```csharp
 [Schema("TsOrderExpense")]
 public class Expense : BaseModel {
@@ -158,6 +159,7 @@ var expenseProducts = expense.ExpenseProducts.Where(x => x.Amount > 100m);
 ```
 
 ### Creating a new model instance
+
 A model is created by calling a ```CreateItem<T>``` method and specifying the model type. Upon that, properties, connected to the Entity, will be populated with default values.
 
 ```csharp
@@ -165,6 +167,7 @@ var bonusModel = appDataContext.CreateItem<Bonus>();
 ```
 
 ### Receiving the model by existing data from the repository
+
 Existing model is read by means of calling a ```GetItem<T>``` method, where Id - is the identifier of the existing record.
 
 ```csharp
@@ -172,11 +175,13 @@ var bonusModel = appDataContext.GetItem<Bonus>(Id);
 ```
 
 ### Model data changing
+
 ```csharp
 bonusModel.Amount = 100m;
 ```
 
 ### Deleting model instance from the repository
+
 Model instance is deleted by calling ```DeleteItem<T>``` method, where  model - is the instance to be deleted.
 
 ```csharp
