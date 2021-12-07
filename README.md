@@ -1,21 +1,19 @@
-<a name="introduction"/>
 # Introduction
 **ATF.Repository** - is an object-oriented data access technology. It is an object-relational mapping (ORM) solution for **Creatio** from **Advanced Technologies Foundation**.
 
 This is an external library and not a part of **Creatio** kernel.
 
-<a name="generalfeatures"/>
 # General features:
 - working with data via models;
 - building direct and reverse data dependencies via models;
 - creating, modifying and deleting data with the help of models with business logic implementation.
 
 # Content table
-[Introduction](#introduction)
-[General features](#generalfeatures)
-[Installation](#installation)
 
-<a name="installation"/>
+- [Introduction](#introduction)
+- [General features](#general-features)
+- [Installation](#installation)
+
 # Installation
 
 ## Install as a nuget package to the project
