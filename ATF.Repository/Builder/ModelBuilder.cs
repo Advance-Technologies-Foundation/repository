@@ -8,11 +8,11 @@ namespace ATF.Repository.Builder
 {
 	internal class ModelBuilder
 	{
-		private readonly ILazyModelPropertyLoader _lazyModelPropertyLoader;
+		private readonly ILazyModelPropertyManager _lazyModelPropertyManager;
 		private readonly ProxyClassBuilder _proxyClassBuilder;
 
-		internal ModelBuilder(ILazyModelPropertyLoader lazyModelPropertyLoader) {
-			_lazyModelPropertyLoader = lazyModelPropertyLoader;
+		internal ModelBuilder(ILazyModelPropertyManager lazyModelPropertyManager) {
+			_lazyModelPropertyManager = lazyModelPropertyManager;
 			_proxyClassBuilder = new ProxyClassBuilder();
 		}
 
@@ -25,7 +25,7 @@ namespace ATF.Repository.Builder
 		private T GetModelInstance<T>() where T : BaseModel, new() {
 			var model = _proxyClassBuilder.Build<T>();
 			model.Id = Guid.NewGuid();
-			model.LazyModelPropertyLoader = _lazyModelPropertyLoader;
+			model.LazyModelPropertyManager = _lazyModelPropertyManager;
 			return model;
 		}
 

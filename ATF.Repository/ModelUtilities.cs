@@ -1,12 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using ATF.Repository.Attributes;
-using ATF.Repository.Mapping;
-
-namespace ATF.Repository
+﻿namespace ATF.Repository
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using System.Reflection;
+	using ATF.Repository.Attributes;
+	using ATF.Repository.Mapping;
+	using Terrasoft.Common;
+
 	internal static class ModelUtilities
 	{
 		internal static string GetSchemaName(this BaseModel model)
@@ -15,11 +16,33 @@ namespace ATF.Repository
 			return GetSchemaName(type);
 		}
 
+		internal static bool IsModelType(Type type) {
+			return type != null && (type == typeof(BaseModel) || type.IsSubclassOf(typeof(BaseModel)));
+		}
+
 		internal static Dictionary<string, object> GetModelPropertyValues(this BaseModel model)
 		{
+			var response = model.GetDirectModelPropertyValues();
+			response.AddRange(model.GetLazyModelPropertyValues());
+			return response;
+		}
+
+		internal static Dictionary<string, object> GetDirectModelPropertyValues(this BaseModel model)
+		{
 			var response = new Dictionary<string, object>();
-			ModelMapper.GetProperties(model.GetType()).ForEach(x => {
-				response.Add(x.PropertyName, x.PropertyInfo.GetValue(model));
+			var modelType = model.GetType();
+			ModelMapper.GetProperties(modelType).ForEach(x => {
+				response.Add(x.EntityColumnName, x.PropertyInfo.GetValue(model));
+			});
+			return response;
+		}
+
+		internal static Dictionary<string, object> GetLazyModelPropertyValues(this BaseModel model) {
+			var modelType = model.GetType();
+			var existedDirectItems = ModelMapper.GetProperties(modelType).Select(x=>x.EntityColumnName).ToList();
+			var response = new Dictionary<string, object>();
+			ModelMapper.GetLookups(modelType).Where(x=>!existedDirectItems.Contains(x.EntityColumnName)).ForEach(x => {
+				response.Add(x.EntityColumnName, model.GetLazyLookupKeyValue(x.PropertyName));
 			});
 			return response;
 		}

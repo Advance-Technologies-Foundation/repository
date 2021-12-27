@@ -12,5 +12,8 @@ namespace ATF.Repository
 
 		ISaveResult Save();
 
+		T GetSysSettingValue<T>(string sysSettingCode);
+
+		bool GetFeatureEnabled(string featureCode);
 	}
 }

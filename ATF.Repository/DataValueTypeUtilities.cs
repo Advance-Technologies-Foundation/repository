@@ -30,6 +30,11 @@ namespace ATF.Repository
 			if (ConvertDataValueTypeData.ContainsKey(propertyType)) {
 				return ConvertDataValueTypeData[propertyType];
 			}
+
+			if (ModelUtilities.IsModelType(propertyType)) {
+				return DataValueType.Lookup;
+			}
+
 			throw new NotImplementedException();
 		}
 

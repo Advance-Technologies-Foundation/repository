@@ -104,7 +104,7 @@ namespace ATF.Repository.ExpressionConverters
 			pathParts = pathParts ?? new List<string>();
 			if (node is MemberExpression memberExpression) {
 				var member = memberExpression.Member;
-				if (!IsModelType(member.DeclaringType) || !IsSchemaOrLookupProperty(member, out var columnPath)) {
+				if (!ModelUtilities.IsModelType(member.DeclaringType) || !IsSchemaOrLookupProperty(member, out var columnPath)) {
 					return string.Empty;
 				}
 				pathParts.Add(columnPath);
@@ -176,10 +176,6 @@ namespace ATF.Repository.ExpressionConverters
 			return string.Join("", path);
 		}
 
-		private static bool IsModelType(Type type) {
-			return type != null && (type == _baseModelType || type.IsSubclassOf(_baseModelType));
-		}
-
 		public static ExpressionMetadata GetColumnMetadata(Type type, string columnPath) {
 			return new ExpressionMetadata() {
 				NodeType = ExpressionMetadataNodeType.Column,
@@ -239,7 +235,7 @@ namespace ATF.Repository.ExpressionConverters
 				return GetDetailPropertyParseData(methodCallExpression.Arguments.First(), modelMetadata);
 			}
 
-			if (expression is MemberExpression memberExpression && IsModelType(memberExpression.Member.DeclaringType)) {
+			if (expression is MemberExpression memberExpression && ModelUtilities.IsModelType(memberExpression.Member.DeclaringType)) {
 				if (IsDetailProperty(memberExpression.Member, out var memberColumnPath)) {
 					return GetDetailPropertyParseData(memberExpression.Expression, modelMetadata,
 						new List<string>() {memberColumnPath}, memberExpression);

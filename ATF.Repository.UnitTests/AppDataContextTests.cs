@@ -41,44 +41,6 @@ namespace ATF.Repository.UnitTests
 		}
 	}
 
-	public class DataProviderMock : IDataProvider
-	{
-		private Dictionary<string, IDefaultValuesResponse> _defaultValuesResponses;
-		private Dictionary<SelectQuery, IItemsResponse> _selectQueries;
-
-		public DataProviderMock() {
-			_defaultValuesResponses = new Dictionary<string, IDefaultValuesResponse>();
-			_selectQueries = new Dictionary<SelectQuery, IItemsResponse>();
-		}
-		public void SetDefaultValues(string schemaName, IDefaultValuesResponse defaultValuesResponse) {
-			if (_defaultValuesResponses.ContainsKey(schemaName)) {
-				_defaultValuesResponses[schemaName] = defaultValuesResponse;
-			} else {
-				_defaultValuesResponses.Add(schemaName, defaultValuesResponse);
-			}
-
-		}
-		public IDefaultValuesResponse GetDefaultValues(string schemaName) {
-			if (_defaultValuesResponses.ContainsKey(schemaName)) {
-				return _defaultValuesResponses[schemaName];
-			}
-
-			return null;
-		}
-
-		public void SetItemsResponse(SelectQuery selectQuery, IItemsResponse response) {
-			_selectQueries.Add(selectQuery, response);
-		}
-		public IItemsResponse GetItems(SelectQuery selectQuery) {
-			var item = _selectQueries.FirstOrDefault(x => QueryComparison.AreSelectQueryEqual(selectQuery, x.Key));
-			return item.Value;
-		}
-
-		public IExecuteResponse BatchExecute(List<BaseQuery> queries) {
-			throw new NotImplementedException();
-		}
-	}
-
 	[TestFixture]
 	public class AppDataContextTests
 	{
@@ -87,13 +49,9 @@ namespace ATF.Repository.UnitTests
 
 		[SetUp]
 		public void SetUp() {
-			_dataProvider = Substitute.For<IDataProvider>(); // new DataProviderMock();
+			_dataProvider = Substitute.For<IDataProvider>();
 			_appDataContext = AppDataContextFactory.GetAppDataContext(_dataProvider);
 		}
-
-		/*public void SetDataProviderItemsResponse(SelectQuery selectQuery, IItemsResponse response) {
-			((DataProviderMock)_dataProvider).SetItemsResponse(selectQuery, response);
-		}*/
 
 		#region Simple tests
 
@@ -2651,5 +2609,6 @@ namespace ATF.Repository.UnitTests
 				_appDataContext.Models<Account>().Where(x => x.Contacts.First().Age > 10).ToList();
 			});
 		}
+
 	}
 }

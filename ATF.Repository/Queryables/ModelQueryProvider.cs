@@ -126,21 +126,17 @@
 
 		private static T GetAggregationValue<T>(string columnName, IReadOnlyCollection<Dictionary<string, object>> dataCollection) {
 			if (!dataCollection.Any()) {
-				throw new NullOrEmptyException();
-			}
-
-			if (dataCollection.Count > 1) {
-				throw new IndexOutOfRangeException();
+				return default(T);
 			}
 
 			var data = dataCollection.First();
 			if (!data.ContainsKey(columnName)) {
-				throw new NullOrEmptyException();
+				return default(T);
 			}
 
 			var value = data[columnName];
 			if (value == null) {
-				throw new NullOrEmptyException();
+				return default(T);
 			}
 
 			if (value is T typedValue) {
@@ -148,7 +144,7 @@
 			}
 			var converter = TypeDescriptor.GetConverter(data[columnName].GetType());
 			if (!converter.CanConvertTo(typeof(T))) {
-				throw new InvalidCastException();
+				return default(T);
 			}
 
 			return (T)converter.ConvertTo(value, typeof(T));

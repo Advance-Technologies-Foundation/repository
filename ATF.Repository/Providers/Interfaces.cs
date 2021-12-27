@@ -10,6 +10,10 @@ namespace ATF.Repository.Providers
 		IItemsResponse GetItems(SelectQuery selectQuery);
 
 		IExecuteResponse BatchExecute(List<BaseQuery> queries);
+
+		T GetSysSettingValue<T>(string sysSettingCode);
+
+		bool GetFeatureEnabled(string featureCode);
 	}
 
 	public interface IDefaultValuesResponse

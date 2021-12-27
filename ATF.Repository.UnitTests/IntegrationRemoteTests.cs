@@ -12,11 +12,13 @@ namespace ATF.Repository.UnitTests
 	{
 		private RemoteDataProvider _remoteDataProvider;
 		private IAppDataContext _appDataContext;
+		private IAppDataContext _secondaryAppDataContext;
 
 		[OneTimeSetUp]
 		public void OneTimeSetUp() {
-			_remoteDataProvider = new RemoteDataProvider("", "", "");
+			_remoteDataProvider = new RemoteDataProvider("https://nurturing.creatio.com", "Supervisor", "SupervisorTerrasoft+-");
 			_appDataContext = AppDataContextFactory.GetAppDataContext(_remoteDataProvider);
+			_secondaryAppDataContext = AppDataContextFactory.GetAppDataContext(_remoteDataProvider);
 		}
 
 		[Test]
@@ -484,20 +486,6 @@ namespace ATF.Repository.UnitTests
 			Assert.IsNotNull(model.Cities);
 		}
 
-		[Test, Order(2)]
-		public void CaseUpdate() {
-			// Arrange
-			var model = _appDataContext.Models<Lead>()
-				.FirstOrDefault(x => x.Id == new Guid("e579254e-6061-4b0e-b3f8-5c421e3283b2"));
-
-			// Act
-			model.AnnualRevenueBC = 120m;
-			_appDataContext.Save();
-
-			// Assert
-			Assert.IsNotNull(model);
-		}
-
 		[Test, Order(1)]
 		public void CaseInsert() {
 			// Arrange
@@ -520,6 +508,20 @@ namespace ATF.Repository.UnitTests
 			Assert.AreEqual(ModelState.Unchanged, trackerAfterSave.GetStatus());
 		}
 
+		[Test, Order(2)]
+		public void CaseUpdate() {
+			// Arrange
+			var model = _appDataContext.Models<Lead>()
+				.FirstOrDefault(x => x.Id == new Guid("e579254e-6061-4b0e-b3f8-5c421e3283b2"));
+
+			// Act
+			model.AnnualRevenueBC = 120m;
+			_appDataContext.Save();
+
+			// Assert
+			Assert.IsNotNull(model);
+		}
+
 		[Test, Order(3)]
 		public void CaseDelete() {
 			// Arrange
@@ -539,6 +541,135 @@ namespace ATF.Repository.UnitTests
 			var trackerAfterSave = _appDataContext.ChangeTracker.GetTrackedModel(model);
 			Assert.IsNull(trackerAfterSave);
 			Assert.IsTrue(model.IsMarkAsDeleted);
+		}
+
+		[Test, Order(4)]
+		public void CaseInsertWithAllDataValueTypes() {
+			// Arrange
+			const decimal budget = 1100.15m;
+			var title = "Test injected opportunity";
+			var supervisorContactId = new Guid("410006e1-ca4e-4502-a9ec-e54d922d2c00");
+			var contactPersonRoleId = new Guid("8e0af235-a2c5-47e0-a80a-beee1740f9c6");
+			var ceoJobId = new Guid("34f48df9-56e6-df11-971b-001d60e938c6");
+			var directSaleTypeId = new Guid("3c3865f2-ada4-480c-ac91-e2d39c5bbaf9");
+			var kameliaAccountId = new Guid("95391265-756d-4b73-b410-e178a7870f4f");
+			var dueDate = new DateTime(2025, 5, 27);
+			var isPrimary = true;
+			var licenseCount = 110;
+			var easternEuropeTerritoryId = new Guid("e3683f22-cc00-4ecf-ade6-5ba0cea8e39f");
+			var closedOnDate = new DateTime(2025, 5, 28, 14, 15, 15);
+			var bpmLeadTypeId = new Guid("066dda2c-29ac-4c4c-9ec9-ca1d2ad653f1");
+
+			// Act
+			var directSaleType = _appDataContext.Models<OpportunityType>()
+				.FirstOrDefault(x => x.Id == directSaleTypeId);
+			var model = _appDataContext.CreateModel<Opportunity>();
+			model.Budget = budget;
+			model.Title = title;
+			model.Type = directSaleType;
+			model.AccountId = kameliaAccountId;
+			model.DueDate = dueDate;
+			model.IsPrimary = isPrimary;
+			model.LicenseCount = licenseCount;
+			model.TerritoryId = easternEuropeTerritoryId;
+			model.ClosedOnDate = closedOnDate;
+			model.LeadTypeId = bpmLeadTypeId;
+
+			var trackerBeforeSave = _appDataContext.ChangeTracker.GetTrackedModel(model);
+			Assert.IsNotNull(trackerBeforeSave);
+			Assert.AreSame(model, trackerBeforeSave.Model);
+			Assert.AreEqual(ModelState.New, trackerBeforeSave.GetStatus());
+
+
+			_appDataContext.Save();
+
+			// Assert
+			var trackerAfterSave = _appDataContext.ChangeTracker.GetTrackedModel(model);
+			Assert.IsNotNull(trackerAfterSave);
+			Assert.AreSame(model, trackerAfterSave.Model);
+			Assert.AreEqual(ModelState.Unchanged, trackerAfterSave.GetStatus());
+
+			var savedModel = _secondaryAppDataContext.Models<Opportunity>().OrderByDescending(x=>x.CreatedOn).FirstOrDefault(x => x.Title == title);
+			Assert.IsNotNull(savedModel);
+			Assert.AreEqual(model.Id, savedModel.Id);
+			Assert.AreEqual(budget, savedModel.Budget);
+			Assert.AreEqual(title, savedModel.Title);
+			Assert.AreEqual(directSaleTypeId, savedModel.Type?.Id);
+			Assert.AreEqual(kameliaAccountId, savedModel.AccountId);
+			Assert.AreEqual(dueDate, savedModel.DueDate);
+			Assert.AreEqual(isPrimary, savedModel.IsPrimary);
+			Assert.AreEqual(licenseCount, savedModel.LicenseCount);
+			Assert.AreEqual(easternEuropeTerritoryId, savedModel.TerritoryId);
+			Assert.AreEqual(closedOnDate, savedModel.ClosedOnDate);
+			Assert.AreEqual(bpmLeadTypeId, savedModel.LeadTypeId);
+
+			var contact = _appDataContext.Models<Contact>().FirstOrDefault(x => x.Id == supervisorContactId);
+			var opportunityContact = _appDataContext.CreateModel<OpportunityContact>();
+			opportunityContact.OpportunityId = savedModel.Id;
+			opportunityContact.Contact = contact;
+			opportunityContact.RoleId = contactPersonRoleId;
+			opportunityContact.JobId = ceoJobId;
+			_appDataContext.Save();
+
+			Assert.AreEqual(1, savedModel.OpportunityContacts.Count());
+
+		}
+
+		[Test, Order(5)]
+		public void CaseUpdateWithAllDataValueTypes() {
+			// Arrange
+			var sponsorshipSaleTypeId = new Guid("4261485a-7bb4-4bbf-82ec-58df37fec1c9");
+			const decimal budget = 1200.15m;
+			var currentTitle = "Test injected opportunity";
+			var newTitle = "Test injected opportunity1";
+			//var testContactId = new Guid("9f08f94a-be0a-457f-a30f-99fda3fb49dd");
+			var directSaleTypeId = new Guid("3c3865f2-ada4-480c-ac91-e2d39c5bbaf9");
+			var testAccountId = new Guid("46162896-9553-485d-80d6-5f7e526e5029");
+			var dueDate = new DateTime(2026, 5, 27);
+			//var isPrimary = false;
+			var licenseCount = 120;
+			var engTerritoryId = new Guid("70b0cace-b827-4758-9c03-3a63aab256c5");
+			//var closedOnDate = new DateTime(2026, 5, 28, 14, 15, 15);
+			var biLeadTypeId = new Guid("e40dd08d-612f-4864-acb3-d54e1957b7f6");
+
+			var sponsorshipSaleType = _appDataContext.Models<OpportunityType>()
+				.FirstOrDefault(x => x.Id == sponsorshipSaleTypeId);
+
+			var model = _appDataContext.Models<Opportunity>().OrderByDescending(x=>x.CreatedOn).FirstOrDefault(x => x.Title == currentTitle);
+			model.Budget = budget;
+			model.Title = newTitle;
+			model.Type = sponsorshipSaleType;
+			model.AccountId = testAccountId;
+			model.DueDate = dueDate;
+			model.LicenseCount = licenseCount;
+			model.TerritoryId = engTerritoryId;
+			model.LeadTypeId = biLeadTypeId;
+
+			var trackerBeforeSave = _appDataContext.ChangeTracker.GetTrackedModel(model);
+			Assert.IsNotNull(trackerBeforeSave);
+			Assert.AreSame(model, trackerBeforeSave.Model);
+			Assert.AreEqual(ModelState.Changed, trackerBeforeSave.GetStatus());
+
+			// Act
+			_appDataContext.Save();
+
+			// Assert
+			var trackerAfterSave = _appDataContext.ChangeTracker.GetTrackedModel(model);
+			Assert.IsNotNull(trackerAfterSave);
+			Assert.AreSame(model, trackerAfterSave.Model);
+			Assert.AreEqual(ModelState.Unchanged, trackerAfterSave.GetStatus());
+
+			var savedModel = _secondaryAppDataContext.Models<Opportunity>().OrderByDescending(x=>x.CreatedOn).FirstOrDefault(x => x.Title == newTitle);
+			Assert.IsNotNull(savedModel);
+			Assert.AreEqual(model.Id, savedModel.Id);
+			Assert.AreEqual(budget, savedModel.Budget);
+			Assert.AreEqual(newTitle, savedModel.Title);
+			Assert.AreEqual(sponsorshipSaleTypeId, savedModel.Type?.Id);
+			Assert.AreEqual(testAccountId, savedModel.AccountId);
+			Assert.AreEqual(dueDate, savedModel.DueDate);
+			Assert.AreEqual(licenseCount, savedModel.LicenseCount);
+			Assert.AreEqual(engTerritoryId, savedModel.TerritoryId);
+			Assert.AreEqual(biLeadTypeId, savedModel.LeadTypeId);
 		}
 
 		[Test]
@@ -608,9 +739,67 @@ namespace ATF.Repository.UnitTests
 				x.Id == new Guid("46162896-9553-485d-80d6-5f7e526e5029") &&
 				x.Contacts.Where(y=>y.ContactInTags.Any(z => z.TagId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")) && y.Age > 38).Max(y=>y.Age) == 41 ).ToList();
 
+			var models = _appDataContext.Models<Contact>().Where(x => x.Age > 10)
+				.Where(x => x.TypeId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")).Average(x=>x.Age);
+
 			// Assert
 			Assert.IsNotNull(model);
 			Assert.AreEqual(1, model.Count);
+		}
+
+		[Test]
+		public void SysSettings_WhenGetDateTimeValue_ShouldReturnsExpectedValue() {
+			TestGetSysSettingsValue<DateTime>("CalculateClientARRFromDate",
+				new DateTime(2010, 1, 1));
+		}
+
+		[Test]
+		public void SysSettings_WhenGetTimeValue_ShouldReturnsExpectedValue() {
+			TestGetSysSettingsValue<DateTime>("AutomaticAgeActualizationTime",
+				new DateTime(1900, 1, 1, 3, 30, 0));
+		}
+
+		[Test]
+		public void SysSettings_WhenGetStringValue_ShouldReturnsExpectedValue() {
+			TestGetSysSettingsValue<string>("FinishedTaskColor", "#A0A0A0");
+		}
+
+		[Test]
+		public void SysSettings_WhenGetIntegerValue_ShouldReturnsExpectedValue() {
+			TestGetSysSettingsValue<int>("MaxFileSize", 60);
+		}
+
+		[Test]
+		public void SysSettings_WhenGetDecimalValue_ShouldReturnsExpectedValue() {
+			TestGetSysSettingsValue<decimal>("SyncMemoryLimitToDeallocate", 100.00m);
+		}
+
+		[Test]
+		public void SysSettings_WhenGetBooleanValue_ShouldReturnsExpectedValue() {
+			TestGetSysSettingsValue<bool>("EnableRightsOnServiceObjects", true);
+		}
+
+		[Test]
+		public void SysSettings_WhenGetLookupValue_ShouldReturnsExpectedValue() {
+			TestGetSysSettingsValue<Guid>("PrimaryCurrency", new Guid("5fb76920-53e6-df11-971b-001d60e938c6"));
+		}
+
+		private void TestGetSysSettingsValue<T>(string code, T expectedValue) {
+			// Act
+			var sysSettingsValue = _appDataContext.GetSysSettingValue<T>(code);
+
+			// Assert
+			Assert.IsNotNull(sysSettingsValue);
+			Assert.AreEqual(expectedValue, sysSettingsValue);
+		}
+
+		[Test]
+		[TestCase("AbortQueryOnDestroy", true)]
+		[TestCase("AbortQueryOnDestroy-NotExisted", false)]
+		[TestCase("AvalaraIntegrationEnabled", false)]
+		public void GetSysSettingValue_ShouldReturnsExpectedValue(string code, bool expectedValue) {
+			var actualValue = _appDataContext.GetFeatureEnabled(code);
+			Assert.AreEqual(expectedValue, actualValue);
 		}
 	}
 }

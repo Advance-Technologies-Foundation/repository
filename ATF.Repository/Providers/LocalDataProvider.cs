@@ -5,6 +5,7 @@
 	using System.Linq;
 	using Terrasoft.Common;
 	using Terrasoft.Core;
+	using Terrasoft.Core.DB;
 	using Terrasoft.Core.Entities;
 	using Terrasoft.Nui.ServiceModel.DataContract;
 	using Terrasoft.Nui.ServiceModel.Extensions;
@@ -228,6 +229,28 @@
 			});
 			response.Success = response.QueryResults.All(x => x.Success);
 			return response;
+		}
+
+		public T GetSysSettingValue<T>(string sysSettingCode) {
+			return Terrasoft.Core.Configuration.SysSettings.GetValue(_userConnection, sysSettingCode,
+				default(T));
+		}
+
+		public bool GetFeatureEnabled(string featureCode) {
+			return GetFeatureState(featureCode) == 1;
+		}
+
+		private int GetFeatureState(string code) {
+			var select = (Select)new Select(_userConnection).Top(1)
+				.Column("AdminUnitFeatureState", "FeatureState")
+				.From("AdminUnitFeatureState")
+				.InnerJoin("Feature").On("Feature", "Id").IsEqual("AdminUnitFeatureState", "FeatureId")
+				.InnerJoin("SysAdminUnitInRole").On("SysAdminUnitInRole", "SysAdminUnitRoleId")
+				.IsEqual("AdminUnitFeatureState", "SysAdminUnitId")
+				.Where("Feature", "Code").IsEqual(Column.Parameter(code))
+				.And("SysAdminUnitInRole", "SysAdminUnitId").IsEqual(Column.Parameter(_userConnection.CurrentUser.Id))
+				.OrderByDesc("AdminUnitFeatureState", "FeatureState");
+			return select.ExecuteScalar<int>();
 		}
 
 		#endregion

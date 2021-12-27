@@ -9,11 +9,11 @@ using Terrasoft.Common;
 
 namespace ATF.Repository
 {
-	internal class LazyModelPropertyLoader : ILazyModelPropertyLoader
+	internal class LazyModelPropertyManager : ILazyModelPropertyManager
 	{
 		private AppDataContext _appDataContext;
 
-		internal LazyModelPropertyLoader(AppDataContext appDataContext) {
+		internal LazyModelPropertyManager(AppDataContext appDataContext) {
 			_appDataContext = appDataContext;
 		}
 
@@ -26,7 +26,29 @@ namespace ATF.Repository
 				LoadLazyDetailProperty(model, propertyInfo);
 				return;
 			}
-			throw new NotImplementedException();
+
+			throw new NotSupportedException();
+		}
+
+		public void SetLazyProperty(BaseModel model, PropertyInfo propertyInfo, object value) {
+			var key = model.GetLazyLookupKey(propertyInfo.Name);
+			if (propertyInfo?.PropertyType?.IsSubclassOf(typeof(BaseModel)) ?? false) {
+				if (value is BaseModel baseModelValue) {
+					model.LazyValues[key] = baseModelValue.Id;
+				} else {
+					model.LazyValues[key] = Guid.Empty;
+				}
+			}
+			model.LazyValues[propertyInfo.Name] = value;
+		}
+
+		public object GetLazyProperty(BaseModel model, PropertyInfo propertyInfo) {
+			if (!model.LazyValues.ContainsKey(propertyInfo.Name)) {
+				var modelItem = ModelMapper.GetModelItems(model.GetType())
+					.First(x => x.PropertyName == propertyInfo.Name);
+				LoadLazyProperty(model, modelItem);
+			}
+			return model.LazyValues[propertyInfo.Name];
 		}
 
 		private void LoadLazyDetailProperty(BaseModel model, ModelItem propertyInfo) {

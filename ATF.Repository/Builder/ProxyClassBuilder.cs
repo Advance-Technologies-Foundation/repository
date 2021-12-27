@@ -77,19 +77,19 @@
 
 		private void InternalSet(IInvocation invocation, PropertyInfo property) {
 			var proxy = GetProxy(invocation);
-			proxy.LazyValues[property.Name] = invocation.Arguments[0];
+			var value = invocation.Arguments[0];
+			var target = (T) invocation.InvocationTarget;
+			if (target.LazyModelPropertyManager != null) {
+				target.LazyModelPropertyManager.SetLazyProperty(target, property, value);
+				return;
+			}
+			proxy.LazyValues[property.Name] = value;
 		}
 
 		private void FillProperty(IInvocation invocation, PropertyInfo property) {
 			var proxy = GetProxy(invocation);
 			var modelItem = _modelItems[property.Name];
 			var target = (T) invocation.InvocationTarget;
-			if (target.LazyModelPropertyLoader != null)
-			{
-				target.LoadLazyProperty(modelItem);
-				return;
-			}
-
 			if (modelItem.PropertyType == ModelItemType.Reference) {
 				proxy.Repository.FillReferenceValue(target, modelItem);
 			} else if (modelItem.PropertyType == ModelItemType.Detail) {
@@ -101,6 +101,12 @@
 
 		private void InternalGet(IInvocation invocation, PropertyInfo property) {
 			var proxy = GetProxy(invocation);
+			var target = (T) invocation.InvocationTarget;
+			if (target.LazyModelPropertyManager != null) {
+				invocation.ReturnValue = target.LazyModelPropertyManager.GetLazyProperty(target, property);
+				return;
+			}
+
 			if (!proxy.LazyValues.ContainsKey(property.Name)) {
 				FillProperty(invocation, property);
 			}

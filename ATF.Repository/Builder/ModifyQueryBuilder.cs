@@ -27,6 +27,7 @@ namespace ATF.Repository.Builder
 			var rootSchemaName = trackedModel.Model.GetSchemaName();
 			var deleteQuery = new DeleteQuery() {
 				RootSchemaName = rootSchemaName,
+				IncludeProcessExecutionData = true,
 				Filters = new Filters() {
 					FilterType = FilterType.FilterGroup,
 					Items = new Dictionary<string, Filter>() {
@@ -64,6 +65,7 @@ namespace ATF.Repository.Builder
 
 			var updateQuery = new UpdateQuery() {
 				RootSchemaName = rootSchemaName,
+				IncludeProcessExecutionData = true,
 				ColumnValues = new ColumnValues() {
 					Items = ConvertValuesToColumnExpressions(trackedModel.Type, values)
 				},
@@ -82,6 +84,7 @@ namespace ATF.Repository.Builder
 			var values = trackedModel.Model.GetModelPropertyValues();
 			var insertQuery = new InsertQuery() {
 				RootSchemaName = rootSchemaName,
+				IncludeProcessExecutionData = true,
 				ColumnValues = new ColumnValues() {
 					Items = ConvertValuesToColumnExpressions(trackedModel.Type, values)
 				}
@@ -93,8 +96,9 @@ namespace ATF.Repository.Builder
 			Dictionary<string, object> values) {
 			var response = new Dictionary<string, ColumnExpression>();
 			var properties = ModelMapper.GetProperties(modelType);
-			values.Where(item=>properties.Any(x=>x.PropertyName == item.Key)).ForEach(item => {
-				var property = properties.First(x => x.PropertyName == item.Key);
+			properties.AddRange(ModelMapper.GetLookups(modelType).Where(x=>!properties.Any(y=>y.EntityColumnName == x.EntityColumnName)));
+			values.Where(item=>properties.Any(x=>x.EntityColumnName == item.Key)).ForEach(item => {
+				var property = properties.First(x => x.EntityColumnName == item.Key);
 				if (!response.ContainsKey(property.EntityColumnName)) {
 					response.Add(property.EntityColumnName, ConvertValueToColumnExpression(property, item.Value));
 				}
@@ -115,6 +119,14 @@ namespace ATF.Repository.Builder
 		private static object ConvertValue(Type valueType, object value) {
 			if (valueType == typeof(Guid) && (value == null || (Guid) value == Guid.Empty)) {
 				return null;
+			}
+
+			if (valueType == typeof(DateTime)) {
+				if (value == null || (DateTime)value == DateTime.MinValue) {
+					return null;
+				}
+
+				return $"\"{((DateTime)value):yyyy-MM-ddTHH:mm:ss.fff}\"";
 			}
 
 			return value;

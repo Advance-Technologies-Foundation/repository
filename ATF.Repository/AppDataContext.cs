@@ -1,29 +1,28 @@
-﻿using ATF.Repository.Mapping;
-using Terrasoft.Common;
-
-namespace ATF.Repository
+﻿namespace ATF.Repository
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
 	using ATF.Repository.Builder;
+	using ATF.Repository.Mapping;
 	using ATF.Repository.Providers;
 	using ATF.Repository.Queryables;
+	using Terrasoft.Common;
 
 	internal class AppDataContext : IAppDataContext
 	{
 		private readonly IDataProvider _dataProvider;
 		private readonly AppDataContextChangeTracker _changeTracker;
 		private readonly ModelBuilder _modelBuilder;
-		private readonly ILazyModelPropertyLoader _lazyModelPropertyLoader;
+		private readonly ILazyModelPropertyManager _lazyModelPropertyManager;
 
 		public IChangeTracker ChangeTracker => _changeTracker;
 
 		internal AppDataContext(IDataProvider dataProvider) {
 			_changeTracker = new AppDataContextChangeTracker();
 			_dataProvider = dataProvider;
-			_lazyModelPropertyLoader = new LazyModelPropertyLoader(this);
-			_modelBuilder = new ModelBuilder(_lazyModelPropertyLoader);
+			_lazyModelPropertyManager = new LazyModelPropertyManager(this);
+			_modelBuilder = new ModelBuilder(_lazyModelPropertyManager);
 		}
 
 		private Dictionary<string, object> GetDefaultValues<T>() where T : BaseModel {
@@ -53,7 +52,7 @@ namespace ATF.Repository
 		private void LoadAdjectiveProperties<T>(T model) where T : BaseModel, new() {
 			var type = typeof(T);
 			ModelMapper.GetModelItems(type).Where(x=>(x.PropertyType == ModelItemType.Lookup || x.PropertyType == ModelItemType.Detail) && !x.IsLazy).ForEach(propertyInfo => {
-				_lazyModelPropertyLoader.LoadLazyProperty(model, propertyInfo);
+				_lazyModelPropertyManager.LoadLazyProperty(model, propertyInfo);
 			});
 		}
 
@@ -99,7 +98,13 @@ namespace ATF.Repository
 			};
 		}
 
+		public T GetSysSettingValue<T>(string sysSettingCode) {
+			return _dataProvider.GetSysSettingValue<T>(sysSettingCode);
+		}
 
+		public bool GetFeatureEnabled(string featureCode) {
+			return _dataProvider.GetFeatureEnabled(featureCode);
+		}
 	}
 
 

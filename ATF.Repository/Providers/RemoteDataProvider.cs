@@ -22,6 +22,8 @@
 		private readonly string _password;
 		private const string SelectEndpointUri = "/0/DataService/json/SyncReply/SelectQuery";
 		private const string BatchEndpointUrl = "/0/DataService/json/SyncReply/BatchQuery";
+		private const string SysSettingEndpointUrl = "/0/DataService/json/SyncReply/QuerySysSettings";
+		private const string FeatureEndpointUrl = "/0/rest/FeatureService/GetFeatureState";
 
 		#endregion;
 
@@ -141,6 +143,56 @@
 			return response;
 		}
 
+		public T GetSysSettingValue<T>(string sysSettingCode) {
+			var request = new SysSettingsRequest()
+				{ SysSettingsNameCollection = new List<string>() { sysSettingCode } };
+			try {
+				var requestData = JsonConvert.SerializeObject(request);
+				var url = _applicationUrl + SysSettingEndpointUrl;
+				var responseBody = CreatioClientAdapter.ExecutePostRequest(url, requestData, Timeout.Infinite);
+				var response = JsonConvert.DeserializeObject<SysSettingsResponse>(responseBody);
+				return ParseSysSettingValueResponse<T>(response, sysSettingCode);
+			} catch (Exception e) {
+				return default(T);
+			}
+		}
+
+		public bool GetFeatureEnabled(string featureCode) {
+			var request = new FeatureRequest() { code = featureCode };
+			try {
+				var requestData = JsonConvert.SerializeObject(request);
+				var url = _applicationUrl + FeatureEndpointUrl;
+				var responseBody = CreatioClientAdapter.ExecutePostRequest(url, requestData, Timeout.Infinite);
+				var response = JsonConvert.DeserializeObject<FeatureResponse>(responseBody);
+				return response?.FeatureState == 1;
+			} catch (Exception e) {
+				return false;
+			}
+		}
+
+		private T ParseSysSettingValueResponse<T>(SysSettingsResponse response, string code) {
+			if (response == null || !response.Success || !response.Values.ContainsKey(code)) {
+				return default(T);
+			}
+			var responseItem = response.Values[code];
+			var rawValue = responseItem?.Value;
+			if (rawValue == null) {
+				return default(T);
+			}
+			if (rawValue is T typedValue) {
+				return typedValue;
+			}
+			if ((rawValue is long && typeof(T) == typeof(int)) || (rawValue is double && typeof(T) == typeof(decimal))) {
+				return (T)Convert.ChangeType(rawValue, typeof(T));
+			}
+
+			if (rawValue is string stringValue && typeof(T) == typeof(Guid)) {
+				return (T)Convert.ChangeType(new Guid(stringValue), typeof(T));
+			}
+
+			return default(T);
+		}
+
 		#endregion
 
 	}
@@ -209,4 +261,35 @@
 		public Dictionary<string, string> Meta { get; set; }
 	}
 
+	internal class SysSettingsRequest
+	{
+		public List<string> SysSettingsNameCollection { get; set; }
+	}
+
+	internal class SysSettingsResponse
+	{
+		public int RowsAffected { get; set; }
+		public bool Success { get; set; }
+		public Dictionary<string, SysSettingsItemResponse> Values { get; set; }
+	}
+
+	internal class SysSettingsItemResponse
+	{
+		public Guid Id { get; set; }
+		public string Name { get; set; }
+		public string Code { get; set; }
+		public object Value { get; set; }
+		public DataValueType DataValueType { get; set; }
+		public string TypeName { get; set; }
+	}
+
+	internal class FeatureRequest
+	{
+		public string code { get; set; }
+	}
+
+	internal class FeatureResponse
+	{
+		public int FeatureState { get; set; }
+	}
 }
