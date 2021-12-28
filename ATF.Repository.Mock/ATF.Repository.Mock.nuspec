@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>ATF.Repository.Mock</id>
+    <version>2.0.0-beta.0.2</version>
+    <title>ATF.Repository.Mock</title>
+    <authors>ATF</authors>
+    <owners>ATF</owners>
+    <projectUrl>https://github.com/Advance-Technologies-Foundation/repository</projectUrl>
+    <license type="expression">MIT</license>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>The current package contains a sets of mocks for easy testing of the ATF.Repository data layer.</description>
+    <releaseNotes></releaseNotes>
+    <copyright>Copyright ©2021</copyright>
+    <tags>ATF Repository Creatio ORM Mock</tags>
+    <dependencies>
+      <dependency id="ATF.Repository" version="2.0.0-beta.0.2" />
+    </dependencies>
+  </metadata>
+</package>

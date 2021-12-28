@@ -1,13 +1,11 @@
-﻿using Terrasoft.Common;
-using Terrasoft.Core.DB;
-
-namespace ATF.Repository.Mock
+﻿namespace ATF.Repository.Mock
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
 	using ATF.Repository.Mock.Internal;
 	using ATF.Repository.Providers;
+	using Terrasoft.Common;
 	using Terrasoft.Nui.ServiceModel.DataContract;
 
 	public class DataProviderMock: IDataProvider
@@ -16,6 +14,8 @@ namespace ATF.Repository.Mock
 		private readonly List<ItemsMock> _collectionItemsMocks;
 		private readonly List<ScalarMock> _scalarItemsMocks;
 		private readonly List<MockSavingItem> _batchItemMocks;
+		private readonly Dictionary<string, object> _sysSettingMockValues;
+		private readonly Dictionary<string, bool> _featureMockValues;
 
 
 		public DataProviderMock() {
@@ -23,6 +23,8 @@ namespace ATF.Repository.Mock
 			_collectionItemsMocks = new List<ItemsMock>();
 			_scalarItemsMocks = new List<ScalarMock>();
 			_batchItemMocks = new List<MockSavingItem>();
+			_sysSettingMockValues = new Dictionary<string, object>();
+			_featureMockValues = new Dictionary<string, bool>();
 		}
 
 		public IDefaultValuesMock MockDefaultValues(string schemaName) {
@@ -89,6 +91,40 @@ namespace ATF.Repository.Mock
 				ErrorMessage = string.Empty,
 				QueryResults = new List<IExecuteItemResponse>()
 			};
+		}
+
+		public void MockSysSettingValue<T>(string sysSettingCode, T value) {
+			if (_sysSettingMockValues.ContainsKey(sysSettingCode)) {
+				_sysSettingMockValues[sysSettingCode] = value;
+			} else {
+				_sysSettingMockValues.Add(sysSettingCode, value);
+			}
+		}
+		public T GetSysSettingValue<T>(string sysSettingCode) {
+			if (_sysSettingMockValues.ContainsKey(sysSettingCode) && _sysSettingMockValues[sysSettingCode] is T typedValue) {
+				return typedValue;
+			}
+
+			if (typeof(T) == typeof(string)) {
+				return (T)Convert.ChangeType(string.Empty, typeof(T));
+			}
+
+			return default(T);
+		}
+
+		public void MockFeatureEnable(string featureCode, bool value) {
+			if (_featureMockValues.ContainsKey(featureCode)) {
+				_featureMockValues[featureCode] = value;
+			} else {
+				_featureMockValues.Add(featureCode, value);
+			}
+		}
+		public bool GetFeatureEnabled(string featureCode) {
+			if (_featureMockValues.ContainsKey(featureCode)) {
+				return _featureMockValues[featureCode];
+			}
+
+			return false;
 		}
 
 		public IMockSavingItem MockSavingItem(string entitySchema, SavingOperation operation) {

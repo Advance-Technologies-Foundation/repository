@@ -1,15 +1,17 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using ATF.Repository.Mock.UnitTests.Models;
-using NUnit.Framework;
-
 namespace ATF.Repository.Mock.UnitTests
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using System.Reflection;
+	using ATF.Repository.Mock.UnitTests.Models;
+	using NUnit.Framework;
+
 	public class DataProviderMockTests
 	{
 		private DataProviderMock _dataProviderMock;
 		private IAppDataContext _appDataContext;
+		private static string _sysSettingCode = "SysSettingCode";
 
 		[SetUp]
 		public void Setup() {
@@ -718,6 +720,150 @@ namespace ATF.Repository.Mock.UnitTests
 			// Assert
 			Assert.AreEqual(1, itemsMock.ReceivedCount);
 			Assert.AreEqual(receivedCount, deletingMock.ReceivedCount);
+		}
+
+		public class SysSettingTestCase
+		{
+			public Type Type { get; set; }
+			public object ExpectedValue { get; set; }
+			public bool NeedMockRequest { get; set; }
+		}
+
+
+		protected static IEnumerable<object[]> GetSysSettingTestCases() {
+			yield return new object[] {
+				typeof(bool),
+				true,
+				true
+			};
+			yield return new object[] {
+				typeof(bool),
+				false,
+				true
+			};
+			yield return new object[] {
+				typeof(bool),
+				false,
+				false
+			};
+			yield return new object[] {
+				typeof(int),
+				-10,
+				true
+			};
+			yield return new object[] {
+				typeof(int),
+				0,
+				true
+			};
+			yield return new object[] {
+				typeof(int),
+				10,
+				true
+			};
+			yield return new object[] {
+				typeof(int),
+				0,
+				false
+			};
+			yield return new object[] {
+				typeof(decimal),
+				-10.11m,
+				true
+			};
+			yield return new object[] {
+				typeof(decimal),
+				0m,
+				true
+			};
+			yield return new object[] {
+				typeof(decimal),
+				10.11m,
+				true
+			};
+			yield return new object[] {
+				typeof(decimal),
+				0m,
+				false
+			};
+			yield return new object[] {
+				typeof(string),
+				"",
+				true
+			};
+			yield return new object[] {
+				typeof(string),
+				"Expected value",
+				true
+			};
+			yield return new object[] {
+				typeof(string),
+				"",
+				false
+			};
+			yield return new object[] {
+				typeof(DateTime),
+				new DateTime(2021, 12, 28, 2, 40 , 0),
+				true
+			};
+			yield return new object[] {
+				typeof(DateTime),
+				DateTime.MinValue,
+				false
+			};
+
+			yield return new object[] {
+				typeof(Guid),
+				Guid.NewGuid(),
+				true
+			};
+			yield return new object[] {
+				typeof(Guid),
+				Guid.Empty,
+				true
+			};
+			yield return new object[] {
+				typeof(Guid),
+				Guid.Empty,
+				false
+			};
+		}
+
+
+		[Test, TestCaseSource("GetSysSettingTestCases")]
+		public void MockGetSysSettingValue_ShouldReturnExpectedValue(Type valueType, object expectedValue, bool needMock) {
+			// Arrange
+			if (needMock) {
+				_dataProviderMock.MockSysSettingValue(_sysSettingCode, expectedValue);
+			}
+
+			// Act
+			var methodInfo = _appDataContext.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
+				.FirstOrDefault(instanceMethod => instanceMethod.Name == "GetSysSettingValue" && instanceMethod.ContainsGenericParameters);
+			var method = methodInfo?.MakeGenericMethod(valueType);
+			var actualValue = method?.Invoke(_appDataContext, new object[] {_sysSettingCode});
+
+			// Assert
+			Assert.AreEqual(expectedValue, actualValue);
+		}
+
+
+		[Test]
+		[TestCase(true, true)]
+		[TestCase(false, true)]
+		[TestCase(false, false)]
+		public void MockGetFeatureEnable_ShouldReturnExpectedValue(bool expectedValue, bool needMock) {
+			// Arrange
+			var featureCode = "FeatureCode";
+			if (needMock) {
+				_dataProviderMock.MockFeatureEnable(featureCode, expectedValue);
+			}
+
+			// Act
+			var actualValue = _appDataContext.GetFeatureEnabled(featureCode);
+
+			// Assert
+			Assert.AreEqual(expectedValue, actualValue);
 		}
 	}
 }
