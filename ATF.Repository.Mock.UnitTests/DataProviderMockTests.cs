@@ -5,6 +5,7 @@ namespace ATF.Repository.Mock.UnitTests
 	using System.Linq;
 	using System.Reflection;
 	using ATF.Repository.Mock.UnitTests.Models;
+	using ATF.Repository.Providers;
 	using NUnit.Framework;
 
 	public class DataProviderMockTests
@@ -838,13 +839,18 @@ namespace ATF.Repository.Mock.UnitTests
 			}
 
 			// Act
-			var methodInfo = _appDataContext.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
-				.FirstOrDefault(instanceMethod => instanceMethod.Name == "GetSysSettingValue" && instanceMethod.ContainsGenericParameters);
+			var methodInfo = GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance)
+				.FirstOrDefault(instanceMethod => instanceMethod.Name == "TestTypedGetSysSettingValueMethod" && instanceMethod.ContainsGenericParameters);
 			var method = methodInfo?.MakeGenericMethod(valueType);
-			var actualValue = method?.Invoke(_appDataContext, new object[] {_sysSettingCode});
+			method?.Invoke(this, new object[] {_sysSettingCode, expectedValue});
 
-			// Assert
-			Assert.AreEqual(expectedValue, actualValue);
+		}
+
+		public void TestTypedGetSysSettingValueMethod<T>(string code, object expectedValue) {
+			var response = _appDataContext.GetSysSettingValue<T>(code);
+			Assert.IsNotNull(response);
+			Assert.AreEqual(expectedValue, response.Value);
+			Assert.IsNull(response.ErrorMessage);
 		}
 
 
@@ -860,10 +866,12 @@ namespace ATF.Repository.Mock.UnitTests
 			}
 
 			// Act
-			var actualValue = _appDataContext.GetFeatureEnabled(featureCode);
+			var response = _appDataContext.GetFeatureEnabled(featureCode);
 
 			// Assert
-			Assert.AreEqual(expectedValue, actualValue);
+			Assert.IsNotNull(response);
+			Assert.AreEqual(expectedValue, response.Enabled);
+			Assert.IsNull(response.ErrorMessage);
 		}
 	}
 }

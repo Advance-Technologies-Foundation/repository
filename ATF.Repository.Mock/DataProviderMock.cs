@@ -6,7 +6,6 @@
 	using ATF.Repository.Mock.Internal;
 	using ATF.Repository.Providers;
 	using Terrasoft.Common;
-	using Terrasoft.Nui.ServiceModel.DataContract;
 
 	public class DataProviderMock: IDataProvider
 	{
@@ -55,7 +54,7 @@
 			return mock;
 		}
 
-		public IItemsResponse GetItems(SelectQuery selectQuery) {
+		public IItemsResponse GetItems(ISelectQuery selectQuery) {
 			var mock = GetScalarMock(selectQuery) ?? GetCollectionMock(selectQuery);
 			if (mock == null) {
 				return null;
@@ -64,7 +63,7 @@
 			return mock.GetItemsResponse();
 		}
 
-		private BaseMock GetScalarMock(SelectQuery selectQuery) {
+		private BaseMock GetScalarMock(ISelectQuery selectQuery) {
 			if (selectQuery.Columns.Items.Count() != 1) {
 				return null;
 			}
@@ -78,13 +77,13 @@
 				x.SchemaName == selectQuery.RootSchemaName && x.CheckByParameters(queryParameters));
 		}
 
-		private BaseMock GetCollectionMock(SelectQuery selectQuery) {
+		private BaseMock GetCollectionMock(ISelectQuery selectQuery) {
 			var queryParameters = QueryParametersExtractor.ExtractParameters(selectQuery);
 			return _collectionItemsMocks.FirstOrDefault(x =>
 				x.SchemaName == selectQuery.RootSchemaName && x.CheckByParameters(queryParameters));
 		}
 
-		public IExecuteResponse BatchExecute(List<BaseQuery> queries) {
+		public IExecuteResponse BatchExecute(List<IBaseQuery> queries) {
 			queries.ForEach(ReceiveBatchQueryItem);
 			return new ExecuteResponse() {
 				Success = true,
@@ -133,19 +132,19 @@
 			return mock;
 		}
 
-		private void ReceiveBatchQueryItem(BaseQuery query) {
-			if (query is InsertQuery insertQuery) {
+		private void ReceiveBatchQueryItem(IBaseQuery query) {
+			if (query is IInsertQuery insertQuery) {
 				ReceiveBatchQueryItem(insertQuery);
-			} else if (query is UpdateQuery updateQuery) {
+			} else if (query is IUpdateQuery updateQuery) {
 				ReceiveBatchQueryItem(updateQuery);
-			} else if (query is DeleteQuery deleteQuery) {
+			} else if (query is IDeleteQuery deleteQuery) {
 				ReceiveBatchQueryItem(deleteQuery);
 			} else {
 				throw new NotSupportedException();
 			}
 		}
 
-		private void ReceiveBatchQueryItem(InsertQuery query) {
+		private void ReceiveBatchQueryItem(IInsertQuery query) {
 			var columnValueParameters = QueryParametersExtractor.ExtractColumnValues(query);
 			var mock = _batchItemMocks.FirstOrDefault(x =>
 				x.SchemaName == query.RootSchemaName && x.Operation == SavingOperation.Insert &&
@@ -153,7 +152,7 @@
 			mock?.OnReceived();
 		}
 
-		private void ReceiveBatchQueryItem(UpdateQuery query) {
+		private void ReceiveBatchQueryItem(IUpdateQuery query) {
 			var columnValueParameters = QueryParametersExtractor.ExtractColumnValues(query);
 			var queryParameters = QueryParametersExtractor.ExtractParameters(query);
 			var mock = _batchItemMocks.FirstOrDefault(x =>
@@ -163,7 +162,7 @@
 			mock?.OnReceived();
 		}
 
-		private void ReceiveBatchQueryItem(DeleteQuery query) {
+		private void ReceiveBatchQueryItem(IDeleteQuery query) {
 			var queryParameters = QueryParametersExtractor.ExtractParameters(query);
 			var mock = _batchItemMocks.FirstOrDefault(x =>
 				x.SchemaName == query.RootSchemaName && x.Operation == SavingOperation.Delete &&
