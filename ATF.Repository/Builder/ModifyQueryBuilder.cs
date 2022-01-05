@@ -1,17 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using ATF.Repository.Mapping;
-using Terrasoft.Common;
-using Terrasoft.Core.Entities;
-using Terrasoft.Nui.ServiceModel.DataContract;
-using FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType;
-
-namespace ATF.Repository.Builder
+﻿namespace ATF.Repository.Builder
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using ATF.Repository.Mapping;
+	using ATF.Repository.Replicas;
+	using Terrasoft.Common;
+	using Terrasoft.Core.Entities;
+	using DataValueType = Terrasoft.Nui.ServiceModel.DataContract.DataValueType;
+	using FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType;
+
 	internal static class ModifyQueryBuilder
 	{
-		public static BaseQuery BuildModifyQuery(ITrackedModel<BaseModel> trackedModel) {
+		public static IBaseQuery BuildModifyQuery(ITrackedModel<BaseModel> trackedModel) {
 			switch (trackedModel.GetStatus()) {
 				case ModelState.New:
 					return BuildInsertQuery(trackedModel);
@@ -23,14 +24,14 @@ namespace ATF.Repository.Builder
 					throw new NotSupportedException();
 			}
 		}
-		private static BaseQuery BuildDeleteQuery(ITrackedModel<BaseModel> trackedModel) {
+		private static BaseQueryReplica BuildDeleteQuery(ITrackedModel<BaseModel> trackedModel) {
 			var rootSchemaName = trackedModel.Model.GetSchemaName();
-			var deleteQuery = new DeleteQuery() {
+			var deleteQuery = new DeleteQueryReplica() {
 				RootSchemaName = rootSchemaName,
 				IncludeProcessExecutionData = true,
-				Filters = new Filters() {
+				Filters = new FilterGroupReplica() {
 					FilterType = FilterType.FilterGroup,
-					Items = new Dictionary<string, Filter>() {
+					Items = new Dictionary<string, IFilter>() {
 						{"PrimaryFilter", GeneratePrimaryFilter(trackedModel)}
 					},
 				}
@@ -38,17 +39,17 @@ namespace ATF.Repository.Builder
 			return deleteQuery;
 		}
 
-		private static Filter GeneratePrimaryFilter(ITrackedModel<BaseModel> trackedModel) {
-			return new Filter() {
+		private static FilterReplica GeneratePrimaryFilter(ITrackedModel<BaseModel> trackedModel) {
+			return new FilterReplica() {
 				FilterType = FilterType.CompareFilter,
-				LeftExpression = new ColumnExpression() {
+				LeftExpression = new ColumnExpressionReplica() {
 					ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,
 					ColumnPath = "Id"
 				},
 				ComparisonType = FilterComparisonType.Equal,
-				RightExpression = new BaseExpression() {
+				RightExpression = new BaseExpressionReplica() {
 					ExpressionType = EntitySchemaQueryExpressionType.Parameter,
-					Parameter = new Parameter() {
+					Parameter = new ParameterReplica() {
 						Value = trackedModel.Model.Id,
 						DataValueType = DataValueType.Guid
 					}
@@ -56,22 +57,19 @@ namespace ATF.Repository.Builder
 			};
 		}
 
-		private static BaseQuery BuildUpdateQuery(ITrackedModel<BaseModel> trackedModel) {
+		private static BaseQueryReplica BuildUpdateQuery(ITrackedModel<BaseModel> trackedModel) {
 			var rootSchemaName = trackedModel.Model.GetSchemaName();
 			var values = trackedModel.GetChanges();
 			if (!values.Any()) {
 				return null;
 			}
 
-			var updateQuery = new UpdateQuery() {
+			var updateQuery = new UpdateQueryReplica() {
 				RootSchemaName = rootSchemaName,
-				IncludeProcessExecutionData = true,
-				ColumnValues = new ColumnValues() {
-					Items = ConvertValuesToColumnExpressions(trackedModel.Type, values)
-				},
-				Filters = new Filters() {
+				ColumnValues = ConvertValuesToColumnExpressions(trackedModel.Type, values),
+				Filters = new FilterGroupReplica() {
 					FilterType = FilterType.FilterGroup,
-					Items = new Dictionary<string, Filter>() {
+					Items = new Dictionary<string, IFilter>() {
 						{"PrimaryFilter", GeneratePrimaryFilter(trackedModel)}
 					},
 				}
@@ -79,22 +77,19 @@ namespace ATF.Repository.Builder
 			return updateQuery;
 		}
 
-		private static BaseQuery BuildInsertQuery(ITrackedModel<BaseModel> trackedModel) {
+		private static BaseQueryReplica BuildInsertQuery(ITrackedModel<BaseModel> trackedModel) {
 			var rootSchemaName = trackedModel.Model.GetSchemaName();
 			var values = trackedModel.Model.GetModelPropertyValues();
-			var insertQuery = new InsertQuery() {
+			var insertQuery = new InsertQueryReplica() {
 				RootSchemaName = rootSchemaName,
-				IncludeProcessExecutionData = true,
-				ColumnValues = new ColumnValues() {
-					Items = ConvertValuesToColumnExpressions(trackedModel.Type, values)
-				}
+				ColumnValues =  ConvertValuesToColumnExpressions(trackedModel.Type, values),
 			};
 			return insertQuery;
 		}
 
-		private static Dictionary<string, ColumnExpression> ConvertValuesToColumnExpressions(Type modelType,
+		private static BaseQueryColumnsReplica ConvertValuesToColumnExpressions(Type modelType,
 			Dictionary<string, object> values) {
-			var response = new Dictionary<string, ColumnExpression>();
+			var response = new Dictionary<string, IColumnExpression>();
 			var properties = ModelMapper.GetProperties(modelType);
 			properties.AddRange(ModelMapper.GetLookups(modelType).Where(x=>!properties.Any(y=>y.EntityColumnName == x.EntityColumnName)));
 			values.Where(item=>properties.Any(x=>x.EntityColumnName == item.Key)).ForEach(item => {
@@ -103,13 +98,13 @@ namespace ATF.Repository.Builder
 					response.Add(property.EntityColumnName, ConvertValueToColumnExpression(property, item.Value));
 				}
 			});
-			return response;
+			return new BaseQueryColumnsReplica() { Items = response };
 		}
 
-		private static ColumnExpression ConvertValueToColumnExpression(ModelItem property, object value) {
-			return new ColumnExpression() {
+		private static ColumnExpressionReplica ConvertValueToColumnExpression(ModelItem property, object value) {
+			return new ColumnExpressionReplica() {
 				ExpressionType = EntitySchemaQueryExpressionType.Parameter,
-				Parameter = new Parameter() {
+				Parameter = new ParameterReplica() {
 					DataValueType = DataValueTypeUtilities.ConvertTypeToDataValueType(property.DataValueType),
 					Value = ConvertValue(property.DataValueType, value)
 				}

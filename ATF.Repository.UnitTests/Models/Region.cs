@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
-using ATF.Repository.Attributes;
-
-namespace ATF.Repository.UnitTests.Models
+﻿namespace ATF.Repository.UnitTests.Models
 {
+	using System.Collections.Generic;
+	using ATF.Repository.Attributes;
+
 	[Schema("Region")]
 	public class Region: BaseModel
 	{

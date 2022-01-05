@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using ATF.Repository.Providers;
-using ATF.Repository.UnitTests.Models;
-using NUnit.Framework;
-
-namespace ATF.Repository.UnitTests
+﻿namespace ATF.Repository.UnitTests
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using ATF.Repository.Providers;
+	using ATF.Repository.UnitTests.Models;
+	using NUnit.Framework;
+
 	[TestFixture]
 	public class IntegrationRemoteTests
 	{
@@ -17,6 +17,10 @@ namespace ATF.Repository.UnitTests
 		[OneTimeSetUp]
 		public void OneTimeSetUp() {
 			_remoteDataProvider = new RemoteDataProvider("https://nurturing.creatio.com", "Supervisor", "SupervisorTerrasoft+-");
+		}
+
+		[SetUp]
+		public void SetUp() {
 			_appDataContext = AppDataContextFactory.GetAppDataContext(_remoteDataProvider);
 			_secondaryAppDataContext = AppDataContextFactory.GetAppDataContext(_remoteDataProvider);
 		}
@@ -581,15 +585,17 @@ namespace ATF.Repository.UnitTests
 			Assert.AreEqual(ModelState.New, trackerBeforeSave.GetStatus());
 
 
-			_appDataContext.Save();
+			var response = _appDataContext.Save();
+			Assert.IsNotNull(response);
+			Assert.IsTrue(response.Success);
+			Assert.IsNull(response.ErrorMessage);
 
 			// Assert
 			var trackerAfterSave = _appDataContext.ChangeTracker.GetTrackedModel(model);
 			Assert.IsNotNull(trackerAfterSave);
 			Assert.AreSame(model, trackerAfterSave.Model);
 			Assert.AreEqual(ModelState.Unchanged, trackerAfterSave.GetStatus());
-
-			var savedModel = _secondaryAppDataContext.Models<Opportunity>().OrderByDescending(x=>x.CreatedOn).FirstOrDefault(x => x.Title == title);
+			var savedModel = _secondaryAppDataContext.Models<Opportunity>().FirstOrDefault(x => x.Id == model.Id);
 			Assert.IsNotNull(savedModel);
 			Assert.AreEqual(model.Id, savedModel.Id);
 			Assert.AreEqual(budget, savedModel.Budget);
@@ -635,7 +641,7 @@ namespace ATF.Repository.UnitTests
 			var sponsorshipSaleType = _appDataContext.Models<OpportunityType>()
 				.FirstOrDefault(x => x.Id == sponsorshipSaleTypeId);
 
-			var model = _appDataContext.Models<Opportunity>().OrderByDescending(x=>x.CreatedOn).FirstOrDefault(x => x.Title == currentTitle);
+			var model = _appDataContext.Models<Opportunity>().OrderByDescending(x=>x.CreatedOn).FirstOrDefault(x => x.Title.StartsWith(currentTitle));
 			model.Budget = budget;
 			model.Title = newTitle;
 			model.Type = sponsorshipSaleType;
@@ -651,15 +657,17 @@ namespace ATF.Repository.UnitTests
 			Assert.AreEqual(ModelState.Changed, trackerBeforeSave.GetStatus());
 
 			// Act
-			_appDataContext.Save();
+			var response = _appDataContext.Save();
 
 			// Assert
+			Assert.IsTrue(response.Success);
+			Assert.IsNull(response.ErrorMessage);
+
 			var trackerAfterSave = _appDataContext.ChangeTracker.GetTrackedModel(model);
 			Assert.IsNotNull(trackerAfterSave);
 			Assert.AreSame(model, trackerAfterSave.Model);
 			Assert.AreEqual(ModelState.Unchanged, trackerAfterSave.GetStatus());
-
-			var savedModel = _secondaryAppDataContext.Models<Opportunity>().OrderByDescending(x=>x.CreatedOn).FirstOrDefault(x => x.Title == newTitle);
+			var savedModel = _secondaryAppDataContext.Models<Opportunity>().FirstOrDefault(x => x.Id == model.Id);
 			Assert.IsNotNull(savedModel);
 			Assert.AreEqual(model.Id, savedModel.Id);
 			Assert.AreEqual(budget, savedModel.Budget);
@@ -670,6 +678,23 @@ namespace ATF.Repository.UnitTests
 			Assert.AreEqual(licenseCount, savedModel.LicenseCount);
 			Assert.AreEqual(engTerritoryId, savedModel.TerritoryId);
 			Assert.AreEqual(biLeadTypeId, savedModel.LeadTypeId);
+		}
+
+		[Test, Order(6)]
+		public void CaseDeleteWithUndeletingLinkedData() {
+			// Arrange
+			var newTitle = "Test injected opportunity";
+			var model = _appDataContext.Models<Opportunity>().OrderByDescending(x=>x.CreatedOn).FirstOrDefault(x => x.Title.StartsWith(newTitle));
+			_appDataContext.DeleteModel(model);
+
+			var trackerBeforeSave = _appDataContext.ChangeTracker.GetTrackedModel(model);
+			Assert.IsNotNull(trackerBeforeSave);
+			Assert.AreSame(model, trackerBeforeSave.Model);
+			Assert.AreEqual(ModelState.Deleted, trackerBeforeSave.GetStatus());
+
+			// Act
+			var response = _appDataContext.Save();
+			Assert.IsFalse(response.Success);
 		}
 
 		[Test]
@@ -786,20 +811,25 @@ namespace ATF.Repository.UnitTests
 
 		private void TestGetSysSettingsValue<T>(string code, T expectedValue) {
 			// Act
-			var sysSettingsValue = _appDataContext.GetSysSettingValue<T>(code);
+			var response = _appDataContext.GetSysSettingValue<T>(code);
 
 			// Assert
-			Assert.IsNotNull(sysSettingsValue);
-			Assert.AreEqual(expectedValue, sysSettingsValue);
+			Assert.IsNotNull(response);
+			Assert.IsTrue(response.Success);
+			Assert.IsNull(response.ErrorMessage);
+			Assert.AreEqual(expectedValue, response.Value);
 		}
 
 		[Test]
 		[TestCase("AbortQueryOnDestroy", true)]
 		[TestCase("AbortQueryOnDestroy-NotExisted", false)]
 		[TestCase("AvalaraIntegrationEnabled", false)]
-		public void GetSysSettingValue_ShouldReturnsExpectedValue(string code, bool expectedValue) {
-			var actualValue = _appDataContext.GetFeatureEnabled(code);
-			Assert.AreEqual(expectedValue, actualValue);
+		public void GetFeatureEnabled_ShouldReturnsExpectedValue(string code, bool expectedValue) {
+			var response = _appDataContext.GetFeatureEnabled(code);
+			Assert.IsNotNull(response);
+			Assert.IsTrue(response.Success);
+			Assert.IsNull(response.ErrorMessage);
+			Assert.AreEqual(expectedValue, response.Enabled);
 		}
 	}
 }

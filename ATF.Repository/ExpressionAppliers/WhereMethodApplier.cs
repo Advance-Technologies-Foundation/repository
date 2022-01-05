@@ -1,9 +1,9 @@
-﻿using System;
-using ATF.Repository.ExpressionConverters;
-using ATF.Repository.Queryables;
-
-namespace ATF.Repository.ExpressionAppliers
+﻿namespace ATF.Repository.ExpressionAppliers
 {
+	using System;
+	using ATF.Repository.ExpressionConverters;
+	using ATF.Repository.Queryables;
+
 	internal class WhereMethodApplier : ExpressionApplier
 	{
 		internal override bool Apply(ExpressionMetadataChainItem expression, ModelQueryBuildConfig config) {

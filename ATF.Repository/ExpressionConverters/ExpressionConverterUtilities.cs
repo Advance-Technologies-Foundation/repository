@@ -1,16 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-using ATF.Repository.Exceptions;
-using ATF.Repository.ExpressionConverters;
-using ATF.Repository.Mapping;
-using Terrasoft.Common;
-using Terrasoft.Core.Entities;
-
-namespace ATF.Repository.ExpressionConverters
+﻿namespace ATF.Repository.ExpressionConverters
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using System.Linq.Expressions;
+	using System.Reflection;
+	using ATF.Repository.Exceptions;
+	using ATF.Repository.Mapping;
+	using Terrasoft.Common;
+	using Terrasoft.Core.Entities;
+
 	internal static class ExpressionConverterUtilities
 	{
 		private static Type _baseModelType = typeof(BaseModel);

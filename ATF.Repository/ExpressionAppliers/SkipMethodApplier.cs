@@ -1,12 +1,11 @@
-﻿using System;
-using ATF.Repository.ExpressionConverters;
-using ATF.Repository.Queryables;
-
-namespace ATF.Repository.ExpressionAppliers
+﻿namespace ATF.Repository.ExpressionAppliers
 {
+	using System;
+	using ATF.Repository.ExpressionConverters;
+	using ATF.Repository.Queryables;
+
 	internal class SkipMethodApplier : ExpressionApplier
 	{
-
 		internal override bool Apply(ExpressionMetadataChainItem expressionMetadataChainItem, ModelQueryBuildConfig config) {
 			if (expressionMetadataChainItem.ExpressionMetadata.NodeType != ExpressionMetadataNodeType.Property)
 				return false;
@@ -14,8 +13,5 @@ namespace ATF.Repository.ExpressionAppliers
 			config.SelectQuery.RowsOffset = Math.Max(0, rowsOffset);
 			return true;
 		}
-
-
-
 	}
 }

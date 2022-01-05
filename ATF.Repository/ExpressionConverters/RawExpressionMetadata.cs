@@ -1,9 +1,8 @@
-﻿using System.Collections.Generic;
-using System.Linq.Expressions;
-using ATF.Repository.ExpressionConverters;
-
-namespace ATF.Repository.ExpressionConverters
+﻿namespace ATF.Repository.ExpressionConverters
 {
+	using System.Collections.Generic;
+	using System.Linq.Expressions;
+
 	internal class RawExpressionMetadata
 	{
 		public ExpressionType Type { get; set; }

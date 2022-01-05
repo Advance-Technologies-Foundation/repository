@@ -1,9 +1,8 @@
-﻿using System;
-using ATF.Repository.Attributes;
-using Terrasoft.Common;
-
-namespace ATF.Repository.UnitTests.Models
+﻿namespace ATF.Repository.UnitTests.Models
 {
+	using System;
+	using ATF.Repository.Attributes;
+
 	[Schema("ContactInTag")]
 	public class ContactInTag: BaseModel
 	{

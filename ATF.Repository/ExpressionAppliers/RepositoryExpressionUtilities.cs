@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq.Expressions;
-
-namespace ATF.Repository.ExpressionAppliers
+﻿namespace ATF.Repository.ExpressionAppliers
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Linq.Expressions;
+
 	internal static class RepositoryExpressionUtilities
 	{
 		private const string AnyMethodName = "Any";

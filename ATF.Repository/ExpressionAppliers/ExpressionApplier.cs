@@ -1,15 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using ATF.Repository.ExpressionConverters;
-using ATF.Repository.Mapping;
-using ATF.Repository.Queryables;
-using Terrasoft.Common;
-using Terrasoft.Core.Entities;
-using Terrasoft.Nui.ServiceModel.DataContract;
-
-namespace ATF.Repository.ExpressionAppliers
+﻿namespace ATF.Repository.ExpressionAppliers
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using ATF.Repository.ExpressionConverters;
+	using ATF.Repository.Mapping;
+	using ATF.Repository.Queryables;
+	using ATF.Repository.Replicas;
+	using Terrasoft.Common;
+	using Terrasoft.Core.Entities;
+
 	internal abstract class ExpressionApplier
 	{
 		private static readonly Dictionary<string, Type> Appliers = new Dictionary<string, Type>() {
@@ -33,7 +33,7 @@ namespace ATF.Repository.ExpressionAppliers
 		internal abstract bool Apply(ExpressionMetadataChainItem expression, ModelQueryBuildConfig config);
 
 
-		protected SelectQueryColumn GetOrAddColumn(ModelQueryBuildConfig config, string columnPath) {
+		protected ISelectQueryColumn GetOrAddColumn(ModelQueryBuildConfig config, string columnPath) {
 			AddColumnIfNotExists(config, columnPath);
 			return config.SelectQuery.Columns.Items[columnPath];
 		}
@@ -61,8 +61,8 @@ namespace ATF.Repository.ExpressionAppliers
 			}
 		}
 
-		private static Dictionary<string, SelectQueryColumn> GenerateColumns(ModelQueryBuildConfig config) {
-			var columns = new Dictionary<string, SelectQueryColumn>();
+		private static Dictionary<string, SelectQueryColumnReplica> GenerateColumns(ModelQueryBuildConfig config) {
+			var columns = new Dictionary<string, SelectQueryColumnReplica>();
 			ModelMapper.GetModelItems(config.ModelType).Where(modelItem =>
 					modelItem.PropertyType == ModelItemType.Column || modelItem.PropertyType == ModelItemType.Lookup)
 				.ForEach(property => {
@@ -73,13 +73,13 @@ namespace ATF.Repository.ExpressionAppliers
 			return columns;
 		}
 
-		private static SelectQueryColumn GenerateSelectQueryColumn(ModelItem property) {
+		private static SelectQueryColumnReplica GenerateSelectQueryColumn(ModelItem property) {
 			return GenerateSelectQueryColumn(property.EntityColumnName);
 		}
 
-		private static SelectQueryColumn GenerateSelectQueryColumn(string columnPath) {
-			return new SelectQueryColumn() {
-				Expression = new ColumnExpression() {
+		private static SelectQueryColumnReplica GenerateSelectQueryColumn(string columnPath) {
+			return new SelectQueryColumnReplica() {
+				Expression = new ColumnExpressionReplica() {
 					ColumnPath = columnPath,
 					ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn
 				},

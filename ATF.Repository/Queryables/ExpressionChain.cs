@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-
-namespace ATF.Repository.Queryables
+﻿namespace ATF.Repository.Queryables
 {
+	using System;
+	using System.Linq;
+
 	internal class ExpressionChainDtoType
 	{
 		internal Type Type { get; set; }

@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using ATF.Repository.Exceptions;
-using ATF.Repository.ExpressionConverters;
-using Terrasoft.Common;
-using Terrasoft.Core.Entities;
-
-namespace ATF.Repository.ExpressionConverters
+﻿namespace ATF.Repository.ExpressionConverters
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using System.Linq.Expressions;
+	using ATF.Repository.Exceptions;
+
 	internal static class ExpressionMetadataRawParser
 	{
 		internal static RawExpressionMetadata Parse(Expression expression, ExpressionModelMetadata modelMetadata) {

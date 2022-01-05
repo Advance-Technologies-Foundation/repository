@@ -21,7 +21,7 @@
 
 		internal Repository Repository { get; set; }
 
-		internal Entity Entity { get; set; }
+		internal Entity InternalEntity { get; set; }
 
 		internal ILazyModelPropertyManager LazyModelPropertyManager;
 

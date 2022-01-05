@@ -1,23 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using ATF.Repository.Exceptions;
-using ATF.Repository.ExpressionConverters;
-using Terrasoft.Common;
-using Terrasoft.Core.Entities;
-using Terrasoft.Nui.ServiceModel.DataContract;
-using FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType;
-
-namespace ATF.Repository.Queryables
+﻿namespace ATF.Repository.Queryables
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using ATF.Repository.Exceptions;
+	using ATF.Repository.ExpressionConverters;
+	using ATF.Repository.Replicas;
+	using Terrasoft.Core.Entities;
+
+	using DataValueType = Terrasoft.Nui.ServiceModel.DataContract.DataValueType;
+	using FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType;
+
 	internal static class ModelQueryFilterBuilder
 	{
-		internal static Filter GenerateFilter(ExpressionMetadata filterMetadata) {
+		internal static FilterReplica GenerateFilter(ExpressionMetadata filterMetadata) {
 			switch (filterMetadata.NodeType) {
 				case ExpressionMetadataNodeType.Comparison:
 					return GenerateComparisonFilter(filterMetadata);
 				case ExpressionMetadataNodeType.Group:
-					return GenerateFilterGroup<Filter>(filterMetadata);
+					return GenerateFilterGroup<FilterReplica>(filterMetadata);
 				case ExpressionMetadataNodeType.Column:
 					return GenerateSingleColumnFilter(filterMetadata);
 				default:
@@ -25,17 +26,17 @@ namespace ATF.Repository.Queryables
 			}
 		}
 
-		private static Filter GenerateSingleColumnFilter(ExpressionMetadata filterMetadata) {
+		private static FilterReplica GenerateSingleColumnFilter(ExpressionMetadata filterMetadata) {
 			if (filterMetadata.Parameter?.Type == typeof(bool)) {
 				return GenerateBooleanSingleColumnFilter(filterMetadata);
 			}
 			throw new NotImplementedException();
 		}
 
-		private static Filter GenerateBooleanSingleColumnFilter(ExpressionMetadata filterMetadata) {
+		private static FilterReplica GenerateBooleanSingleColumnFilter(ExpressionMetadata filterMetadata) {
 			var left = ConvertExpression(filterMetadata);
 			var right = ConvertToBaseExpression(DataValueType.Boolean, true);
-			return new Filter() {
+			return new FilterReplica() {
 				FilterType = FilterType.CompareFilter,
 				LeftExpression = left,
 				ComparisonType = FilterComparisonType.Equal,
@@ -43,8 +44,8 @@ namespace ATF.Repository.Queryables
 			};
 		}
 
-		private static T GenerateFilterGroup<T>(ExpressionMetadata filterMetadata) where T: Filter, new() {
-			var filters = new Dictionary<string, Filter>();
+		private static T GenerateFilterGroup<T>(ExpressionMetadata filterMetadata) where T: FilterReplica, new() {
+			var filters = new Dictionary<string, IFilter>();
 			filterMetadata.Items.ForEach(fm => {
 				filters.Add(Guid.NewGuid().ToString(), GenerateFilter(fm));
 			});
@@ -55,7 +56,7 @@ namespace ATF.Repository.Queryables
 			};
 		}
 
-		private static Filter GenerateComparisonFilter(ExpressionMetadata filterMetadata) {
+		private static FilterReplica GenerateComparisonFilter(ExpressionMetadata filterMetadata) {
 			if (filterMetadata.LeftExpression?.NodeType == ExpressionMetadataNodeType.Detail) {
 				return GenerateDetailComparisonFilter(filterMetadata);
 			}
@@ -63,7 +64,7 @@ namespace ATF.Repository.Queryables
 			return GenerateSimpleComparisonFilter(filterMetadata);
 		}
 
-		private static Filter GenerateDetailComparisonFilter(ExpressionMetadata filterMetadata) {
+		private static FilterReplica GenerateDetailComparisonFilter(ExpressionMetadata filterMetadata) {
 			if (filterMetadata.LeftExpression.MethodName == ConvertableExpressionMethod.Any) {
 				return GenerateExistsDetailFilter(filterMetadata);
 			}
@@ -71,12 +72,12 @@ namespace ATF.Repository.Queryables
 			return GenerateSimpleComparisonFilter(filterMetadata);
 		}
 
-		private static Filter GenerateExistsDetailFilter(ExpressionMetadata filterMetadata) {
+		private static FilterReplica GenerateExistsDetailFilter(ExpressionMetadata filterMetadata) {
 			var detailSelect = ModelQueryBuilder.BuildSelectQuery(filterMetadata.LeftExpression.DetailChain);
-			return new Filter() {
+			return new FilterReplica() {
 				FilterType = FilterType.Exists,
 				ComparisonType = GetExistsDetailFilterComparisonType(filterMetadata),
-				LeftExpression = new ColumnExpression() {
+				LeftExpression = new ColumnExpressionReplica() {
 					ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,
 					ColumnPath = $"{filterMetadata.LeftExpression.Parameter.ColumnPath}.Id",
 				},
@@ -90,9 +91,9 @@ namespace ATF.Repository.Queryables
 				: FilterComparisonType.NotExists;
 		}
 
-		private static Filter GenerateSimpleComparisonFilter(ExpressionMetadata filterMetadata) {
+		private static FilterReplica GenerateSimpleComparisonFilter(ExpressionMetadata filterMetadata) {
 			var rightExpressions = filterMetadata.RightExpressions.Select(ConvertExpression).ToList();
-			var filter = new Filter() {
+			var filter = new FilterReplica() {
 				FilterType = rightExpressions.Count > 1 ? FilterType.InFilter : FilterType.CompareFilter,
 				LeftExpression = ConvertExpression(filterMetadata.LeftExpression),
 				ComparisonType = filterMetadata.ComparisonType,
@@ -106,7 +107,7 @@ namespace ATF.Repository.Queryables
 			return filter;
 		}
 
-		private static BaseExpression ConvertExpression(ExpressionMetadata filterMetadataLeftExpression) {
+		private static BaseExpressionReplica ConvertExpression(ExpressionMetadata filterMetadataLeftExpression) {
 			switch (filterMetadataLeftExpression.NodeType) {
 				case ExpressionMetadataNodeType.Column:
 					return ConvertToColumnExpression(filterMetadataLeftExpression);
@@ -117,13 +118,13 @@ namespace ATF.Repository.Queryables
 			}
 		}
 
-		private static ColumnExpression ConvertToDetailExpression(ExpressionMetadata detailMetadataLeftExpression) {
+		private static ColumnExpressionReplica ConvertToDetailExpression(ExpressionMetadata detailMetadataLeftExpression) {
 			var detailSelect = ModelQueryBuilder.BuildSelectQuery(detailMetadataLeftExpression.DetailChain);
 			if (detailSelect.Columns.Items.Count != 1) {
 				throw new ExpressionApplierException();
 			}
 			var detailColumnExpression = detailSelect.Columns.Items.First().Value.Expression;
-			var columnExpression = new ColumnExpression() {
+			var columnExpression = new ColumnExpressionReplica() {
 				ExpressionType = EntitySchemaQueryExpressionType.SubQuery,
 				FunctionType = detailColumnExpression.FunctionType,
 				AggregationType = detailColumnExpression.AggregationType,
@@ -135,14 +136,14 @@ namespace ATF.Repository.Queryables
 			return columnExpression;
 		}
 
-		private static ColumnExpression ConvertToColumnExpression(ExpressionMetadata filterMetadataLeftExpression) {
-			return new ColumnExpression() {
+		private static ColumnExpressionReplica ConvertToColumnExpression(ExpressionMetadata filterMetadataLeftExpression) {
+			return new ColumnExpressionReplica() {
 				ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,
 				ColumnPath = filterMetadataLeftExpression.Parameter.ColumnPath
 			};
 		}
 
-		private static BaseExpression ConvertToBaseExpression(ExpressionMetadata filterMetadataLeftExpression) {
+		private static BaseExpressionReplica ConvertToBaseExpression(ExpressionMetadata filterMetadataLeftExpression) {
 			var dataValueType = DataValueTypeUtilities.ConvertTypeToDataValueType(filterMetadataLeftExpression.Parameter.Type);
 			var value = GetQueryValue(filterMetadataLeftExpression.Parameter.Value, dataValueType);
 			return ConvertToBaseExpression(dataValueType, value);
@@ -156,10 +157,10 @@ namespace ATF.Repository.Queryables
 			return rawValue;
 		}
 
-		private static BaseExpression ConvertToBaseExpression(DataValueType type, object value) {
-			return new BaseExpression() {
+		private static BaseExpressionReplica ConvertToBaseExpression(DataValueType type, object value) {
+			return new BaseExpressionReplica() {
 				ExpressionType = EntitySchemaQueryExpressionType.Parameter,
-				Parameter = new Parameter() {
+				Parameter = new ParameterReplica() {
 					Value = value,
 					DataValueType = type
 				}

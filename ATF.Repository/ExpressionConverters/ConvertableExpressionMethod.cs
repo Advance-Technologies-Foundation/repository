@@ -1,7 +1,6 @@
-﻿using System.Collections.Generic;
-
-namespace ATF.Repository.ExpressionConverters
+﻿namespace ATF.Repository.ExpressionConverters
 {
+	using System.Collections.Generic;
 
 	internal static class AvailableChainMethods
 	{

@@ -1,0 +1,307 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+	<PropertyGroup>
+		<Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+		<Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+		<ProjectGuid>{A3E5E77C-2DF3-4A44-A868-BFF9223C39FF}</ProjectGuid>
+		<ProjectTypeGuids>{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+		<OutputType>Library</OutputType>
+		<AppDesignerFolder>Properties</AppDesignerFolder>
+		<RootNamespace>ATF.Repository.FW.UnitTests</RootNamespace>
+		<AssemblyName>ATF.Repository.FW.UnitTests</AssemblyName>
+		<TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+		<FileAlignment>512</FileAlignment>
+	</PropertyGroup>
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+		<PlatformTarget>AnyCPU</PlatformTarget>
+		<DebugSymbols>true</DebugSymbols>
+		<DebugType>full</DebugType>
+		<Optimize>false</Optimize>
+		<OutputPath>bin\Debug\</OutputPath>
+		<DefineConstants>DEBUG;TRACE</DefineConstants>
+		<ErrorReport>prompt</ErrorReport>
+		<WarningLevel>4</WarningLevel>
+	</PropertyGroup>
+	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+		<PlatformTarget>AnyCPU</PlatformTarget>
+		<DebugType>pdbonly</DebugType>
+		<Optimize>true</Optimize>
+		<OutputPath>bin\Release\</OutputPath>
+		<DefineConstants>TRACE</DefineConstants>
+		<ErrorReport>prompt</ErrorReport>
+		<WarningLevel>4</WarningLevel>
+	</PropertyGroup>
+	<ItemGroup>
+		<Reference Include="Castle.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=407dd0808d44fbdc">
+		  <HintPath>..\packages\Castle.Core.4.4.1\lib\net45\Castle.Core.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Common.Logging, Version=3.4.1.0, Culture=neutral, PublicKeyToken=af08829b84f0328e">
+		  <HintPath>..\packages\Common.Logging.3.4.1\lib\net40\Common.Logging.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Common.Logging.Core, Version=3.4.1.0, Culture=neutral, PublicKeyToken=af08829b84f0328e">
+		  <HintPath>..\packages\Common.Logging.Core.3.4.1\lib\net40\Common.Logging.Core.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Microsoft.CSharp" />
+		<Reference Include="Microsoft.Win32.Primitives, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+		  <HintPath>..\packages\Microsoft.Win32.Primitives.4.0.1\lib\net46\Microsoft.Win32.Primitives.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="mscorlib" />
+		<Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed">
+		  <HintPath>..\packages\Newtonsoft.Json.12.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="NSubstitute, Version=4.2.0.0, Culture=neutral, PublicKeyToken=92dd2e9066daa5ca">
+		  <HintPath>..\packages\NSubstitute.4.2.2\lib\net46\NSubstitute.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Quartz, Version=3.2.2.0, Culture=neutral, PublicKeyToken=f6b8c98a402cc8a4">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Quartz.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="System" />
+		<Reference Include="System.ComponentModel.Composition" />
+		<Reference Include="System.Configuration" />
+		<Reference Include="System.Core" />
+		<Reference Include="System.Data" />
+		<Reference Include="System.Diagnostics.DiagnosticSource, Version=4.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51">
+		  <HintPath>..\packages\System.Diagnostics.DiagnosticSource.4.0.0\lib\net46\System.Diagnostics.DiagnosticSource.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="System.IO, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+		  <HintPath>..\packages\System.IO.4.3.0\lib\net462\System.IO.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="System.Net.Http, Version=4.1.0.2, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+		  <HintPath>..\packages\System.Net.Http.4.1.2\lib\net46\System.Net.Http.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="System.Runtime, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+		  <HintPath>..\packages\System.Runtime.4.3.0\lib\net462\System.Runtime.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="System.Security.Cryptography.Algorithms, Version=4.2.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+		  <HintPath>..\packages\System.Security.Cryptography.Algorithms.4.3.0\lib\net463\System.Security.Cryptography.Algorithms.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="System.Security.Cryptography.Encoding, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+		  <HintPath>..\packages\System.Security.Cryptography.Encoding.4.3.0\lib\net46\System.Security.Cryptography.Encoding.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="System.Security.Cryptography.Primitives, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+		  <HintPath>..\packages\System.Security.Cryptography.Primitives.4.3.0\lib\net46\System.Security.Cryptography.Primitives.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="System.Security.Cryptography.X509Certificates, Version=4.1.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+		  <HintPath>..\packages\System.Security.Cryptography.X509Certificates.4.3.0\lib\net461\System.Security.Cryptography.X509Certificates.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="System.Threading.Tasks.Extensions, Version=4.1.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51">
+		  <HintPath>..\packages\System.Threading.Tasks.Extensions.4.3.0\lib\portable-net45+win8+wp8+wpa81\System.Threading.Tasks.Extensions.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="System.Xml" />
+		<Reference Include="nunit.framework, Version=3.5.0.0, Culture=neutral, PublicKeyToken=2638cd05610744eb">
+			<HintPath>..\packages\NUnit.3.5.0\lib\net45\nunit.framework.dll</HintPath>
+		</Reference>
+		<Reference Include="Terrasoft.Common, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.Common.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.Core, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.Core.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.Core.ConfigurationBuild, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.Core.ConfigurationBuild.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.Core.DI, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.Core.DI.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.Core.Packages, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.Core.Packages.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.Core.Process, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.Core.Process.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.Core.Scheduler, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.Core.Scheduler.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.Core.ScriptEngine, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.Core.ScriptEngine.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.Core.Translation, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.Core.Translation.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.File, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.File.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.File.Abstractions, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.File.Abstractions.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.GlobalSearch, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.GlobalSearch.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.GoogleServerConnector, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.GoogleServerConnector.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.GoogleServices, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.GoogleServices.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.IO, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.IO.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.Messaging.Common, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.Messaging.Common.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.Mobile, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.Mobile.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.Monitoring, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.Monitoring.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.Nui, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.Nui.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.Nui.ServiceModel, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.Nui.ServiceModel.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.Reports, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.Reports.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.Services, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.Services.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.Social, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.Social.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.Sync, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.Sync.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.Web.Common, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.Web.Common.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+		<Reference Include="Terrasoft.Web.Http.Abstractions, Version=7.17.4.2265, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879">
+		  <HintPath>..\packages\CreatioSDK.7.17.4.2265\lib\net40\Terrasoft.Web.Http.Abstractions.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
+	</ItemGroup>
+	<ItemGroup>
+		<Compile Include="..\ATF.Repository.UnitTests\AppDataContextTests.cs">
+		  <Link>AppDataContextTests.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\IntegrationRemoteTests.cs">
+		  <Link>IntegrationRemoteTests.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\Account.cs">
+		  <Link>Models\Account.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\AccountType.cs">
+		  <Link>Models\AccountType.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\City.cs">
+		  <Link>Models\City.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\Contact.cs">
+		  <Link>Models\Contact.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\ContactInTag.cs">
+		  <Link>Models\ContactInTag.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\ContactType.cs">
+		  <Link>Models\ContactType.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\Country.cs">
+		  <Link>Models\Country.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\Currency.cs">
+		  <Link>Models\Currency.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\CurrencyRate.cs">
+		  <Link>Models\CurrencyRate.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\Lead.cs">
+		  <Link>Models\Lead.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\LookupTestModel.cs">
+		  <Link>Models\LookupTestModel.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\Opportunity.cs">
+		  <Link>Models\Opportunity.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\OpportunityContact.cs">
+		  <Link>Models\OpportunityContact.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\OpportunityType.cs">
+		  <Link>Models\OpportunityType.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\PainChain.cs">
+		  <Link>Models\PainChain.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\Region.cs">
+		  <Link>Models\Region.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\TypedTestModel.cs">
+		  <Link>Models\TypedTestModel.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\RemoteDataProviderTests.cs">
+		  <Link>RemoteDataProviderTests.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Utilities\QueryBuilderUtilities.cs">
+		  <Link>Utilities\QueryBuilderUtilities.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Utilities\QueryComparison.cs">
+		  <Link>Utilities\QueryComparison.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Utilities\TestSelectBuilder.cs">
+		  <Link>Utilities\TestSelectBuilder.cs</Link>
+		</Compile>
+		<Compile Include="Properties\AssemblyInfo.cs" />
+	</ItemGroup>
+	<ItemGroup>
+	  <ProjectReference Include="..\ATF.Repository\ATF.Repository.csproj">
+	    <Project>{f6e64fad-5f5c-46cd-95c1-07e9258810ba}</Project>
+	    <Name>ATF.Repository</Name>
+	  </ProjectReference>
+	</ItemGroup>
+	<ItemGroup>
+	  <None Include="App.config" />
+	  <None Include="packages.config" />
+	</ItemGroup>
+	<Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+	<!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+		 Other similar extension points exist, see Microsoft.Common.targets.
+	<Target Name="BeforeBuild">
+	</Target>
+	<Target Name="AfterBuild">
+	</Target>
+	-->
+
+</Project>

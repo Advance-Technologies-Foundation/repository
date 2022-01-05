@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-
-namespace ATF.Repository
+﻿namespace ATF.Repository
 {
+	using System.Collections.Generic;
+	using System.Linq;
+
 	internal class RepositoryChangeTracker: IChangeTracker
 	{
 		internal Repository Repository { get; set; }

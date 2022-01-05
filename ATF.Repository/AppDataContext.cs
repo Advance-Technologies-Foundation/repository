@@ -98,12 +98,27 @@
 			};
 		}
 
-		public T GetSysSettingValue<T>(string sysSettingCode) {
-			return _dataProvider.GetSysSettingValue<T>(sysSettingCode);
+		public ISysSettingResponse<T> GetSysSettingValue<T>(string sysSettingCode) {
+			var response = new SysSettingResponse<T>();
+			try {
+				response.Value = _dataProvider.GetSysSettingValue<T>(sysSettingCode);
+				response.Success = true;
+			} catch (Exception e) {
+				response.Value = default(T);
+				response.ErrorMessage = e.Message;
+			}
+			return response;
 		}
 
-		public bool GetFeatureEnabled(string featureCode) {
-			return _dataProvider.GetFeatureEnabled(featureCode);
+		public IFeatureResponse GetFeatureEnabled(string featureCode) {
+			var response = new FeatureResponse();
+			try {
+				response.Enabled = _dataProvider.GetFeatureEnabled(featureCode);
+				response.Success = true;
+			} catch (Exception e) {
+				response.ErrorMessage = e.Message;
+			}
+			return response;
 		}
 	}
 

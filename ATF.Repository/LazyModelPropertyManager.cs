@@ -1,14 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
-using ATF.Repository.Exceptions;
-using ATF.Repository.Mapping;
-using Terrasoft.Common;
-
-namespace ATF.Repository
+﻿namespace ATF.Repository
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using System.Linq.Expressions;
+	using System.Reflection;
+	using ATF.Repository.Exceptions;
+	using ATF.Repository.Mapping;
+	using Terrasoft.Common;
+
 	internal class LazyModelPropertyManager : ILazyModelPropertyManager
 	{
 		private AppDataContext _appDataContext;

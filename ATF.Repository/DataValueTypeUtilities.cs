@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using Terrasoft.Nui.ServiceModel.DataContract;
-
-namespace ATF.Repository
+﻿namespace ATF.Repository
 {
+	using System;
+	using System.Collections.Generic;
+	using DataValueType = Terrasoft.Nui.ServiceModel.DataContract.DataValueType;
+
 	internal class DataValueTypeUtilities
 	{
 		private static readonly Dictionary<Type, DataValueType> ConvertDataValueTypeData = new Dictionary<Type, DataValueType>() {

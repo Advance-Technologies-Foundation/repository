@@ -1,11 +1,9 @@
-﻿using System;
-using System.Linq;
-using System.Linq.Expressions;
-using ATF.Repository.ExpressionConverters;
-using ATF.Repository.Queryables;
-
-namespace ATF.Repository.ExpressionAppliers
+﻿namespace ATF.Repository.ExpressionAppliers
 {
+	using System;
+	using ATF.Repository.ExpressionConverters;
+	using ATF.Repository.Queryables;
+
 	internal class TakeMethodApplier : ExpressionApplier
 	{
 		internal override bool Apply(ExpressionMetadataChainItem expressionMetadataChainItem, ModelQueryBuildConfig config) {
@@ -14,8 +12,6 @@ namespace ATF.Repository.ExpressionAppliers
 			var rowCount = (int)(expressionMetadataChainItem?.ExpressionMetadata?.Parameter?.Value ?? 0);
 			config.SelectQuery.RowCount = Math.Min(ModelQueryBuildConfig.MaxRowsCount, rowCount);
 			return true;
-
 		}
-
 	}
 }

@@ -1,10 +1,7 @@
-﻿using System.Linq;
-using System.Linq.Expressions;
-using ATF.Repository.Exceptions;
-using ATF.Repository.ExpressionConverters;
-
-namespace ATF.Repository.ExpressionConverters
+﻿namespace ATF.Repository.ExpressionConverters
 {
+	using System.Linq.Expressions;
+
 	internal class VariableExpressionConverter
 	{
 		internal static ExpressionMetadata Convert(MethodCallExpression methodCallExpression, ExpressionModelMetadata modelMetadata) {

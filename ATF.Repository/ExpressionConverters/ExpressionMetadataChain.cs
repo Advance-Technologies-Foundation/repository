@@ -1,11 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using ATF.Repository.Exceptions;
-using Terrasoft.Common;
-
-namespace ATF.Repository.ExpressionConverters
+﻿namespace ATF.Repository.ExpressionConverters
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using Terrasoft.Common;
+
 	internal class ExpressionMetadataChain
 	{
 

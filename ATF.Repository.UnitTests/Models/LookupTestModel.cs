@@ -1,7 +1,7 @@
-﻿using ATF.Repository.Attributes;
-
-namespace ATF.Repository.UnitTests.Models
+﻿namespace ATF.Repository.UnitTests.Models
 {
+	using ATF.Repository.Attributes;
+
 	[Schema("LookupTestModel")]
 	public class LookupTestModel: BaseModel
 	{

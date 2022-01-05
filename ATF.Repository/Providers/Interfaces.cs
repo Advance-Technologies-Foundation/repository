@@ -1,15 +1,14 @@
-﻿using System.Collections.Generic;
-using Terrasoft.Nui.ServiceModel.DataContract;
-
-namespace ATF.Repository.Providers
+﻿namespace ATF.Repository.Providers
 {
+	using System.Collections.Generic;
+
 	public interface IDataProvider
 	{
 		IDefaultValuesResponse GetDefaultValues(string schemaName);
 
-		IItemsResponse GetItems(SelectQuery selectQuery);
+		IItemsResponse GetItems(ISelectQuery selectQuery);
 
-		IExecuteResponse BatchExecute(List<BaseQuery> queries);
+		IExecuteResponse BatchExecute(List<IBaseQuery> queries);
 
 		T GetSysSettingValue<T>(string sysSettingCode);
 
@@ -47,6 +46,24 @@ namespace ATF.Repository.Providers
 	{
 		bool Success { get; }
 		List<IExecuteItemResponse> QueryResults { get;  }
+
+		string ErrorMessage { get; }
+	}
+
+	public interface ISysSettingResponse<T>
+	{
+		bool Success { get; }
+
+		T Value { get; }
+
+		string ErrorMessage { get; }
+	}
+
+	public interface IFeatureResponse
+	{
+		bool Success { get; }
+
+		bool Enabled { get; }
 
 		string ErrorMessage { get; }
 	}

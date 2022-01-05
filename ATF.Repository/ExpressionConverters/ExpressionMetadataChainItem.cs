@@ -1,9 +1,9 @@
-﻿using System.Linq;
-using System.Linq.Expressions;
-using ATF.Repository.Queryables;
-
-namespace ATF.Repository.ExpressionConverters
+﻿namespace ATF.Repository.ExpressionConverters
 {
+	using System.Linq;
+	using System.Linq.Expressions;
+	using ATF.Repository.Queryables;
+
 	internal class ExpressionMetadataChainItem
 	{
 		internal ExpressionMetadataChainItem(MethodCallExpression methodCallExpression) {

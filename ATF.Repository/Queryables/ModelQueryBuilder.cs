@@ -1,34 +1,34 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using ATF.Repository.ExpressionAppliers;
-using ATF.Repository.ExpressionConverters;
-using Terrasoft.Common;
-using Terrasoft.Nui.ServiceModel.DataContract;
-using FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType;
-
-namespace ATF.Repository.Queryables
+﻿namespace ATF.Repository.Queryables
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using ATF.Repository.ExpressionAppliers;
+	using ATF.Repository.ExpressionConverters;
+	using ATF.Repository.Replicas;
+	using Terrasoft.Common;
+	using FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType;
+
 	internal class ModelQueryBuildConfig
 	{
-		internal SelectQuery SelectQuery { get; set; }
+		internal SelectQueryReplica SelectQuery { get; set; }
 		internal Type ModelType { get; set; }
 
 		internal static int MaxRowsCount = 100;
 	}
 	internal class ModelQueryBuilder
 	{
-		public static SelectQuery BuildEmptyQuery(Type elementType) {
+		public static SelectQueryReplica BuildEmptyQuery(Type elementType) {
 			var schemaName = ModelUtilities.GetSchemaName(elementType);
-			return new SelectQuery() {
+			return new SelectQueryReplica() {
 				RootSchemaName = schemaName,
 				RowCount = ModelQueryBuildConfig.MaxRowsCount,
-				Columns = new SelectQueryColumns() {Items = new Dictionary<string, SelectQueryColumn>()},
-				Filters = new Filters() {Items = new Dictionary<string, Filter>(), FilterType = FilterType.FilterGroup}
+				Columns = new SelectQueryColumnsReplica(),
+				Filters = new FilterGroupReplica()
 			};
 		}
 
-		public static SelectQuery BuildSelectQuery(ExpressionMetadataChain expressionMetadataChain) {
+		public static SelectQueryReplica BuildSelectQuery(ExpressionMetadataChain expressionMetadataChain) {
 			if (expressionMetadataChain.IsEmpty()) {
 				var defaultConfig = GenerateModelQueryBuildConfig(expressionMetadataChain.LastValueType);
 				return defaultConfig.SelectQuery;
@@ -50,12 +50,12 @@ namespace ATF.Repository.Queryables
 			return config;
 		}
 
-		private static void OptimizeFilters(Filter filter) {
+		private static void OptimizeFilters(IFilter filter) {
 			if (filter.FilterType != FilterType.FilterGroup) {
 				return;
 			}
 
-			var filtersToMove = new List<Filter>();
+			var filtersToMove = new List<IFilter>();
 			var itemsToDelete = new List<string>();
 			filter.Items.ForEach(nestedFilterItem => {
 				var nestedFilter = nestedFilterItem.Value;

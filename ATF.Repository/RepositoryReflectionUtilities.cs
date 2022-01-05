@@ -1,10 +1,9 @@
-﻿using System;
-using System.Linq;
-using System.Reflection;
-using Terrasoft.Nui.ServiceModel.DataContract;
-
-namespace ATF.Repository
+﻿namespace ATF.Repository
 {
+	using System;
+	using System.Linq;
+	using System.Reflection;
+
 	internal static class RepositoryReflectionUtilities
 	{
 		internal static MethodInfo GetGenericMethod(Type type, string methodName, params Type[] genericTypes) {

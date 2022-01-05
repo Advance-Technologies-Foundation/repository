@@ -7,11 +7,13 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ATF.Repository", "ATF.Repos
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ATF.Repository.Tests", "ATF.Repository.Tests\ATF.Repository.Tests.csproj", "{B7327963-48AF-4B5B-A166-4A115D2821DC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ATF.Repository.UnitTests", "ATF.Repository.UnitTests\ATF.Repository.UnitTests.csproj", "{2E164B9D-C3A7-4369-98CF-3E6351C1E3DF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ATF.Repository.Core.UnitTests", "ATF.Repository.UnitTests\ATF.Repository.Core.UnitTests.csproj", "{2E164B9D-C3A7-4369-98CF-3E6351C1E3DF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ATF.Repository.Mock", "ATF.Repository.Mock\ATF.Repository.Mock.csproj", "{1C53FA48-DFA3-40C7-81DB-9490F8867C50}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ATF.Repository.Mock.UnitTests", "ATF.Repository.Mock.UnitTests\ATF.Repository.Mock.UnitTests.csproj", "{A7A44582-37E4-4539-AB1B-E5F518809FB2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ATF.Repository.FW.UnitTests", "ATF.Repository.FW.UnitTests\ATF.Repository.FW.UnitTests.csproj", "{A3E5E77C-2DF3-4A44-A868-BFF9223C39FF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{A7A44582-37E4-4539-AB1B-E5F518809FB2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A7A44582-37E4-4539-AB1B-E5F518809FB2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A7A44582-37E4-4539-AB1B-E5F518809FB2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A3E5E77C-2DF3-4A44-A868-BFF9223C39FF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3E5E77C-2DF3-4A44-A868-BFF9223C39FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A3E5E77C-2DF3-4A44-A868-BFF9223C39FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A3E5E77C-2DF3-4A44-A868-BFF9223C39FF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

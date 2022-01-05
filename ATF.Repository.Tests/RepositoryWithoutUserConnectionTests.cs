@@ -1,9 +1,8 @@
-﻿using System.Linq;
-
-namespace ATF.Repository.Tests
+﻿namespace ATF.Repository.Tests
 {
 	using NUnit.Framework;
 	using System;
+	using System.Linq;
 	using Models;
 	using System.Collections.Generic;
 	using Terrasoft.Configuration.Tests;

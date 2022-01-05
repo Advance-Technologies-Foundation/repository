@@ -1,8 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace ATF.Repository
+﻿namespace ATF.Repository
 {
+	using System;
+	using System.Collections.Generic;
+
 	public enum ModelState
 	{
 		New,

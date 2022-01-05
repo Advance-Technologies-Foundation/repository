@@ -1,7 +1,8 @@
-﻿using System.Linq;
-
-namespace ATF.Repository
+﻿namespace ATF.Repository
 {
+	using ATF.Repository.Providers;
+	using System.Linq;
+
 	public interface IAppDataContext
 	{
 		IChangeTracker ChangeTracker { get; }
@@ -12,8 +13,8 @@ namespace ATF.Repository
 
 		ISaveResult Save();
 
-		T GetSysSettingValue<T>(string sysSettingCode);
+		ISysSettingResponse<T> GetSysSettingValue<T>(string sysSettingCode);
 
-		bool GetFeatureEnabled(string featureCode);
+		IFeatureResponse GetFeatureEnabled(string featureCode);
 	}
 }

@@ -1,7 +1,7 @@
-﻿using System;
-
-namespace ATF.Repository.Exceptions
+﻿namespace ATF.Repository.Exceptions
 {
+	using System;
+
 	public class ExpressionConvertException: Exception
 	{
 

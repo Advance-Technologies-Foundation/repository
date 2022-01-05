@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq.Expressions;
-using ATF.Repository.ExpressionConverters;
-using Terrasoft.Common;
-using Terrasoft.Core.Entities;
-
-namespace ATF.Repository.ExpressionConverters
+﻿namespace ATF.Repository.ExpressionConverters
 {
+	using System.Linq.Expressions;
+
 	internal class FilterConverter
 	{
 		public static ExpressionMetadata Convert(Expression expression, ExpressionModelMetadata modelMetadata) {

@@ -1,23 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using ATF.Repository.Providers;
-using ATF.Repository.UnitTests.Utilities;
-using Newtonsoft.Json;
-using NSubstitute;
-using NUnit.Framework;
-using Terrasoft.Common;
-using Terrasoft.Core.Entities;
-using Terrasoft.Nui.ServiceModel.DataContract;
-using FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType;
-
-
-namespace ATF.Repository.UnitTests
+﻿namespace ATF.Repository.UnitTests
 {
+	using System;
+	using System.Linq;
+	using ATF.Repository.Providers;
+	using ATF.Repository.UnitTests.Utilities;
+	using Newtonsoft.Json;
+	using NSubstitute;
+	using NUnit.Framework;
+	using Terrasoft.Core.Entities;
+	using Terrasoft.Nui.ServiceModel.DataContract;
+
 	[TestFixture]
 	public class RemoteDataProviderTests
 	{
-		//private RemoteDataProvider _realRemoteDataProvider;
 		private RemoteDataProvider _remoteDataProvider;
 		private ICreatioClientAdapter _creatioClientAdapter;
 

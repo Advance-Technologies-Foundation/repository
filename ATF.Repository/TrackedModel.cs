@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Terrasoft.Common;
-
-namespace ATF.Repository
+﻿namespace ATF.Repository
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using Terrasoft.Common;
+
 	internal class TrackedModel<T>: ITrackedModel, ITrackedModel<T> where T : BaseModel
 	{
 		private Dictionary<string, object> _initValues;

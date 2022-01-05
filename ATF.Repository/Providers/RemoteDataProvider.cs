@@ -1,5 +1,6 @@
 ﻿namespace ATF.Repository.Providers
 {
+	using ATF.Repository.Replicas;
 	using ATF.Repository.Serializers;
 	using System;
 	using System.Collections.Generic;
@@ -10,7 +11,7 @@
 	using Newtonsoft.Json;
 	using Newtonsoft.Json.Linq;
 	using Terrasoft.Common;
-	using Terrasoft.Nui.ServiceModel.DataContract;
+	using DataValueType = Terrasoft.Nui.ServiceModel.DataContract.DataValueType;
 
 	public class RemoteDataProvider: IDataProvider
 	{
@@ -110,7 +111,7 @@
 
 		#region Methods: Public
 
-		public IItemsResponse GetItems(SelectQuery selectQuery) {
+		public IItemsResponse GetItems(ISelectQuery selectQuery) {
 			var response = new ItemsResponse() {
 				Success = false,
 				Items = new List<Dictionary<string, object>>()
@@ -118,7 +119,7 @@
 			try {
 				var requestData = JsonConvert.SerializeObject(selectQuery);
 				var url = _applicationUrl + SelectEndpointUri;
-				var responseBody = CreatioClientAdapter.ExecutePostRequest(url, requestData, Timeout.Infinite);
+				var responseBody = CreatioClientAdapter.ExecutePostRequest(url, requestData, 1800000);
 				var selectResponse = JsonConvert.DeserializeObject<SelectResponse>(responseBody);
 				response.Items = ParseSelectResponse(selectResponse);
 				response.Success = true;
@@ -128,10 +129,10 @@
 			return response;
 		}
 
-		public IExecuteResponse BatchExecute(List<BaseQuery> queries) {
+		public IExecuteResponse BatchExecute(List<IBaseQuery> queries) {
 			var response = new ExecuteResponse();
-			var batchQuery = new BatchQuery() { Queries = queries };
-			var requestData = BatchQuerySerializer.Serialize(batchQuery);
+			var batchQuery = new BatchQueryReplica() { Queries = queries };
+			var requestData = JsonConvert.SerializeObject(batchQuery); //BatchQuerySerializer.Serialize(batchQuery);
 			var url = _applicationUrl + BatchEndpointUrl;
 			try {
 				var responseBody = CreatioClientAdapter.ExecutePostRequest(url, requestData, Timeout.Infinite);
@@ -146,28 +147,20 @@
 		public T GetSysSettingValue<T>(string sysSettingCode) {
 			var request = new SysSettingsRequest()
 				{ SysSettingsNameCollection = new List<string>() { sysSettingCode } };
-			try {
-				var requestData = JsonConvert.SerializeObject(request);
-				var url = _applicationUrl + SysSettingEndpointUrl;
-				var responseBody = CreatioClientAdapter.ExecutePostRequest(url, requestData, Timeout.Infinite);
-				var response = JsonConvert.DeserializeObject<SysSettingsResponse>(responseBody);
-				return ParseSysSettingValueResponse<T>(response, sysSettingCode);
-			} catch (Exception e) {
-				return default(T);
-			}
+			var requestData = JsonConvert.SerializeObject(request);
+			var url = _applicationUrl + SysSettingEndpointUrl;
+			var responseBody = CreatioClientAdapter.ExecutePostRequest(url, requestData, Timeout.Infinite);
+			var sysSettingRaw = JsonConvert.DeserializeObject<SysSettingsResponse>(responseBody);
+			return ParseSysSettingValueResponse<T>(sysSettingRaw, sysSettingCode);
 		}
 
 		public bool GetFeatureEnabled(string featureCode) {
 			var request = new FeatureRequest() { code = featureCode };
-			try {
-				var requestData = JsonConvert.SerializeObject(request);
-				var url = _applicationUrl + FeatureEndpointUrl;
-				var responseBody = CreatioClientAdapter.ExecutePostRequest(url, requestData, Timeout.Infinite);
-				var response = JsonConvert.DeserializeObject<FeatureResponse>(responseBody);
-				return response?.FeatureState == 1;
-			} catch (Exception e) {
-				return false;
-			}
+			var requestData = JsonConvert.SerializeObject(request);
+			var url = _applicationUrl + FeatureEndpointUrl;
+			var responseBody = CreatioClientAdapter.ExecutePostRequest(url, requestData, Timeout.Infinite);
+			var featureRaw = JsonConvert.DeserializeObject<ServiceFeatureResponse>(responseBody);
+			return featureRaw?.FeatureState == 1;
 		}
 
 		private T ParseSysSettingValueResponse<T>(SysSettingsResponse response, string code) {
@@ -288,7 +281,7 @@
 		public string code { get; set; }
 	}
 
-	internal class FeatureResponse
+	internal class ServiceFeatureResponse
 	{
 		public int FeatureState { get; set; }
 	}

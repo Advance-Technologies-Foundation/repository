@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
-
-namespace ATF.Repository.Providers
+﻿namespace ATF.Repository.Providers
 {
+	using System.Collections.Generic;
+
 	internal class ExecuteResponse: IExecuteResponse
 	{
 		public bool Success { get; set; }

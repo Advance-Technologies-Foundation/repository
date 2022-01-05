@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using ATF.Repository.ExpressionConverters;
-
-namespace ATF.Repository.ExpressionConverters
+﻿namespace ATF.Repository.ExpressionConverters
 {
+	using System;
+	using System.Linq.Expressions;
+
 	internal static class ExpressionConverter
 	{
 		internal static ExpressionMetadata ConvertMetadataChainItemExpressionMetadata(ExpressionMetadataChainItem chainItem, ExpressionModelMetadata modelMetadata) {

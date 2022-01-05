@@ -1,16 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Newtonsoft.Json;
-using Terrasoft.Core.Entities;
-using Terrasoft.Nui.ServiceModel.DataContract;
-using FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType;
-
-namespace ATF.Repository.UnitTests.Utilities
+﻿namespace ATF.Repository.UnitTests.Utilities
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using Newtonsoft.Json;
+	using Terrasoft.Core.Entities;
+	using FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType;
+
 	public static class QueryComparison
 	{
-		public static bool AreSelectQueryEqual(SelectQuery expected, SelectQuery actual) {
+		public static bool AreSelectQueryEqual(ISelectQuery expected, ISelectQuery actual) {
 			var actualJson = JsonConvert.SerializeObject(actual);
 			var areMainEqual = AreMainSelectQueryParametersEqual(expected, actual);
 			var areColumnsEqual = AreSelectQueryColumnsEqual(expected, actual);
@@ -20,15 +19,15 @@ namespace ATF.Repository.UnitTests.Utilities
 			return areMainEqual && areColumnsEqual && areFiltersEqual;
 		}
 
-		private static bool AreSelectQueryFilterGroupEqual(Filter expected, Filter actual) {
+		private static bool AreSelectQueryFilterGroupEqual(IFilter expected, IFilter actual) {
 			var areEqual = expected.FilterType == actual.FilterType &&
 				expected.LogicalOperation == actual.LogicalOperation &&
 				AreSelectQueryFilterItemsEqual(expected.Items, actual.Items);
 			return areEqual;
 		}
 
-		private static bool AreSelectQueryFilterItemsEqual(Dictionary<string, Filter> expected,
-			Dictionary<string, Filter> actual) {
+		private static bool AreSelectQueryFilterItemsEqual(Dictionary<string, IFilter> expected,
+			Dictionary<string, IFilter> actual) {
 			var foundedKeys = new List<string>();
 			return expected.Count == actual.Count && expected.All(expectedItem => {
 				var founded = actual.FirstOrDefault(actualItem =>
@@ -41,13 +40,13 @@ namespace ATF.Repository.UnitTests.Utilities
 			});
 		}
 
-		private static bool AreSelectQueryFilterEqual(Filter expected, Filter actual) {
+		private static bool AreSelectQueryFilterEqual(IFilter expected, IFilter actual) {
 			return expected.FilterType == actual.FilterType && expected.FilterType == FilterType.FilterGroup
 				? AreSelectQueryFilterGroupEqual(expected, actual)
 				: AreSelectQueryComparisonFilterEqual(expected, actual);
 		}
 
-		private static bool AreSelectQueryComparisonFilterEqual(Filter expected, Filter actual) {
+		private static bool AreSelectQueryComparisonFilterEqual(IFilter expected, IFilter actual) {
 			var areEqual = expected.ComparisonType == actual.ComparisonType &&
 				expected.IsEnabled == actual.IsEnabled &&
 				AreSelectQueryExpressionEqual(expected.LeftExpression, actual.LeftExpression) &&
@@ -56,7 +55,7 @@ namespace ATF.Repository.UnitTests.Utilities
 			return areEqual;
 		}
 
-		private static bool AreSelectQueryExpressionEqual(BaseExpression expected, BaseExpression actual) {
+		private static bool AreSelectQueryExpressionEqual(IBaseExpression expected, IBaseExpression actual) {
 			if (expected == null && actual == null) {
 				return true;
 			}
@@ -81,7 +80,7 @@ namespace ATF.Repository.UnitTests.Utilities
 			}
 		}
 
-		private static bool CompareSubQuery(BaseExpression expected, BaseExpression actual) {
+		private static bool CompareSubQuery(IBaseExpression expected, IBaseExpression actual) {
 			var isParametersEqual = expected.ExpressionType == actual.ExpressionType &&
 				expected.AggregationType == actual.AggregationType &&
 				expected.FunctionType == actual.FunctionType &&
@@ -93,12 +92,12 @@ namespace ATF.Repository.UnitTests.Utilities
 			return isParametersEqual && isSubFiltersEqual;
 		}
 
-		private static bool AreSelectQueryExpressionEqual(BaseExpression[] expected, BaseExpression[] actual) {
+		private static bool AreSelectQueryExpressionEqual(IBaseExpression[] expected, IBaseExpression[] actual) {
 			if (expected == null && actual == null) {
 				return true;
 			}
 
-			var foundedExpressions = new List<BaseExpression>();
+			var foundedExpressions = new List<IBaseExpression>();
 			return expected.Length == actual.Length && expected.All(expectedItem => {
 				var founded = actual.FirstOrDefault(actualItem =>
 					!foundedExpressions.Contains(actualItem) &&
@@ -112,7 +111,7 @@ namespace ATF.Repository.UnitTests.Utilities
 			});
 		}
 
-		private static bool AreSelectQueryColumnsEqual(SelectQuery expected, SelectQuery actual) {
+		private static bool AreSelectQueryColumnsEqual(ISelectQuery expected, ISelectQuery actual) {
 			var areEqual = expected.Columns.Items.Count == actual.Columns.Items.Count &&
 				expected.Columns.Items.All(item =>
 					actual.Columns.Items.ContainsKey(item.Key) &&
@@ -120,7 +119,7 @@ namespace ATF.Repository.UnitTests.Utilities
 			return areEqual;
 		}
 
-		private static bool AreSelectQueryColumnEqual(SelectQueryColumn expected, SelectQueryColumn actual) {
+		private static bool AreSelectQueryColumnEqual(ISelectQueryColumn expected, ISelectQueryColumn actual) {
 			var areEqual = expected.Expression.ColumnPath == actual.Expression.ColumnPath &&
 				expected.Expression.ExpressionType == actual.Expression.ExpressionType &&
 				expected.OrderDirection == actual.OrderDirection &&
@@ -128,7 +127,7 @@ namespace ATF.Repository.UnitTests.Utilities
 			return areEqual;
 		}
 
-		private static bool AreMainSelectQueryParametersEqual(SelectQuery expected, SelectQuery actual) {
+		private static bool AreMainSelectQueryParametersEqual(ISelectQuery expected, ISelectQuery actual) {
 			return expected.RootSchemaName == actual.RootSchemaName &&
 				expected.AllColumns == actual.AllColumns &&
 				expected.IsPageable == actual.IsPageable &&

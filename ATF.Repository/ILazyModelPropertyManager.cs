@@ -1,8 +1,8 @@
-﻿using System.Reflection;
-using ATF.Repository.Mapping;
-
-namespace ATF.Repository
+﻿namespace ATF.Repository
 {
+	using System.Reflection;
+	using ATF.Repository.Mapping;
+
 	internal interface ILazyModelPropertyManager
 	{
 		void LoadLazyProperty(BaseModel model, ModelItem propertyInfo);

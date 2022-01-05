@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using ATF.Repository.Mapping;
-using Terrasoft.Common;
-
-namespace ATF.Repository.Builder
+﻿namespace ATF.Repository.Builder
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using ATF.Repository.Mapping;
+	using Terrasoft.Common;
+
 	internal class ModelBuilder
 	{
 		private readonly ILazyModelPropertyManager _lazyModelPropertyManager;

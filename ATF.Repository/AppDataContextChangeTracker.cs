@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace ATF.Repository
+﻿namespace ATF.Repository
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+
 	internal class AppDataContextChangeTracker: IChangeTracker
 	{
 		private readonly List<ITrackedModel<BaseModel>> _registry;

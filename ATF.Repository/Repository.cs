@@ -94,7 +94,7 @@
 		private T CreateItem<T>(Entity entity) where T : BaseModel, new() {
 			var values = GetValuesFromEntity<T>(entity);
 			var model = CreateItem<T>(values);
-			model.Entity = entity;
+			model.InternalEntity = entity;
 			model.IsNew = true;
 			return model;
 		}
@@ -403,7 +403,7 @@
 		}
 
 		private Entity GetModelEntity<T>(T model) where T : BaseModel {
-			return model.Entity ?? LoadEntity(model.GetType(), model.Id);
+			return model.InternalEntity ?? LoadEntity(model.GetType(), model.Id);
 		}
 
 		private IDictionary<string, object> GetValuesForSave<T>(T model) where T : BaseModel {

@@ -1,5 +1,6 @@
 ﻿namespace ATF.Repository.Providers
 {
+	using ATF.Repository.Replicas;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
@@ -7,8 +8,13 @@
 	using Terrasoft.Core;
 	using Terrasoft.Core.DB;
 	using Terrasoft.Core.Entities;
-	using Terrasoft.Nui.ServiceModel.DataContract;
 	using Terrasoft.Nui.ServiceModel.Extensions;
+	using SelectQueryColumns = Terrasoft.Nui.ServiceModel.DataContract.SelectQueryColumns;
+	using InsertQuery = Terrasoft.Nui.ServiceModel.DataContract.InsertQuery;
+	using UpdateQuery = Terrasoft.Nui.ServiceModel.DataContract.UpdateQuery;
+	using DeleteQuery = Terrasoft.Nui.ServiceModel.DataContract.DeleteQuery;
+	using ColumnExpression = Terrasoft.Nui.ServiceModel.DataContract.ColumnExpression;
+	using BaseFilterableQuery = Terrasoft.Nui.ServiceModel.DataContract.BaseFilterableQuery;
 
 	public class LocalDataProvider: IDataProvider
 	{
@@ -189,13 +195,14 @@
 			return response;
 		}
 
-		public IItemsResponse GetItems(SelectQuery selectQuery) {
+		public IItemsResponse GetItems(ISelectQuery selectQueryReplica) {
 			var response = new ItemsResponse() {
 				Success = false,
 				Items = new List<Dictionary<string, object>>(),
 				ErrorMessage = string.Empty
 			};
 			try {
+				var selectQuery = ReplicaToOriginConverter.ConvertSelectQuery(selectQueryReplica);
 				var esq = selectQuery.BuildEsq(_userConnection);
 				var entityCollection = esq.GetEntityCollection(_userConnection);
 				foreach (var entity in entityCollection) {
@@ -212,18 +219,18 @@
 			return response;
 		}
 
-		public IExecuteResponse BatchExecute(List<BaseQuery> queries) {
+		public IExecuteResponse BatchExecute(List<IBaseQuery> queries) {
 			var response = new ExecuteResponse() { QueryResults = new List<IExecuteItemResponse>() };
 			queries.ForEach(query => {
 				switch (query) {
-					case InsertQuery insertQuery:
-						response.QueryResults.Add(ExecuteQuery(insertQuery));
+					case InsertQueryReplica insertQuery:
+						response.QueryResults.Add(ExecuteQuery(ReplicaToOriginConverter.ConvertInsertQuery(insertQuery)));
 						break;
-					case UpdateQuery updateQuery:
-						response.QueryResults.Add(ExecuteQuery(updateQuery));
+					case UpdateQueryReplica updateQuery:
+						response.QueryResults.Add(ExecuteQuery(ReplicaToOriginConverter.ConvertUpdateQuery(updateQuery)));
 						break;
-					case DeleteQuery deleteQuery:
-						response.QueryResults.Add(ExecuteQuery(deleteQuery));
+					case DeleteQueryReplica deleteQuery:
+						response.QueryResults.Add(ExecuteQuery(ReplicaToOriginConverter.ConvertDeleteQuery(deleteQuery)));
 						break;
 				}
 			});

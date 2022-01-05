@@ -1,10 +1,7 @@
-﻿
-using System.Linq;
-using System.Linq.Expressions;
-
-namespace ATF.Repository.ExpressionConverters
+﻿namespace ATF.Repository.ExpressionConverters
 {
 	using System.Collections.Generic;
+	using System.Linq;
 	using Terrasoft.Common;
 	using Terrasoft.Core.Entities;
 

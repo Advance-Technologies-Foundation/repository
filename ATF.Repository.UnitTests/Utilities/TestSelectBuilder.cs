@@ -1,26 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using ATF.Repository.Mapping;
-using Terrasoft.Common;
-using Terrasoft.Core.Entities;
-using Terrasoft.Nui.ServiceModel.DataContract;
-using FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType;
-
-namespace ATF.Repository.UnitTests.Utilities
+﻿namespace ATF.Repository.UnitTests.Utilities
 {
+	using System;
+	using System.Linq;
+	using ATF.Repository.Mapping;
+	using ATF.Repository.Replicas;
+	using Terrasoft.Common;
+	using Terrasoft.Core.Entities;
+	using FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType;
+	using DataValueType = Terrasoft.Nui.ServiceModel.DataContract.DataValueType;
+
 	public static class TestSelectBuilder
 	{
-		public static SelectQuery GetTestSelectQuery<T>(Action<Filters> enrichFilter = null) where T: BaseModel {
+		public static ISelectQuery GetTestSelectQuery<T>(Action<IFilterGroup> enrichFilter = null) where T: BaseModel {
 			var modelType = typeof(T);
 			var schemaName = ModelUtilities.GetSchemaName(modelType);
-			var columns = new SelectQueryColumns() {Items = new Dictionary<string, SelectQueryColumn>()};
+			var columns = new SelectQueryColumnsReplica();
 			ModelMapper.GetModelItems(modelType).Where(modelItem =>
 					modelItem.PropertyType == ModelItemType.Column || modelItem.PropertyType == ModelItemType.Lookup)
 				.ForEach(property => {
 					if (!columns.Items.ContainsKey(property.EntityColumnName)) {
-						columns.Items.Add(property.EntityColumnName, new SelectQueryColumn() {
-							Expression = new ColumnExpression() {
+						columns.Items.Add(property.EntityColumnName, new SelectQueryColumnReplica() {
+							Expression = new ColumnExpressionReplica() {
 								ColumnPath = property.EntityColumnName,
 								ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn
 							},
@@ -29,14 +29,10 @@ namespace ATF.Repository.UnitTests.Utilities
 						});
 					}
 				});
-			var filters = new Filters() {
-				FilterType = FilterType.FilterGroup,
-				LogicalOperation = LogicalOperationStrict.And,
-				Items = new Dictionary<string, Filter>()
-			};
+			var filters = new FilterGroupReplica();
 			enrichFilter?.Invoke(filters);
 
-			return new SelectQuery() {
+			return new SelectQueryReplica() {
 				RootSchemaName = schemaName,
 				AllColumns = false,
 				IsDistinct = false,
@@ -46,20 +42,20 @@ namespace ATF.Repository.UnitTests.Utilities
 			};
 		}
 
-		public static Filter CreateComparisonFilter(string columnPath, FilterComparisonType comparisonType,
+		public static IFilter CreateComparisonFilter(string columnPath, FilterComparisonType comparisonType,
 			DataValueType dataValueType, params object[] values) {
-			var rightExpressions = values.Select(value => new BaseExpression() {
+			var rightExpressions = values.Select(value => new BaseExpressionReplica() {
 				ExpressionType = EntitySchemaQueryExpressionType.Parameter,
-				Parameter = new Parameter() {
+				Parameter = new ParameterReplica() {
 					Value = GetQueryValue(value, dataValueType),
 					DataValueType = dataValueType
 				}
 			}).ToList();
-			return new Filter() {
+			return new FilterReplica() {
 				FilterType = rightExpressions.Count > 1 ? FilterType.InFilter : FilterType.CompareFilter,
 				ComparisonType = comparisonType,
 				IsEnabled = true,
-				LeftExpression = new ColumnExpression() {
+				LeftExpression = new ColumnExpressionReplica() {
 					ColumnPath = columnPath,
 					ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn
 				},
@@ -76,11 +72,9 @@ namespace ATF.Repository.UnitTests.Utilities
 			return rawValue;
 		}
 
-		public static Filter CreateFilterGroup(LogicalOperationStrict logicalOperation) {
-			return new Filter() {
-				FilterType = FilterType.FilterGroup,
-				LogicalOperation = logicalOperation,
-				Items = new Dictionary<string, Filter>()
+		public static IFilter CreateFilterGroup(LogicalOperationStrict logicalOperation) {
+			return new FilterGroupReplica() {
+				LogicalOperation = logicalOperation
 			};
 		}
 	}

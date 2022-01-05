@@ -1,9 +1,8 @@
-﻿using System;
-using System.Linq.Expressions;
-using ATF.Repository.ExpressionConverters;
-
-namespace ATF.Repository.ExpressionConverters
+﻿namespace ATF.Repository.ExpressionConverters
 {
+	using System;
+	using System.Linq.Expressions;
+
 	public static class SimpleAggregationExpressionConverter
 	{
 		internal static ExpressionMetadata Convert(MethodCallExpression expression, ExpressionModelMetadata modelMetadata) {
