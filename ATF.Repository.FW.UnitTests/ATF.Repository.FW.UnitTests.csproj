@@ -265,6 +265,21 @@
 		<Compile Include="..\ATF.Repository.UnitTests\Models\PainChain.cs">
 		  <Link>Models\PainChain.cs</Link>
 		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\Product.cs">
+		  <Link>Models\Product.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\ProductCategory.cs">
+		  <Link>Models\ProductCategory.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\ProductKind.cs">
+		  <Link>Models\ProductKind.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\ProductSource.cs">
+		  <Link>Models\ProductSource.cs</Link>
+		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\ProductType.cs">
+		  <Link>Models\ProductType.cs</Link>
+		</Compile>
 		<Compile Include="..\ATF.Repository.UnitTests\Models\Region.cs">
 		  <Link>Models\Region.cs</Link>
 		</Compile>

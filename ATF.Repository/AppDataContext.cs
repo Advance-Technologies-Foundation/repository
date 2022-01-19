@@ -68,6 +68,10 @@
 			return new ModelQuery<T>(_dataProvider, this);
 		}
 
+		public T GetModel<T>(Guid id) where T : BaseModel, new() {
+			return Models<T>().FirstOrDefault(x => x.Id == id);
+		}
+
 		public void DeleteModel<T>(T model) where T : BaseModel {
 			model.IsMarkAsDeleted = true;
 		}

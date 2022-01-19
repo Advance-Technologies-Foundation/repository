@@ -43,4 +43,5 @@
 		[DetailProperty("GuidValue")]
 		public virtual List<TypedTestModel> AnotherDetailModels { get; set; }
 	}
+
 }

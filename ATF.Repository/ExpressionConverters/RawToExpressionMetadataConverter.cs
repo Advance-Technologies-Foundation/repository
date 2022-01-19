@@ -155,7 +155,10 @@
 		}
 
 		private static ExpressionMetadata ConvertToNullFilter(RawExpressionMetadata rawExpressionMetadata, ExpressionModelMetadata modelMetadata) {
-			var comparisonType = ApplyNot(FilterComparisonType.IsNull, rawExpressionMetadata.IsNot);
+			var filterComparisonType = rawExpressionMetadata.Type == ExpressionType.Equal
+				? FilterComparisonType.IsNull
+				: FilterComparisonType.IsNotNull;
+			var comparisonType = ApplyNot(filterComparisonType, rawExpressionMetadata.IsNot);
 			var response = new ExpressionMetadata() {
 				NodeType = ExpressionMetadataNodeType.Comparison,
 				ComparisonType = comparisonType,

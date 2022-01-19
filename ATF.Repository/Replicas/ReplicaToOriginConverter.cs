@@ -1,12 +1,15 @@
 ﻿namespace ATF.Repository.Replicas
 {
+	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+	using System.Text.RegularExpressions;
 	using Terrasoft.Common;
 	using Terrasoft.Nui.ServiceModel.DataContract;
 
 	internal static class ReplicaToOriginConverter
 	{
+		private static string _dateTimePattern = @"(\d{4}).(\d{2}).(\d{2})T(\d{2}):(\d{2}):(\d{2})";
 		public static  SelectQuery ConvertSelectQuery(ISelectQuery source) {
 			return new SelectQuery() {
 				RootSchemaName = source.RootSchemaName,
@@ -105,10 +108,33 @@
 		}
 
 		private static Parameter ConvertParameterReplicaToParameter(IParameter sourceParameter) {
+			// ToDo: to save
+			if (sourceParameter == null) {
+				return null;
+			}
 			return new Parameter() {
 				DataValueType = sourceParameter.DataValueType,
 				Value = sourceParameter.Value
 			};
+		}
+
+		private static object ConvertParameterValue(Parameter source) {
+			if (DataValueTypeUtilities.IsDateDataValueType(source.DataValueType)) {
+				return ParseDateTimeParameterValue(source.Value);
+			}
+			return source.Value;
+		}
+
+		private static DateTime ParseDateTimeParameterValue(object source) {
+			if (source is string stringValue) {
+				var regex = new Regex(_dateTimePattern);
+				var match = regex.Match(stringValue);
+				return new DateTime(int.Parse(match.Groups[1].Value), int.Parse(match.Groups[2].Value),
+					int.Parse(match.Groups[3].Value), int.Parse(match.Groups[4].Value),
+					int.Parse(match.Groups[5].Value), int.Parse(match.Groups[6].Value));
+			} else {
+				return default;
+			}
 		}
 
 		private static ColumnValues ConvertBaseQueryColumnsReplicaToColumnValues(IBaseQueryColumns source) {
@@ -117,7 +143,11 @@
 				return response;
 			}
 			source.Items.ForEach(x => {
-				response.Items.Add(x.Key, ConvertColumnExpressionReplicaToColumnExpression(x.Value));
+				var columnExpression = ConvertColumnExpressionReplicaToColumnExpression(x.Value);
+				if (columnExpression?.Parameter != null) {
+					columnExpression.Parameter.Value = ConvertParameterValue(columnExpression.Parameter);
+				}
+				response.Items.Add(x.Key, columnExpression);
 			});
 			return response;
 		}
@@ -126,7 +156,7 @@
 			if (source == null) {
 				return null;
 			}
-			var response = new Filters();
+			var response = new Filters() {Items = new Dictionary<string, Filter>()};
 			EnrichFilterFromSource(response, source);
 			response.RootSchemaName = source.RootSchemaName;
 			return response;
@@ -136,7 +166,7 @@
 			if (source == null) {
 				return null;
 			}
-			var response = new Filter();
+			var response = new Filter() {Items = new Dictionary<string, Filter>()};
 			EnrichFilterFromSource(response, source);
 			return response;
 		}
@@ -164,6 +194,7 @@
 			target.RightExpression = source.RightExpression != null
 				? ConvertBaseExpressionReplicaToBaseExpression(source.RightExpression)
 				: null;
+
 			if (source.RightExpressions?.Count() > 0) {
 				target.RightExpressions = source.RightExpressions.Select(ConvertBaseExpressionReplicaToBaseExpression)
 					.ToArray();

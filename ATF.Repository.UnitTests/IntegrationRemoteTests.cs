@@ -16,7 +16,7 @@
 
 		[OneTimeSetUp]
 		public void OneTimeSetUp() {
-			_remoteDataProvider = new RemoteDataProvider("https://nurturing.creatio.com", "Supervisor", "SupervisorTerrasoft+-");
+			_remoteDataProvider = new RemoteDataProvider("", "", "");
 		}
 
 		[SetUp]
@@ -694,6 +694,51 @@
 
 			// Act
 			var response = _appDataContext.Save();
+			Assert.IsFalse(response.Success);
+		}
+
+		[Test, Order(7)]
+		public void CaseInsert_WhenUseProduct_ShouldReturnExpectedValue() {
+			// Arrange
+			var code = Guid.NewGuid().ToString().Substring(0, 6);
+			var contact = _appDataContext.Models<Contact>().FirstOrDefault(x => x.Id == new Guid("410006e1-ca4e-4502-a9ec-e54d922d2c00"));
+			var currency = _appDataContext.Models<Currency>().FirstOrDefault(x => x.Id == new Guid("915e8a55-98d6-df11-9b2a-001d60e938c6"));
+			var productSource = _appDataContext.Models<ProductSource>().FirstOrDefault(x => x.Id == new Guid("5facb8b4-ed6a-41bb-b224-659c2bf1eb8a"));
+			var productCategory = _appDataContext.Models<ProductCategory>().FirstOrDefault(x => x.Id == new Guid("ad0fecfd-3b90-45c4-a9ac-4af5e6bbd3f2"));
+			var type = _appDataContext.Models<ProductType>().FirstOrDefault(x => x.Id == new Guid("64c3c3c1-706e-41c5-bebb-be04ae635bed"));
+			var kind = _appDataContext.Models<ProductKind>().FirstOrDefault(x => x.Id == new Guid("d974deba-d49e-4306-9aa3-aca1fc5c8eb0"));
+
+			// Act
+			var product = _appDataContext.CreateModel<Product>();
+			product.Name = "TestIntegrationProduct";
+			product.Active = true;
+			product.Owner = contact;
+			product.UnitId = new Guid("b81f9062-62e6-df11-971b-001d60e938c6");
+			product.Currency = currency;
+			product.ProductSource = productSource;
+			product.Price = 101.05m;
+			product.IntegratedOn = DateTime.Now;
+			product.StartDate = DateTime.Now;
+			product.Code = code;
+			product.Url = "URL";
+			product.Category = productCategory;
+			product.Type = type;
+			product.IsTarget = false;
+			product.Kind = kind;
+			product.RevenueRecognitionMethodId = new Guid("6d954744-4af9-44e4-8ffd-ee8821485bf8");
+
+			var trackerBeforeSave = _appDataContext.ChangeTracker.GetTrackedModel(product);
+			Assert.IsNotNull(trackerBeforeSave);
+			Assert.AreSame(product, trackerBeforeSave.Model);
+			Assert.AreEqual(ModelState.New, trackerBeforeSave.GetStatus());
+
+			var response = _appDataContext.Save();
+
+			// Assert
+			Assert.IsNotNull(response);
+			Assert.IsTrue(response.Success);
+			Assert.IsNull(response.ErrorMessage);
+
 			Assert.IsFalse(response.Success);
 		}
 

@@ -91,11 +91,15 @@
 			});
 		}
 
-		private Dictionary<string, object> ParseSelectResult(Entity entity, SelectQueryColumns selectQueryColumns) {
+		private Dictionary<string, object> ParseSelectResult(Entity entity, ISelectQueryColumns selectQueryColumns) {
 			var result = new Dictionary<string, object>();
+			var schema = entity.Schema;
 			foreach (var selectQueryColumn in selectQueryColumns.Items) {
-				var value = entity.GetColumnValue(selectQueryColumn.Key);
-				result.Add(selectQueryColumn.Key, value);
+				var column = schema.Columns.FindByName(selectQueryColumn.Key);
+				if (column != null) {
+					var value = entity.GetColumnValue(column.ColumnValueName);
+					result.Add(selectQueryColumn.Key, value);
+				}
 			}
 			return result.Any() ? result : null;
 		}
@@ -165,6 +169,14 @@
 			return true;
 		}
 
+		private EntitySchemaQuery BuildEntitySchemaQuery(ISelectQuery source) {
+			var selectQuery = ReplicaToOriginConverter.ConvertSelectQuery(source);
+			var esq = selectQuery.BuildEsq(_userConnection);
+			esq.RowCount = source.RowCount;
+			esq.SkipRowCount = source.RowsOffset;
+			return esq;
+		}
+
 		#endregion
 
 		#region Methods: Public
@@ -202,11 +214,10 @@
 				ErrorMessage = string.Empty
 			};
 			try {
-				var selectQuery = ReplicaToOriginConverter.ConvertSelectQuery(selectQueryReplica);
-				var esq = selectQuery.BuildEsq(_userConnection);
+				var esq = BuildEntitySchemaQuery(selectQueryReplica);
 				var entityCollection = esq.GetEntityCollection(_userConnection);
 				foreach (var entity in entityCollection) {
-					var entityResult = ParseSelectResult(entity, selectQuery.Columns);
+					var entityResult = ParseSelectResult(entity, selectQueryReplica.Columns);
 					if (entityResult != null) {
 						response.Items.Add(entityResult);
 					}
@@ -221,21 +232,38 @@
 
 		public IExecuteResponse BatchExecute(List<IBaseQuery> queries) {
 			var response = new ExecuteResponse() { QueryResults = new List<IExecuteItemResponse>() };
-			queries.ForEach(query => {
-				switch (query) {
-					case InsertQueryReplica insertQuery:
-						response.QueryResults.Add(ExecuteQuery(ReplicaToOriginConverter.ConvertInsertQuery(insertQuery)));
-						break;
-					case UpdateQueryReplica updateQuery:
-						response.QueryResults.Add(ExecuteQuery(ReplicaToOriginConverter.ConvertUpdateQuery(updateQuery)));
-						break;
-					case DeleteQueryReplica deleteQuery:
-						response.QueryResults.Add(ExecuteQuery(ReplicaToOriginConverter.ConvertDeleteQuery(deleteQuery)));
-						break;
-				}
+			WrapInTransactionIf(true, () => {
+				queries.ForEach(query => {
+					switch (query) {
+						case InsertQueryReplica insertQueryReplica:
+							var insertQuery = ReplicaToOriginConverter.ConvertInsertQuery(insertQueryReplica);
+							response.QueryResults.Add(ExecuteQuery(insertQuery));
+							break;
+						case UpdateQueryReplica updateQueryReplica:
+							var updateQuery = ReplicaToOriginConverter.ConvertUpdateQuery(updateQueryReplica);
+							response.QueryResults.Add(ExecuteQuery(updateQuery));
+							break;
+						case DeleteQueryReplica deleteQueryReplica:
+							var deleteQuery = ReplicaToOriginConverter.ConvertDeleteQuery(deleteQueryReplica);
+							response.QueryResults.Add(ExecuteQuery(deleteQuery));
+							break;
+					}
+				});
 			});
 			response.Success = response.QueryResults.All(x => x.Success);
 			return response;
+		}
+
+		private void WrapInTransactionIf(bool useTransaction, Action action) {
+			if (useTransaction) {
+				using (var dbExecutor = _userConnection.EnsureDBConnection()) {
+					dbExecutor.StartTransaction();
+					action();
+					dbExecutor.CommitTransaction();
+				}
+			} else {
+				action();
+			}
 		}
 
 		public T GetSysSettingValue<T>(string sysSettingCode) {

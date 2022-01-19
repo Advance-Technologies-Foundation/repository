@@ -4,6 +4,7 @@
 
 	internal class ExecuteResponse: IExecuteResponse
 	{
+		//public IExecuteResponseStatus ResponseStatus { get; }
 		public bool Success { get; set; }
 
 		public List<IExecuteItemResponse> QueryResults { get; set; }

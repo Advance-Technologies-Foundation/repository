@@ -85,10 +85,6 @@
 
 	public interface ISelectQuery: IBaseFilterableQuery
 	{
-		string TypeName { get; }
-
-		QueryType QueryType { get; }
-
 		ISelectQueryColumns Columns { get; }
 
 		bool AllColumns { get; }

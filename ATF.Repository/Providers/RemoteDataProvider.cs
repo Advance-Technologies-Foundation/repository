@@ -1,9 +1,9 @@
 ﻿namespace ATF.Repository.Providers
 {
 	using ATF.Repository.Replicas;
-	using ATF.Repository.Serializers;
 	using System;
 	using System.Collections.Generic;
+	using System.IO;
 	using System.Net;
 	using System.Runtime.Serialization;
 	using System.Threading;
@@ -135,13 +135,28 @@
 			var requestData = JsonConvert.SerializeObject(batchQuery); //BatchQuerySerializer.Serialize(batchQuery);
 			var url = _applicationUrl + BatchEndpointUrl;
 			try {
-				var responseBody = CreatioClientAdapter.ExecutePostRequest(url, requestData, Timeout.Infinite);
+				var responseBody = CreatioClientAdapter.ExecutePostRequest(url, requestData, 600000);
 				var batchResponse = JsonConvert.DeserializeObject<BatchResponse>(responseBody);
 				response = ConvertBatchResponse(batchResponse);
 			} catch (WebException e) {
 				response.ErrorMessage = e.Message + (e.InnerException != null ? e.InnerException.Message : "");
+				UpdateErrorMessageFromResponse(response, e);
 			}
 			return response;
+		}
+
+		private void UpdateErrorMessageFromResponse(ExecuteResponse executeResponse, WebException exception) {
+			var responseStream = exception?.Response?.GetResponseStream();
+			if (responseStream == null) {
+				return;
+			}
+			try {
+				var responseBody = new StreamReader(responseStream).ReadToEnd();
+				var response = JsonConvert.DeserializeObject<ExecuteParsedResponse>(responseBody);
+				executeResponse.ErrorMessage = response.ResponseStatus?.Message ?? executeResponse.ErrorMessage;
+			} catch (Exception e) {
+				executeResponse.ErrorMessage = $"{executeResponse.ErrorMessage} | {e.Message}";
+			}
 		}
 
 		public T GetSysSettingValue<T>(string sysSettingCode) {
@@ -149,7 +164,7 @@
 				{ SysSettingsNameCollection = new List<string>() { sysSettingCode } };
 			var requestData = JsonConvert.SerializeObject(request);
 			var url = _applicationUrl + SysSettingEndpointUrl;
-			var responseBody = CreatioClientAdapter.ExecutePostRequest(url, requestData, Timeout.Infinite);
+			var responseBody = CreatioClientAdapter.ExecutePostRequest(url, requestData, 600000);
 			var sysSettingRaw = JsonConvert.DeserializeObject<SysSettingsResponse>(responseBody);
 			return ParseSysSettingValueResponse<T>(sysSettingRaw, sysSettingCode);
 		}
@@ -158,7 +173,7 @@
 			var request = new FeatureRequest() { code = featureCode };
 			var requestData = JsonConvert.SerializeObject(request);
 			var url = _applicationUrl + FeatureEndpointUrl;
-			var responseBody = CreatioClientAdapter.ExecutePostRequest(url, requestData, Timeout.Infinite);
+			var responseBody = CreatioClientAdapter.ExecutePostRequest(url, requestData, 600000);
 			var featureRaw = JsonConvert.DeserializeObject<ServiceFeatureResponse>(responseBody);
 			return featureRaw?.FeatureState == 1;
 		}

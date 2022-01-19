@@ -33,6 +33,16 @@
 			where T : BaseModel, new() {
 			ApplyPropertyValuesToModel<T>(model, values);
 			ApplyLazyLookupValuesToModel<T>(model, values);
+			ApplyNotLazyProperties<T>(model, values);
+		}
+
+		private void ApplyNotLazyProperties<T>(T model, Dictionary<string, object> values) where T : BaseModel, new() {
+			foreach (var modelItem in ModelMapper.GetLookups(model.GetType()).Where(x=>!x.IsLazy)) {
+				_lazyModelPropertyManager.LoadLazyProperty(model, modelItem);
+			}
+			foreach (var modelItem in ModelMapper.GetDetails(model.GetType()).Where(x=>!x.IsLazy)) {
+				_lazyModelPropertyManager.LoadLazyProperty(model, modelItem);
+			}
 		}
 
 		private void ApplyLazyLookupValuesToModel<T>(T model, Dictionary<string, object> values)
@@ -50,7 +60,7 @@
 
 		private void ApplyPropertyValuesToModel<T>(T model, Dictionary<string, object> values)
 			where T : BaseModel, new() {
-			var properties = ModelMapper.GetProperties(model.GetType());
+			var properties = ModelMapper.GetProperties(model.GetType()).Where(x=>!x.IsLazy);
 			foreach (var property in properties.Where(property => values.ContainsKey(property.EntityColumnName))) {
 				if (property.EntityColumnName == "Id") {
 					model.Id = (Guid) values[property.EntityColumnName];

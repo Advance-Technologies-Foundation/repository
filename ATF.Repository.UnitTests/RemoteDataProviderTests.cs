@@ -25,7 +25,6 @@
 		[SetUp]
 		public void SetUp() {
 			_creatioClientAdapter = Substitute.For<ICreatioClientAdapter>();
-			//_realRemoteDataProvider = new RemoteDataProvider("https://nurturing.creatio.com", "Supervisor", "Supervisor123");
 			_remoteDataProvider = new RemoteDataProvider("", "", "") {CreatioClientAdapter = _creatioClientAdapter};
 		}
 
