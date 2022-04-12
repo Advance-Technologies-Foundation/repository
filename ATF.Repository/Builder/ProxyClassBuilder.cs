@@ -90,9 +90,7 @@
 			var proxy = GetProxy(invocation);
 			var modelItem = _modelItems[property.Name];
 			var target = (T) invocation.InvocationTarget;
-			if (modelItem.PropertyType == ModelItemType.Reference) {
-				proxy.Repository.FillReferenceValue(target, modelItem);
-			} else if (modelItem.PropertyType == ModelItemType.Detail) {
+			if (modelItem.PropertyType == ModelItemType.Detail) {
 				proxy.Repository.FillDetailValue(target, modelItem);
 			} else if (modelItem.PropertyType == ModelItemType.Lookup) {
 				proxy.Repository.FillLookupValue(target, modelItem);

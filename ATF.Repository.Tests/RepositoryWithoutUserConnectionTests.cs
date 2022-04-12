@@ -68,20 +68,6 @@
 		}
 
 		[Test]
-		public void ReferenceProperty_WhenExternalValueIdIsNull_ShouldReturnNull() {
-			var expenseProduct = _repository.CreateItem<ExpenseProduct>();
-			Assert.AreEqual(null, expenseProduct.Expense);
-		}
-
-		[Test]
-		public void ReferenceProperty_WhenExternalValueIdIsNotNull_ShouldReturnModel() {
-			var expenseProduct = _repository.CreateItem<ExpenseProduct>();
-			var expense = _repository.CreateItem<Expense>();
-			expenseProduct.ExpenseId = expense.Id;
-			Assert.AreEqual(expense, expenseProduct.Expense);
-		}
-
-		[Test]
 		public void DetailProperty_ShouldReturnEmptyList() {
 			var expense = _repository.CreateItem<Expense>();
 			Assert.AreNotEqual(null, expense.ExpenseProducts);

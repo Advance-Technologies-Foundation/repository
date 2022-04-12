@@ -45,6 +45,10 @@
 		  <HintPath>..\packages\Common.Logging.Core.3.4.1\lib\net40\Common.Logging.Core.dll</HintPath>
 		  <Private>True</Private>
 		</Reference>
+		<Reference Include="Creatio.Client, Version=1.0.2.4, Culture=neutral, PublicKeyToken=null">
+		  <HintPath>..\packages\creatio.client.1.0.7\lib\netstandard2.0\Creatio.Client.dll</HintPath>
+		  <Private>True</Private>
+		</Reference>
 		<Reference Include="Microsoft.CSharp" />
 		<Reference Include="Microsoft.Win32.Primitives, Version=4.0.1.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
 		  <HintPath>..\packages\Microsoft.Win32.Primitives.4.0.1\lib\net46\Microsoft.Win32.Primitives.dll</HintPath>

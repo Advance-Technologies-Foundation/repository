@@ -44,7 +44,6 @@
 			return new Dictionary<Type, Func<PropertyInfo, ModelItem>>() {
 				{ typeof(SchemaPropertyAttribute), SchemaPropertyTypeConverter },
 				{ typeof(LookupPropertyAttribute), LookupPropertyTypeConverter },
-				{ typeof(ReferencePropertyAttribute), ReferencePropertyTypeConverter },
 				{ typeof(DetailPropertyAttribute), DetailPropertyTypeConverter },
 			};
 		}
@@ -73,16 +72,6 @@
 				return null;
 			}
 			var modelItem = CreateModelItem(propertyInfo, ModelItemType.Lookup);
-			modelItem.EntityColumnName = attr.Name;
-			return modelItem;
-		}
-
-		[Obsolete("Will be removed in 1.3.0")]
-		private static ModelItem ReferencePropertyTypeConverter(PropertyInfo propertyInfo) {
-			if (!(propertyInfo.GetCustomAttribute(typeof(ReferencePropertyAttribute)) is ReferencePropertyAttribute attr)) {
-				return null;
-			}
-			var modelItem = CreateModelItem(propertyInfo, ModelItemType.Reference);
 			modelItem.EntityColumnName = attr.Name;
 			return modelItem;
 		}

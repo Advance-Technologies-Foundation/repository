@@ -29,7 +29,7 @@
 		[DetailProperty("TsOrderExpense")]
 		public virtual List<ExpenseProductWithoutMasterColumnLink> ExpenseProductsWithoutMasterLink { get; set; }
 
-		[ReferenceProperty("OrderId")]
+		[LookupProperty("Order")]
 		public virtual Order Order { get; set; }
 
 		[LookupProperty("Invoice")]

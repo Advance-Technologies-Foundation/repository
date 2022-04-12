@@ -10,7 +10,7 @@
 	using System.Threading.Tasks;
 	using Newtonsoft.Json;
 
-	public static class ATFWebRequestExtension
+	/*public static class ATFWebRequestExtension
 	{
 		public static string GetServiceResponse(this HttpWebRequest request) {
 			using (WebResponse response = request.GetResponse()) {
@@ -278,6 +278,6 @@
 
 		#endregion
 
-	}
+	}*/
 
 }

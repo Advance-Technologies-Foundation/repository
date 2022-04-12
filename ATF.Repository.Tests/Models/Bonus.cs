@@ -25,7 +25,7 @@
 		[SchemaProperty("Invoice")]
 		public Guid InvoiceId { get; set; }
 
-		[ReferenceProperty("InvoiceId")]
+		[LookupProperty("Invoice")]
 		public virtual Invoice Invoice { get; set; }
 
 		[SchemaProperty("Order")]

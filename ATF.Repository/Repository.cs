@@ -85,7 +85,6 @@
 			FillPropertyValues<T>(model, values);
 			FillLookupLinkValues<T>(model, values);
 			Items.Add(model.Id, model);
-			FillReferenceValues<T>(model);
 			FillLookupValues<T>(model);
 			FillDetailValues<T>(model);
 			return model;

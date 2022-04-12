@@ -16,7 +16,7 @@
 		[SchemaProperty("CalculateExpense")]
 		public bool CalculateExpense { get; set; }
 
-		[ReferenceProperty("ExpenseId")]
+		[LookupProperty("TsOrderExpense")]
 		public virtual Expense Expense { get; set; }
 	}
 }
