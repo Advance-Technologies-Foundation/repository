@@ -32,12 +32,12 @@
 			};
 		}
 
-		public IDefaultValuesMock Retunrs(Dictionary<string, object> defaultValues) {
+		public IDefaultValuesMock Returns(Dictionary<string, object> defaultValues) {
 			DefaultValues = defaultValues;
 			return this;
 		}
 
-		public IDefaultValuesMock Retunrs(bool success, string errorMessage) {
+		public IDefaultValuesMock Returns(bool success, string errorMessage) {
 			Success = success;
 			ErrorMessage = errorMessage;
 			return this;

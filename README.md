@@ -30,7 +30,9 @@ This is an external library and not a part of **Creatio** kernel.
 		- [Model data changing](#model-data-changing)
 		- [Deleting model instance from the repository](#deleting-model-instance-from-the-repository)
 	- [Using different types of filtration](#deleting-model-instance-from-the-repository)
-	
+- [Testing](#testing)
+	- [Check model using ChangeTracker](#check-model-using-ChangeTracker)
+	- [Using mocking data provider](#using-mocking-data-provider)
 
 # Installation
 
@@ -50,13 +52,13 @@ You can open the `.csproj` file to see the added reference:
 
 ```xml
 <ItemGroup>
-  <PackageReference Include="ATF.Repository" Version="2.0.0" />
+  <PackageReference Include="ATF.Repository" Version="2.0.6" />
 </ItemGroup>
 ```
 
 ## Install as Creatio-package to the Creatio-solution
 
-1. Open a command line and switch to the directory that contains `ATF.Repository.gz`.
+1. Open a command line and switch to the directory that contains `ATF_Repository.gz`.
 
 2. Use the following command to install ATF.Repository package by clio:
 
@@ -68,10 +70,10 @@ clio push-pkg ATF.Repository.gz
 
 # Repository
 
-**Repository** (*ATF.Repository.IAppDataContext*) - is a storage and model generator. All models should be created via the repository. All changes are applied via the repository. 
+**ATF.Repository.IAppDataContext** - is a storage and model generator. All models should be created via the repository. All changes are applied via the repository. 
 
 ## Repository instance:
-For creating repository instance we have to create *DataProvider* as repository data source.
+For creating repository instance we have to create **DataProvider** as repository data source.
 
 ### Creating a data provider instance:
 We can, depending on our needs, create either a local or a remote data provider.
@@ -110,7 +112,7 @@ It is marked with the **Schema** attribute (*ATF.Repository.Attributes.Schema*).
 Model properties, connected to the **Entity** fields, are marked with **SchemaProperty** attribute (*ATF.Repository.Attributes.SchemaProperty*).
 
 
-**Attention!** The type of property must be the same as the type of data in connected column.
+**Attention!** The type of data of property must be the same as the type of data in connected column.
 
 **Note**. It is not required that the title of the model and its properties matches the title of the schema and its fields.
 
@@ -330,3 +332,80 @@ var model = _appDataContext.Models<Contact>().Where(x =>
 var models = _appDataContext.Models<Account>().Where(x =>
 	x.Contacts.Where(y=>y.ContactInTags.Any(z => z.TagId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")))).ToList();
 ```
+
+# Testing
+
+Testing it is an important part of the full development cycle. To be sure your application works correctly, you can write tests with using one of two testing strategies: tracking of model changes or using mocking data provider. 
+
+## Check models using ChangeTracker
+
+To track model changes you can use `GetTrackedModel` or `GetTrackedModels` methods. 
+Both of methods returns implementation of public interface `ITrackedModel`. 
+In most simple cases `ChangeTracker` can help you with checking model status and other simple parameters.
+
+```csharp
+public interface ITrackedModel<out T> where T: BaseModel
+{
+	// Tracked model
+	T Model { get; }
+
+	// Tracked model type nested from BaseModel
+	Type Type { get; }
+
+	// The time when model registred in data context.
+	DateTime RegisteredTime { get; }
+
+	// Model status
+	// - New - new model that not yet saved
+	// - Changed - existed model whose changed values not yet saved
+	// - Unchanged - existed model wishout any changes
+	// - Deleted - existed model that marked as deleted.
+	ModelState GetStatus();
+
+	// The doctionary of changing values of model.
+	Dictionary<string, object> GetChanges();
+}
+
+```
+
+### Get TrackedModel using Model
+
+```csharp
+Bonus bonusModel = appDataContext.CreateItem<Bonus>();
+var trackedModel = appDataContext.ChangeTracker.GetTrackedModel(bonusModel);
+
+var changedValues = trackedModel.GetChanges();
+```
+
+### Get list of all TrackedModels
+
+```csharp
+var trackedModels = appDataContext.ChangeTracker.GetTrackedModels();
+
+var bonusCount = trackedModels.Count(x => x.Type == typeof(Bonus));
+```
+
+### Get list of typed TrackedModels
+
+```csharp
+var trackedModels = appDataContext.ChangeTracker.GetTrackedModels<Bonus>();
+
+var newCount = trackedModels.Count(x => x.GetStatus() == ModelState.New);
+```
+
+## Using mocking data provider
+
+Another way to be sure your application works correctly is testing your solution using mocking data provider. To use that way you have to use new nuget package `ATF.Repository.Mock` (https://www.nuget.org/packages/ATF.Repository.Mock).
+
+First you need to install that package to your unit-test project.
+
+```dotnetcli
+dotnet add package ATF.Repository.Mock
+```
+Then you be able to use `DataProviderMock` class.
+
+```csharp
+var dataProviderMock = new DataProviderMock();
+var appDataContext = AppDataContextFactory.GetAppDataContext(_dataProviderMock);
+```
+

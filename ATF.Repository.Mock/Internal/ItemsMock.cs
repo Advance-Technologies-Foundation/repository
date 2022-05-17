@@ -7,6 +7,14 @@
 	{
 		private List<Action<IItemsMock>> Listeners {get; }
 
+		private void EnrichResponseItems(List<Dictionary<string, object>> items) {
+			items.ForEach(item => {
+				if (!item.ContainsKey("Id")) {
+					item.Add("Id", Guid.NewGuid());
+				}
+			});
+		}
+
 		public ItemsMock(string schemaName) : base(schemaName) {
 			Listeners = new List<Action<IItemsMock>>();
 		}
@@ -17,14 +25,15 @@
 			return this;
 		}
 
-		public IItemsMock Retunrs(List<Dictionary<string, object>> items) {
+		public IItemsMock Returns(List<Dictionary<string, object>> items) {
+			EnrichResponseItems(items);
 			Success = true;
 			ErrorMessage = string.Empty;
 			Items = items;
 			return this;
 		}
 
-		public IItemsMock Retunrs(bool success, string errorMessage) {
+		public IItemsMock Returns(bool success, string errorMessage) {
 			Success = success;
 			ErrorMessage = errorMessage;
 			Items = new List<Dictionary<string, object>>();

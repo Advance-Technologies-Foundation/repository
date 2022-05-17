@@ -24,7 +24,7 @@ namespace ATF.Repository.Mock.UnitTests
 		public void MockDefaultValues_WhenSetAvailableStringDefaultValue_ShouldUseDefaultValuesForNewModel() {
 			// Arrange
 			var expectedValue = "ExpectedValue";
-			_dataProviderMock.MockDefaultValues("TypedTestModel").Retunrs(new Dictionary<string, object>() {
+			_dataProviderMock.MockDefaultValues("TypedTestModel").Returns(new Dictionary<string, object>() {
 				{"StringValue", expectedValue}
 			});
 
@@ -40,7 +40,7 @@ namespace ATF.Repository.Mock.UnitTests
 		public void MockDefaultValues_WhenSetAvailableIntDefaultValue_ShouldUseDefaultValuesForNewModel() {
 			// Arrange
 			var expectedValue = 10;
-			_dataProviderMock.MockDefaultValues("TypedTestModel").Retunrs(new Dictionary<string, object>() {
+			_dataProviderMock.MockDefaultValues("TypedTestModel").Returns(new Dictionary<string, object>() {
 				{"IntValue", expectedValue}
 			});
 
@@ -55,7 +55,7 @@ namespace ATF.Repository.Mock.UnitTests
 		public void MockDefaultValues_WhenSetAvailableDecimalDefaultValue_ShouldUseDefaultValuesForNewModel() {
 			// Arrange
 			var expectedValue = 10.11m;
-			_dataProviderMock.MockDefaultValues("TypedTestModel").Retunrs(new Dictionary<string, object>() {
+			_dataProviderMock.MockDefaultValues("TypedTestModel").Returns(new Dictionary<string, object>() {
 				{"DecimalValue", expectedValue}
 			});
 
@@ -70,7 +70,7 @@ namespace ATF.Repository.Mock.UnitTests
 		public void MockDefaultValues_WhenSetAvailableDateTimeDefaultValue_ShouldUseDefaultValuesForNewModel() {
 			// Arrange
 			var expectedValue = DateTime.Now;
-			_dataProviderMock.MockDefaultValues("TypedTestModel").Retunrs(new Dictionary<string, object>() {
+			_dataProviderMock.MockDefaultValues("TypedTestModel").Returns(new Dictionary<string, object>() {
 				{"DateTimeValue", expectedValue}
 			});
 
@@ -85,7 +85,7 @@ namespace ATF.Repository.Mock.UnitTests
 		public void MockDefaultValues_WhenSetAvailableGuidDefaultValue_ShouldUseDefaultValuesForNewModel() {
 			// Arrange
 			var expectedValue = Guid.NewGuid();
-			_dataProviderMock.MockDefaultValues("TypedTestModel").Retunrs(new Dictionary<string, object>() {
+			_dataProviderMock.MockDefaultValues("TypedTestModel").Returns(new Dictionary<string, object>() {
 				{"GuidValue", expectedValue}
 			});
 
@@ -100,7 +100,7 @@ namespace ATF.Repository.Mock.UnitTests
 		public void MockDefaultValues_WhenSetAvailableBooleanDefaultValue_ShouldUseDefaultValuesForNewModel() {
 			// Arrange
 			var expectedValue = true;
-			_dataProviderMock.MockDefaultValues("TypedTestModel").Retunrs(new Dictionary<string, object>() {
+			_dataProviderMock.MockDefaultValues("TypedTestModel").Returns(new Dictionary<string, object>() {
 				{"BooleanValue", expectedValue}
 			});
 
@@ -115,7 +115,7 @@ namespace ATF.Repository.Mock.UnitTests
 		public void MockDefaultValues_WhenSetAvailableSimpleLookupDefaultValue_ShouldUseDefaultValuesForNewModel() {
 			// Arrange
 			var expectedValue = Guid.NewGuid();
-			_dataProviderMock.MockDefaultValues("TypedTestModel").Retunrs(new Dictionary<string, object>() {
+			_dataProviderMock.MockDefaultValues("TypedTestModel").Returns(new Dictionary<string, object>() {
 				{"LookupValue", expectedValue}
 			});
 
@@ -129,7 +129,7 @@ namespace ATF.Repository.Mock.UnitTests
 		[Test]
 		public void MockDefaultValues_WhenSetEmptyDefaultValue_ShouldUseDefaultValuesForNewModel() {
 			// Arrange
-			_dataProviderMock.MockDefaultValues("TypedTestModel").Retunrs(new Dictionary<string, object>() {
+			_dataProviderMock.MockDefaultValues("TypedTestModel").Returns(new Dictionary<string, object>() {
 			});
 
 			// Act
@@ -142,7 +142,7 @@ namespace ATF.Repository.Mock.UnitTests
 		[Test]
 		public void MockDefaultValues_WhenSetFailureResponse_ShouldUseEmptyDefaultValuesForNewModel() {
 			// Arrange
-			_dataProviderMock.MockDefaultValues("TypedTestModel").Retunrs(false, "ErrorMessage");
+			_dataProviderMock.MockDefaultValues("TypedTestModel").Returns(false, "ErrorMessage");
 
 			// Act
 			var model = _appDataContext.CreateModel<TypedTestModel>();
@@ -156,7 +156,7 @@ namespace ATF.Repository.Mock.UnitTests
 			// Arrange
 			var expectedValue = Guid.NewGuid();
 			var isMethodCalled = false;
-			_dataProviderMock.MockDefaultValues("TypedTestModel").Retunrs(new Dictionary<string, object>() {
+			_dataProviderMock.MockDefaultValues("TypedTestModel").Returns(new Dictionary<string, object>() {
 				{"LookupValue", expectedValue}
 			}).ReceiveHandler(x => {
 				isMethodCalled = true;
@@ -174,7 +174,7 @@ namespace ATF.Repository.Mock.UnitTests
 			// Arrange
 			var expectedValue = Guid.NewGuid();
 			var isMethodCalled = false;
-			_dataProviderMock.MockDefaultValues("TypedTestModel").Retunrs(new Dictionary<string, object>() {
+			_dataProviderMock.MockDefaultValues("TypedTestModel").Returns(new Dictionary<string, object>() {
 				{"LookupValue", expectedValue}
 			}).ReceiveHandler(x => {
 				isMethodCalled = true;
@@ -190,7 +190,7 @@ namespace ATF.Repository.Mock.UnitTests
 			var expectedId = Guid.NewGuid();
 			var expectedString = "expectedString";
 			var filterValue = "expectedString";
-			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(filterValue).Retunrs(new List<Dictionary<string, object>>() {
+			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(filterValue).Returns(new List<Dictionary<string, object>>() {
 				new Dictionary<string, object>() {
 					{"Id", expectedId},
 					{"StringValue", expectedString}
@@ -213,7 +213,7 @@ namespace ATF.Repository.Mock.UnitTests
 			var expectedId = Guid.NewGuid();
 			var expectedString = "expectedString";
 			var filterValue = 100;
-			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(filterValue).Retunrs(new List<Dictionary<string, object>>() {
+			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(filterValue).Returns(new List<Dictionary<string, object>>() {
 				new Dictionary<string, object>() {
 					{"Id", expectedId},
 					{"StringValue", expectedString}
@@ -236,7 +236,7 @@ namespace ATF.Repository.Mock.UnitTests
 			var expectedId = Guid.NewGuid();
 			var expectedString = "expectedString";
 			var filterValue = 100m;
-			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(filterValue).Retunrs(new List<Dictionary<string, object>>() {
+			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(filterValue).Returns(new List<Dictionary<string, object>>() {
 				new Dictionary<string, object>() {
 					{"Id", expectedId},
 					{"StringValue", expectedString}
@@ -260,7 +260,7 @@ namespace ATF.Repository.Mock.UnitTests
 			var expectedString = "expectedString";
 			var filterValue = new DateTime(2021, 5, 3, 10, 11, 27);
 			var hasFilterValue = new DateTime(2021, 5, 3, 10, 11, 27);
-			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(hasFilterValue).Retunrs(new List<Dictionary<string, object>>() {
+			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(hasFilterValue).Returns(new List<Dictionary<string, object>>() {
 				new Dictionary<string, object>() {
 					{"Id", expectedId},
 					{"StringValue", expectedString}
@@ -284,7 +284,7 @@ namespace ATF.Repository.Mock.UnitTests
 			var expectedString = "expectedString";
 			var filterValue = Guid.NewGuid();
 			var hasFilterValue = new Guid(filterValue.ToString());
-			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(hasFilterValue).Retunrs(new List<Dictionary<string, object>>() {
+			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(hasFilterValue).Returns(new List<Dictionary<string, object>>() {
 				new Dictionary<string, object>() {
 					{"Id", expectedId},
 					{"StringValue", expectedString}
@@ -306,7 +306,7 @@ namespace ATF.Repository.Mock.UnitTests
 			// Arrange
 			var expectedId = Guid.NewGuid();
 			var expectedString = "expectedString";
-			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(null).Retunrs(new List<Dictionary<string, object>>() {
+			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(null).Returns(new List<Dictionary<string, object>>() {
 				new Dictionary<string, object>() {
 					{"Id", expectedId},
 					{"StringValue", expectedString}
@@ -328,7 +328,7 @@ namespace ATF.Repository.Mock.UnitTests
 			// Arrange
 			var expectedId = Guid.NewGuid();
 			var expectedString = "expectedString";
-			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(true).Retunrs(new List<Dictionary<string, object>>() {
+			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(true).Returns(new List<Dictionary<string, object>>() {
 				new Dictionary<string, object>() {
 					{"Id", expectedId},
 					{"StringValue", expectedString}
@@ -350,7 +350,7 @@ namespace ATF.Repository.Mock.UnitTests
 			// Arrange
 			var expectedId = Guid.NewGuid();
 			var expectedString = "expectedString";
-			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(true).Retunrs(new List<Dictionary<string, object>>() {
+			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(true).Returns(new List<Dictionary<string, object>>() {
 				new Dictionary<string, object>() {
 					{"Id", expectedId},
 					{"StringValue", expectedString}
@@ -373,7 +373,7 @@ namespace ATF.Repository.Mock.UnitTests
 			var expectedId = Guid.NewGuid();
 			var expectedString = "expectedString";
 			var filterValue = "expectedString";
-			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(filterValue).Retunrs(new List<Dictionary<string, object>>() {
+			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(filterValue).Returns(new List<Dictionary<string, object>>() {
 				new Dictionary<string, object>() {
 					{"Id", expectedId},
 					{"StringValue", expectedString}
@@ -396,7 +396,7 @@ namespace ATF.Repository.Mock.UnitTests
 			var expectedId = Guid.NewGuid();
 			var expectedString = "expectedString";
 			var filterValue = "expectedString";
-			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(filterValue).Retunrs(new List<Dictionary<string, object>>() {
+			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(filterValue).Returns(new List<Dictionary<string, object>>() {
 				new Dictionary<string, object>() {
 					{"Id", expectedId},
 					{"StringValue", expectedString}
@@ -419,7 +419,7 @@ namespace ATF.Repository.Mock.UnitTests
 			var expectedId = Guid.NewGuid();
 			var expectedString = "expectedString";
 			var filterValue = "expectedString";
-			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(filterValue).Retunrs(new List<Dictionary<string, object>>() {
+			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(filterValue).Returns(new List<Dictionary<string, object>>() {
 				new Dictionary<string, object>() {
 					{"Id", expectedId},
 					{"StringValue", expectedString}
@@ -442,7 +442,7 @@ namespace ATF.Repository.Mock.UnitTests
 			var expectedId = Guid.NewGuid();
 			var expectedString = "expectedString";
 			var filterValue = "expectedString";
-			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(filterValue).Retunrs(new List<Dictionary<string, object>>() {
+			var mock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(filterValue).Returns(new List<Dictionary<string, object>>() {
 				new Dictionary<string, object>() {
 					{"Id", expectedId},
 					{"StringValue", expectedString}
@@ -466,7 +466,7 @@ namespace ATF.Repository.Mock.UnitTests
 			var expectedString = "expectedString";
 			var filterValues = new List<string>() { "expectedString1", "expectedString2", "expectedString3" };
 			var mock = _dataProviderMock.MockItems("TypedTestModel").FilterHas(filterValues[0]).FilterHas(filterValues[1])
-				.FilterHas(filterValues[2]).Retunrs(new List<Dictionary<string, object>>() {
+				.FilterHas(filterValues[2]).Returns(new List<Dictionary<string, object>>() {
 					new Dictionary<string, object>() {
 						{ "Id", expectedId },
 						{ "StringValue", expectedString }
@@ -490,7 +490,7 @@ namespace ATF.Repository.Mock.UnitTests
 			var expectedString = "expectedString";
 			var filterValues = new List<string>() { "expectedString1", "expectedString2", "expectedString3" };
 			var mock = _dataProviderMock.MockItems("TypedTestModel").FilterHas(filterValues[0]).FilterHas(filterValues[1])
-				.FilterHas(filterValues[2]).Retunrs(new List<Dictionary<string, object>>() {
+				.FilterHas(filterValues[2]).Returns(new List<Dictionary<string, object>>() {
 					new Dictionary<string, object>() {
 						{ "Id", expectedId },
 						{ "StringValue", expectedString }
@@ -513,7 +513,7 @@ namespace ATF.Repository.Mock.UnitTests
 			// Arrange
 			var filterValues = new List<string>() { "expectedString1", "expectedString2", "expectedString3" };
 			var mock = _dataProviderMock.MockScalar("TypedTestModel", AggregationScalarType.Any).FilterHas(filterValues[0]).FilterHas(filterValues[1])
-				.FilterHas(filterValues[2]).Retunrs(1);
+				.FilterHas(filterValues[2]).Returns(1);
 
 			// Act
 			var actualValue = _appDataContext
@@ -530,7 +530,7 @@ namespace ATF.Repository.Mock.UnitTests
 			var expectedValue = 10m;
 			var filterValues = new List<string>() { "expectedString1", "expectedString2", "expectedString3" };
 			var mock = _dataProviderMock.MockScalar("TypedTestModel", AggregationScalarType.Sum).FilterHas(filterValues[0]).FilterHas(filterValues[1])
-				.FilterHas(filterValues[2]).Retunrs(expectedValue);
+				.FilterHas(filterValues[2]).Returns(expectedValue);
 
 			// Act
 			var actualValue = _appDataContext
@@ -547,7 +547,7 @@ namespace ATF.Repository.Mock.UnitTests
 			var expectedValue = 15.5m;
 			var filterValues = new List<string>() { "expectedString1", "expectedString2", "expectedString3" };
 			var mock = _dataProviderMock.MockScalar("TypedTestModel", AggregationScalarType.Avg).FilterHas(filterValues[0]).FilterHas(filterValues[1])
-				.FilterHas(filterValues[2]).Retunrs(expectedValue);
+				.FilterHas(filterValues[2]).Returns(expectedValue);
 
 			// Act
 			var actualValue = _appDataContext
@@ -564,7 +564,7 @@ namespace ATF.Repository.Mock.UnitTests
 			var expectedValue = 16;
 			var filterValues = new List<string>() { "expectedString1", "expectedString2", "expectedString3" };
 			var mock = _dataProviderMock.MockScalar("TypedTestModel", AggregationScalarType.Count).FilterHas(filterValues[0]).FilterHas(filterValues[1])
-				.FilterHas(filterValues[2]).Retunrs(expectedValue);
+				.FilterHas(filterValues[2]).Returns(expectedValue);
 
 			// Act
 			var actualValue = _appDataContext
@@ -581,7 +581,7 @@ namespace ATF.Repository.Mock.UnitTests
 			var expectedValue = 16.3m;
 			var filterValues = new List<string>() { "expectedString1", "expectedString2", "expectedString3" };
 			var mock = _dataProviderMock.MockScalar("TypedTestModel", AggregationScalarType.Max).FilterHas(filterValues[0]).FilterHas(filterValues[1])
-				.FilterHas(filterValues[2]).Retunrs(expectedValue);
+				.FilterHas(filterValues[2]).Returns(expectedValue);
 
 			// Act
 			var actualValue = _appDataContext
@@ -598,7 +598,7 @@ namespace ATF.Repository.Mock.UnitTests
 			var expectedValue = 16.3m;
 			var filterValues = new List<string>() { "expectedString1", "expectedString2", "expectedString3" };
 			var mock = _dataProviderMock.MockScalar("TypedTestModel", AggregationScalarType.Min).FilterHas(filterValues[0]).FilterHas(filterValues[1])
-				.FilterHas(filterValues[2]).Retunrs(expectedValue);
+				.FilterHas(filterValues[2]).Returns(expectedValue);
 
 			// Act
 			var actualValue = _appDataContext
@@ -612,7 +612,7 @@ namespace ATF.Repository.Mock.UnitTests
 		[Test]
 		[TestCase(true, 1)]
 		[TestCase(false, 0)]
-		public void MockInsert_ShouldReceiveHandler(bool needCallSave, int receivedCount) {
+		public void MockInsert_WhenUseChangedValueHasWithoutParameterName_ShouldReceiveHandler(bool needCallSave, int receivedCount) {
 			// Arrange
 			var expectedStringValue = "StringValue";
 			var expectedIntValue = 10;
@@ -648,13 +648,51 @@ namespace ATF.Repository.Mock.UnitTests
 		[Test]
 		[TestCase(true, 1)]
 		[TestCase(false, 0)]
+		public void MockInsert_WhenUseChangedValueHasWithParameterName_ShouldReceiveHandler(bool needCallSave, int receivedCount) {
+			// Arrange
+			var expectedStringValue = "StringValue";
+			var expectedIntValue = 10;
+			var expectedDecimalValue = 10.11m;
+			var expectedDateTimeValue = new DateTime(2021, 12, 23, 12, 15, 10);
+			var expectedBooleanValue = true;
+			var expectedGuidValue = Guid.NewGuid();
+			var expectedLookupValue = Guid.NewGuid();
+
+			var mock = _dataProviderMock.MockSavingItem("TypedTestModel", SavingOperation.Insert)
+				.ChangedValueHas("BooleanValue", expectedBooleanValue)
+				.ChangedValueHas("DecimalValue", expectedDecimalValue)
+				.ChangedValueHas("GuidValue", expectedGuidValue)
+				.ChangedValueHas("IntValue", expectedIntValue)
+				.ChangedValueHas("LookupValue", expectedLookupValue)
+				.ChangedValueHas("StringValue", expectedStringValue)
+				.ChangedValueHas("DateTimeValue", expectedDateTimeValue);
+
+			// Act
+			var model = _appDataContext.CreateModel<TypedTestModel>();
+			model.StringValue = expectedStringValue;
+			model.IntValue = expectedIntValue;
+			model.DecimalValue = expectedDecimalValue;
+			model.DateTimeValue = expectedDateTimeValue;
+			model.BooleanValue = expectedBooleanValue;
+			model.LookupValueId = expectedLookupValue;
+			model.GuidValueId = expectedGuidValue;
+			if (needCallSave) {
+				_appDataContext.Save();
+			}
+
+			// Assert
+			Assert.AreEqual(receivedCount, mock.ReceivedCount);
+		}
+
+		[Test]
+		[TestCase(true, 1)]
+		[TestCase(false, 0)]
 		public void MockUpdate_WithFilters_ShouldReceiveHandler(bool needCallSave, int receivedCount) {
 			// Arrange
 
 			var expectedId = Guid.NewGuid();
-			var expectedString = "expectedString";
 			var filterValue = "expectedString";
-			var itemsMock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(filterValue).Retunrs(new List<Dictionary<string, object>>() {
+			var itemsMock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(filterValue).Returns(new List<Dictionary<string, object>>() {
 				new Dictionary<string, object>() {
 					{"Id", expectedId},
 					{"StringValue", string.Empty}
@@ -700,7 +738,7 @@ namespace ATF.Repository.Mock.UnitTests
 
 			var expectedId = Guid.NewGuid();
 			const string filterValue = "expectedString";
-			var itemsMock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(filterValue).Retunrs(new List<Dictionary<string, object>>() {
+			var itemsMock =_dataProviderMock.MockItems("TypedTestModel").FilterHas(filterValue).Returns(new List<Dictionary<string, object>>() {
 				new Dictionary<string, object>() {
 					{"Id", expectedId},
 					{"StringValue", string.Empty}

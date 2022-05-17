@@ -18,9 +18,16 @@ namespace ATF.Repository.Mock.Internal
 			return parameters;
 		}
 
-		public static List<object> ExtractColumnValues(IBaseQuery insertQuery) {
-			var parameters = new List<object>();
-			insertQuery.ColumnValues.Items.ForEach(x=>ExtractParametersParameterExpression(x.Value, parameters));
+		public static List<ExpectedColumnValueItem> ExtractColumnValues(IBaseQuery insertQuery) {
+			var parameters = new List<ExpectedColumnValueItem>();
+			insertQuery.ColumnValues.Items.ForEach(x => {
+				if (TryExtractParametersParameterExpression(x.Value, out var value)) {
+					parameters.Add(new ExpectedColumnValueItem() {
+						Name = x.Key,
+						Value = value
+					});
+				}
+			});
 			return parameters;
 		}
 
@@ -55,27 +62,32 @@ namespace ATF.Repository.Mock.Internal
 				return;
 			}
 			if (expression.ExpressionType == EntitySchemaQueryExpressionType.Parameter) {
-				ExtractParametersParameterExpression(expression, parameters);
+				if (TryExtractParametersParameterExpression(expression, out var value)) {
+					parameters.Add(value);
+				}
 			}
 		}
 
-		private static void ExtractParametersParameterExpression(IBaseExpression expression, List<object> parameters) {
+		private static bool TryExtractParametersParameterExpression(IBaseExpression expression, out object value) {
 			if (expression.Parameter == null) {
-				return;
+				value = null;
+				return false;
 			}
 
 			if (expression.Parameter.DataValueType == DataValueType.Date ||
 			 expression.Parameter.DataValueType == DataValueType.Time ||
 			 expression.Parameter.DataValueType == DataValueType.DateTime) {
-				ExtractParametersParameterDateTimeExpression(expression, parameters);
-				return;
+				value = ExtractParametersParameterDateTimeExpression(expression);
+				return true;
 			}
-			parameters.Add(expression.Parameter.Value);
+
+			value = expression.Parameter.Value;
+			return true;
 		}
 
-		private static void ExtractParametersParameterDateTimeExpression(IBaseExpression expression, List<object> parameters) {
+		private static object ExtractParametersParameterDateTimeExpression(IBaseExpression expression) {
 			var rawData = expression.Parameter?.Value;
-			parameters.Add(rawData is DateTime dateTime ? $"\"{dateTime:yyyy-MM-ddTHH:mm:ss.fff}\"" : rawData);
+			return rawData is DateTime dateTime ? $"\"{dateTime:yyyy-MM-ddTHH:mm:ss.fff}\"" : rawData;
 		}
 
 		private static int ParseGroupValue(Match match, int index) {
@@ -88,4 +100,3 @@ namespace ATF.Repository.Mock.Internal
 		}
 	}
 }
-

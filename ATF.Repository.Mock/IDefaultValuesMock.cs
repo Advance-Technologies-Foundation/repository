@@ -7,8 +7,8 @@
 	{
 		string SchemaName { get; }
 		int ReceivedCount { get; }
-		IDefaultValuesMock Retunrs(Dictionary<string, object> defaultValues);
-		IDefaultValuesMock Retunrs(bool success, string errorMessage);
+		IDefaultValuesMock Returns(Dictionary<string, object> defaultValues);
+		IDefaultValuesMock Returns(bool success, string errorMessage);
 		IDefaultValuesMock ReceiveHandler(Action<IDefaultValuesMock> action);
 	}
 }

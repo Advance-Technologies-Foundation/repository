@@ -1125,7 +1125,6 @@
 						{"DateTimeValue", expected.AddHours(-4)}
 					}
 				}});
-
 			// Assert
 			Assert.Throws<ExpressionConvertException>(() => {
 				_appDataContext.Models<TypedTestModel>().Where(x => x.IntValue == TestUsedMethod(x.IntValue)).ToList();

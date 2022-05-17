@@ -12,15 +12,15 @@
 	{
 
 		IScalarMock FilterHas(object filterValue);
-		IScalarMock Retunrs(object value);
-		IScalarMock Retunrs(bool success, string errorMessage);
+		IScalarMock Returns(object value);
+		IScalarMock Returns(bool success, string errorMessage);
 		IScalarMock ReceiveHandler(Action<IScalarMock> action);
 	}
 	public interface IItemsMock: IMock
 	{
 		IItemsMock FilterHas(object filterValue);
-		IItemsMock Retunrs(List<Dictionary<string, object>> items);
-		IItemsMock Retunrs(bool success, string errorMessage);
+		IItemsMock Returns(List<Dictionary<string, object>> items);
+		IItemsMock Returns(bool success, string errorMessage);
 		IItemsMock ReceiveHandler(Action<IItemsMock> action);
 	}
 }

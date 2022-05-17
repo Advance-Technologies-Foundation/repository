@@ -26,14 +26,14 @@
 			return this;
 		}
 
-		public IScalarMock Retunrs(object value) {
+		public IScalarMock Returns(object value) {
 			Success = true;
 			ErrorMessage = string.Empty;
 			Items = GetItemsForValue(value);
 			return this;
 		}
 
-		public IScalarMock Retunrs(bool success, string errorMessage) {
+		public IScalarMock Returns(bool success, string errorMessage) {
 			Success = success;
 			ErrorMessage = errorMessage;
 			Items = new List<Dictionary<string, object>>();
