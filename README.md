@@ -30,6 +30,8 @@ This is an external library and not a part of **Creatio** kernel.
 		- [Model data changing](#model-data-changing)
 		- [Deleting model instance from the repository](#deleting-model-instance-from-the-repository)
 	- [Using different types of filtration](#deleting-model-instance-from-the-repository)
+	- [Work with Creatio Feature Toggling](#work-with-creatio-feature-toggling)
+	- [Work with Creatio System Settings](#work-with-creatio-system-settings)
 - [Testing](#testing)
 	- [Check model using ChangeTracker](#check-model-using-ChangeTracker)
 	- [Using mocking data provider](#using-mocking-data-provider)
@@ -251,35 +253,35 @@ appDataContext.DeleteItem<Bonus>(model);
 ### Load models where Age greater or equal 50
 
 ```csharp
-var models = _appDataContext.Models<Contact>().Where(x => x.Age > 50 ).ToList();
+var models = appDataContext.Models<Contact>().Where(x => x.Age > 50 ).ToList();
 ```
 
 ### Load models where Active is true
 
 ```csharp
-var models = _appDataContext.Models<Contact>().Where(x => x.Active).ToList();
+var models = appDataContext.Models<Contact>().Where(x => x.Active).ToList();
 or
-var models = _appDataContext.Models<Contact>().Where(x => x.Active == true).ToList();
+var models = appDataContext.Models<Contact>().Where(x => x.Active == true).ToList();
 ```
 
 ### Load Top 10, Skip 20 models where Name contains substring and order by CreatedOn
 
 ```csharp
-var models = _appDataContext.Models<Contact>().Take(10).Skip(20).Where(x => x.Name.Contains("Abc"))
+var models = appDataContext.Models<Contact>().Take(10).Skip(20).Where(x => x.Name.Contains("Abc"))
 	.OrderBy(x => x.CreatedOn).ToList();
 ```
 
 ### Load models with some conditions
 
 ```csharp
-var models = _appDataContext.Models<Contact>().Where(x => x.Age > 10)
+var models = appDataContext.Models<Contact>().Where(x => x.Age > 10)
 	.Where(x => x.TypeId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")).ToList();
 ```
 
 ### Load first model with some conditions and orders
 
 ```csharp
-var model = _appDataContext.Models<Contact>().Where(x => x.Age > 10)
+var model = appDataContext.Models<Contact>().Where(x => x.Age > 10)
 	.Where(x => x.TypeId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")).OrderBy(x => x.Age)
 	.ThenByDescending(x => x.Name).FirstOrDefault();
 ```
@@ -287,50 +289,82 @@ var model = _appDataContext.Models<Contact>().Where(x => x.Age > 10)
 ### Load sum by the column with some conditions
 
 ```csharp
-var age = _appDataContext.Models<Contact>().Where(x => x.Age > 10)
+var age = appDataContext.Models<Contact>().Where(x => x.Age > 10)
 	.Where(x => x.TypeId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")).Sum(x=>x.Age);
 ```
 
 ### Load count by the column with some conditions
 
 ```csharp
-var age = _appDataContext.Models<Contact>().Where(x => x.Age > 10)
+var age = appDataContext.Models<Contact>().Where(x => x.Age > 10)
 	.Count(x => x.TypeId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef"));
 ```
 
 ### Load Max by the column with some conditions
 
 ```csharp
-var maxAge = _appDataContext.Models<Contact>().Where(x => x.Age > 10)
+var maxAge = appDataContext.Models<Contact>().Where(x => x.Age > 10)
 	.Where(x => x.TypeId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")).Max(x=>x.Age);
 ```
 
 ### Load Min by the column with some conditions
 
 ```csharp
-var minAge = _appDataContext.Models<Contact>().Where(x => x.Age > 10)
+var minAge = appDataContext.Models<Contact>().Where(x => x.Age > 10)
 	.Where(x => x.TypeId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")).Min(x=>x.Age);
 ```
 
 ### Load Average by the column with some conditions
 
 ```csharp
-var minAge = _appDataContext.Models<Contact>().Where(x => x.Age > 10)
+var minAge = appDataContext.Models<Contact>().Where(x => x.Age > 10)
 	.Where(x => x.TypeId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")).Average(x=>x.Age);
 ```
 
 ### Load records with conditions in detail models
 
 ```csharp
-var model = _appDataContext.Models<Contact>().Where(x =>
+var model = appDataContext.Models<Contact>().Where(x =>
 	x.ContactInTags.Any(y => y.TagId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef"))).ToList();
 ```
 
 ### Load records with conditions in detail models and inner detail models
 
 ```csharp
-var models = _appDataContext.Models<Account>().Where(x =>
+var models = appDataContext.Models<Account>().Where(x =>
 	x.Contacts.Where(y=>y.ContactInTags.Any(z => z.TagId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")))).ToList();
+```
+
+## Work with Creatio Feature Toggling
+
+*Feature toggle* is a software development technique that enables connecting additional features to a live application. This lets you use continuous integration while preserving the working capacity of the application and hiding features you are still developing.
+
+To check the feature state you can use `GetFeatureEnabled` method. 
+
+```csharp
+var response = appDataContext.GetFeatureEnabled("FeatureCode");
+if (!response.Success) {
+	throw new Exception($"Cannot get feature state: {response.ErrorMessage}");
+}
+if (response.Value) {
+	// do something
+}
+
+```
+## Work with Creatio System Settings
+
+*The Creatio System settings* contains all global system settings that used in all functional blocks.
+To get System setting values you can use `GetSysSettingValue` method.
+
+**Attention!** The type of system setting data value must be the same as the type of data in Creatio.
+
+```csharp
+var response = appDataContext.GetFeatureEnabled<int>("LimitInMinutes")
+if (!response.Success) {
+	throw new Exception($"Cannot get feature state: {response.ErrorMessage}");
+}
+var limitInMinutes = response.Value;
+
 ```
 
 # Testing
@@ -397,6 +431,8 @@ var newCount = trackedModels.Count(x => x.GetStatus() == ModelState.New);
 
 Another way to be sure your application works correctly is testing your solution using mocking data provider. To use that way you have to use new nuget package `ATF.Repository.Mock` (https://www.nuget.org/packages/ATF.Repository.Mock).
 
+`ATF.Repository.Mock` is a powerful tool for mocking all interactions with data.
+
 First you need to install that package to your unit-test project.
 
 ```dotnetcli
@@ -406,6 +442,6 @@ Then you be able to use `DataProviderMock` class.
 
 ```csharp
 var dataProviderMock = new DataProviderMock();
-var appDataContext = AppDataContextFactory.GetAppDataContext(_dataProviderMock);
+var appDataContext = AppDataContextFactory.GetAppDataContext(dataProviderMock);
 ```
 
