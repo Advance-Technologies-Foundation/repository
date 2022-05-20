@@ -35,6 +35,10 @@ This is an external library and not a part of **Creatio** kernel.
 - [Testing](#testing)
 	- [Check model using ChangeTracker](#check-model-using-ChangeTracker)
 	- [Using mocking data provider](#using-mocking-data-provider)
+		- [Mocking Model default values](#mocking-model-default-values)
+		- [Mocking Get Models result](#mocking-get-models-result)
+		- [Mocking Scalar result](#mocking-scalar-result)
+		- [Mocking Save result](#mocking-save-result)
 
 # Installation
 
@@ -369,7 +373,7 @@ var limitInMinutes = response.Value;
 
 # Testing
 
-Testing it is an important part of the full development cycle. To be sure your application works correctly, you can write tests with using one of two testing strategies: tracking of model changes or using mocking data provider. 
+Testing it is an important part of the full development cycle. To be sure your application works correctly, you can write tests with using one of two testing strategies: tracking of Model changes or using mocking data provider. 
 
 ## Check models using ChangeTracker
 
@@ -390,13 +394,13 @@ public interface ITrackedModel<out T> where T: BaseModel
 	DateTime RegisteredTime { get; }
 
 	// Model status
-	// - New - new model that not yet saved
-	// - Changed - existed model whose changed values not yet saved
-	// - Unchanged - existed model wishout any changes
-	// - Deleted - existed model that marked as deleted.
+	// - New - new Model that not yet saved
+	// - Changed - existed Model whose changed values not yet saved
+	// - Unchanged - existed Model wishout any changes
+	// - Deleted - existed Model that marked as deleted.
 	ModelState GetStatus();
 
-	// The doctionary of changing values of model.
+	// The doctionary of changing values of Model.
 	Dictionary<string, object> GetChanges();
 }
 
@@ -406,6 +410,8 @@ public interface ITrackedModel<out T> where T: BaseModel
 
 ```csharp
 Bonus bonusModel = appDataContext.CreateItem<Bonus>();
+
+// Assert
 var trackedModel = appDataContext.ChangeTracker.GetTrackedModel(bonusModel);
 
 var changedValues = trackedModel.GetChanges();
@@ -415,7 +421,6 @@ var changedValues = trackedModel.GetChanges();
 
 ```csharp
 var trackedModels = appDataContext.ChangeTracker.GetTrackedModels();
-
 var bonusCount = trackedModels.Count(x => x.Type == typeof(Bonus));
 ```
 
@@ -427,7 +432,7 @@ var trackedModels = appDataContext.ChangeTracker.GetTrackedModels<Bonus>();
 var newCount = trackedModels.Count(x => x.GetStatus() == ModelState.New);
 ```
 
-## Using mocking data provider
+## Use mocking data provider
 
 Another way to be sure your application works correctly is testing your solution using mocking data provider. To use that way you have to use new nuget package `ATF.Repository.Mock` (https://www.nuget.org/packages/ATF.Repository.Mock).
 
@@ -445,3 +450,181 @@ var dataProviderMock = new DataProviderMock();
 var appDataContext = AppDataContextFactory.GetAppDataContext(dataProviderMock);
 ```
 
+### Mocking Model default values
+
+When you create Model, ATF.Repository trying get default values of EntitySchema columns for that model.
+If you want to mock these default values you can use `MockDefaultValues` method.
+
+```csharp
+// Mock default values
+var mock = dataProviderMock.MockDefaultValues("Invoice").Returns(new Dictionary<string, object>() {
+	{"Number", "New"},
+	{"MinAmount", 10.00m}
+});
+
+// Subscribe to call mock. That arrow method will be called every time when call default vaules for that Model.
+var countOfCalling = 0;
+mock.ReceiveHandler(x => {
+	countOfCalling++;
+});
+
+// Simple counter of using that mock.
+mock.ReceivedCount
+```
+
+### Mocking Get Models result
+
+When you need to mock result of `Models<T>` method, you can use `MockItems` that return implement of public interface `IItemsMock`. 
+
+```csharp
+// Create mock for Models on Model that based on Invoice Entity Schema
+var mock = dataProviderMock.MockItems("Invoice");
+// The filter of GetImems lamda expression must have string 'ExpectedOrderNumber' as filter value.
+mock.FilterHas("ExpectedOrderNumber");
+// Also the filter of GetImems lamda expression must have decimal 5m as filter value.
+mock.FilterHas(5m);
+// If frevious conditions are passed, mock will return that list of dictionaries as values for Models.
+mock.Returns(new List<Dictionary<string, object>>() {
+	new Dictionary<string, object>() {
+		{"Id", Guid.NewGuid()},
+		{"Number", "OX-00101/115-2"},
+		{"Amount", 11.00m}
+	}
+});
+
+// Subscribe to call mock. That arrow method will be called every time when mock conditions passed.
+var countOfCalling = 0;
+mock.ReceiveHandler(x => {
+	countOfCalling++;
+});
+
+// Simple counter of using that mock.
+mock.ReceivedCount
+
+// Then calling of Models<T> with expression will result mocked data
+var models = appDataContext.Models<InvoiceModel>().Where(x => x.Order.Number == "ExpectedOrderNumber" && x.Amount > 5m).ToList();
+// models.Count == 1
+// models.First.Amount == 11.00m
+
+```
+
+### Mocking Scalar result
+
+When you need to mock scalar result of `Models<T>` method, you can use `MockScalar` that returns implement of public interface `IScalarMock`. 
+
+```csharp
+//  Create scalar mock for Models on Model that based on Invoice Entity Schema with filter use 10m and 50m and lamda expression return scalar value. 
+var mock = dataProviderMock
+	.MockScalar("Invoice", AggregationScalarType.Avg)
+	.FilterHas(10m)
+	.FilterHas(50m)
+	.Returns(15.5m);
+
+// Subscribe to call mock. That arrow method will be called every time when mock conditions passed.
+var countOfCalling = 0;
+mock.ReceiveHandler(x => {
+	countOfCalling++;
+});
+
+// Simple counter of using that mock.
+mock.ReceivedCount
+
+var averageAmount = appDataContext.Models<InvoiceModel>().Where(x => x.Amount > 10m && x.Amount <= 50m).Average(x=>x.Amount);
+
+// averageAmount == 15.5m
+```
+
+### Mocking Save result
+
+When you need to mock Save result or check if call Insert/Update/Delete Model with expected condition or changed column values, you can use `MockSavingItem` method that returns implement of public interface `IMockSavingItem`. 
+
+#### Checking if Repository call Insert model action
+
+To check, if repository called Insert you can register mock on that operation.
+For example:
+
+```csharp
+
+//Check if call Insert operation with Model based on Invoice entity
+var mock = dataProviderMock.MockSavingItem("Invoice", SavingOperation.Insert);
+
+// Number property for that Model should equal "AX-005-10"
+mock.ChangedValueHas("Number", "AX-005-10");
+
+// Amount property for that Model should equal 10.15m
+mock.ChangedValueHas("Amount", 10.15m)
+
+// One of properties for that Model should equal true
+mock.ChangedValueHas(true);
+
+// Create new Model instance
+var model = appDataContext.CreateModel<InvoiceModel>();
+model.Number = "AX-005-10";
+model.Amount = 10.15m;
+model.IsClosed = true;
+
+// Save repository data
+appDataContext.Save();
+
+
+// Simple counter of using that mock.
+mock.ReceivedCount
+
+// Subscribe to call mock. That arrow method will be called every time when mock conditions passed.
+var countOfCalling = 0;
+mock.ReceiveHandler(x => {
+	countOfCalling++;
+});
+```
+
+#### Checking if Repository call Update Model action
+
+Every updating Model call Update action with filter by primary property value, that is why we should use filter by Id for check if repository call Update action for the Model.
+
+```csharp
+var invoiceId = Guid.NewGuid();
+var updatingMock = dataProviderMock.MockSavingItem("Invoice", SavingOperation.Update)
+	.ChangedValueHas(12.10m)
+	.ChangedValueHas(false)
+	.FilterHas(invoiceId);
+
+// Act
+var model = appDataContext.Models<InvoiceModel>().First(x => x.Id == invoiceId);
+model.Amount = 12.10m;
+model.IsClosed = false;
+
+appDataContext.Save();
+
+// Simple counter of using that mock. Property will equal 1 if Repository calls Update action for Model whith properties equal expected values.
+mock.ReceivedCount
+
+// Subscribe to call mock. That arrow method will be called every time when mock conditions passed.
+var countOfCalling = 0;
+mock.ReceiveHandler(x => {
+	countOfCalling++;
+});
+```
+
+#### Checking if Repository call Delete Model action
+
+```csharp
+var invoiceId = Guid.NewGuid();
+var deletingMock = dataProviderMock.MockSavingItem("Invoice", SavingOperation.Delete)
+	.FilterHas(invoiceId);
+
+// Act
+var models = appDataContext.Models<InvoiceModel>().Where(x => x.Id == invoiceId).ToList();
+var model = models.First();
+appDataContext.DeleteModel(model);
+
+appDataContext.Save();
+
+// Simple counter of using that mock. Property will equal 1 if Repository calls Delete action for Model whith Id equal expected value;
+mock.ReceivedCount
+
+// Subscribe to call mock. That arrow method will be called every time when mock conditions passed.
+var countOfCalling = 0;
+mock.ReceiveHandler(x => {
+	countOfCalling++;
+});
+```
