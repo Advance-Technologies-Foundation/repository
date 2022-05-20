@@ -363,7 +363,7 @@ To get System setting values you can use `GetSysSettingValue` method.
 **Attention!** The type of system setting data value must be the same as the type of data in Creatio.
 
 ```csharp
-var response = appDataContext.GetFeatureEnabled<int>("LimitInMinutes")
+var response = appDataContext.GetSysSettingValue<int>("LimitInMinutes")
 if (!response.Success) {
 	throw new Exception($"Cannot get feature state: {response.ErrorMessage}");
 }
