@@ -69,7 +69,7 @@ You can open the `.csproj` file to see the added reference:
 2. Use the following command to install ATF.Repository package by clio:
 
 ```dotnetcli
-clio push-pkg ATF.Repository.gz
+clio push-pkg ATF_Repository.gz
 ```
 
 3. After the command completes, look at `WorkspaceExplorer` to make sure the package was installed.
@@ -257,7 +257,7 @@ appDataContext.DeleteItem<Bonus>(model);
 ### Load models where Age greater or equal 50
 
 ```csharp
-var models = appDataContext.Models<Contact>().Where(x => x.Age > 50 ).ToList();
+var models = appDataContext.Models<Contact>().Where(x => x.Age >= 50 ).ToList();
 ```
 
 ### Load models where Active is true
@@ -443,7 +443,7 @@ First you need to install that package to your unit-test project.
 ```dotnetcli
 dotnet add package ATF.Repository.Mock
 ```
-Then you be able to use `DataProviderMock` class.
+Then you will be able to use `DataProviderMock` class.
 
 ```csharp
 var dataProviderMock = new DataProviderMock();
@@ -461,6 +461,10 @@ var mock = dataProviderMock.MockDefaultValues("Invoice").Returns(new Dictionary<
 	{"Number", "New"},
 	{"MinAmount", 10.00m}
 });
+
+// Create new Model instance
+var model = appDataContext.CreateModel<InvoiceModel>();
+//model.MinAmount - will be equal 10.00m
 
 // Subscribe to call mock. That arrow method will be called every time when call default vaules for that Model.
 var countOfCalling = 0;
@@ -627,4 +631,27 @@ var countOfCalling = 0;
 mock.ReceiveHandler(x => {
 	countOfCalling++;
 });
+```
+
+### Mocking System setting value
+
+```csharp
+dataProviderMock.MockSysSettingValue("SystemSettingsCode", 180);
+
+var response = _appDataContext.GetSysSettingValue<int>("SystemSettingsCode");
+
+// response.Value will be equal 180;
+```
+
+### Mocking Feature status
+
+```csharp
+dataProviderMock.MockFeatureEnable("FirstFeature", true);
+dataProviderMock.MockFeatureEnable("SecondFeature", false);
+
+var firstResponse = appDataContext.GetFeatureEnabled("FirstFeature");
+// firstResponse.Enabled will be equal true;
+
+var secondResponse = appDataContext.GetFeatureEnabled("SecondFeature");
+// secondResponse.Enabled will be equal false;
 ```
