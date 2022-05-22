@@ -25,6 +25,12 @@
 
 		#endregion
 
+		#region Fields: Public
+
+		public bool EnableAccessRights = false;
+
+		#endregion
+
 		#region Constructors: Public
 
 		public LocalDataProvider(UserConnection userConnection) {
@@ -44,6 +50,7 @@
 				return false;
 			}
 			entity = schema.CreateEntity(_userConnection);
+			entity.UseAdminRights = EnableAccessRights;
 			return true;
 		}
 
@@ -188,11 +195,10 @@
 				ErrorMessage = string.Empty
 			};
 			try {
-				var schema = _userConnection.EntitySchemaManager.GetInstanceByName(schemaName);
-				if (schema == null) {
+				if (!TryGetEntity(schemaName, out var entity, out var errorMessage)) {
+					response.ErrorMessage = errorMessage;
 					return response;
 				}
-				var entity = schema.CreateEntity(_userConnection);
 				entity.SetDefColumnValues();
 				foreach (var entitySchemaColumn in entity.Schema.Columns) {
 					if (entitySchemaColumn.HasDefValue && entitySchemaColumn.Name != "Id") {
@@ -215,6 +221,7 @@
 			};
 			try {
 				var esq = BuildEntitySchemaQuery(selectQueryReplica);
+				esq.UseAdminRights = EnableAccessRights;
 				var entityCollection = esq.GetEntityCollection(_userConnection);
 				foreach (var entity in entityCollection) {
 					var entityResult = ParseSelectResult(entity, selectQueryReplica.Columns);
