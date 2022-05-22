@@ -39,6 +39,8 @@ This is an external library and not a part of **Creatio** kernel.
 		- [Mocking Get Models result](#mocking-get-models-result)
 		- [Mocking Scalar result](#mocking-scalar-result)
 		- [Mocking Save result](#mocking-save-result)
+		- [Mocking System Setting value](#mocking-system-setting-value)
+		- [Mocking Feature status](#mocking-feature-status)
 
 # Installation
 
@@ -633,7 +635,7 @@ mock.ReceiveHandler(x => {
 });
 ```
 
-### Mocking System setting value
+### Mocking System Setting value
 
 ```csharp
 dataProviderMock.MockSysSettingValue("SystemSettingsCode", 180);
