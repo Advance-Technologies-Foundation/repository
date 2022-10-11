@@ -73,13 +73,13 @@
 				return null;
 			}
 			var queryParameters = QueryParametersExtractor.ExtractParameters(selectQuery);
-			return _scalarItemsMocks.FirstOrDefault(x =>
+			return _scalarItemsMocks.Where(x=>x.Enabled).FirstOrDefault(x =>
 				x.SchemaName == selectQuery.RootSchemaName && x.CheckByParameters(queryParameters));
 		}
 
 		private BaseMock GetCollectionMock(ISelectQuery selectQuery) {
 			var queryParameters = QueryParametersExtractor.ExtractParameters(selectQuery);
-			return _collectionItemsMocks.FirstOrDefault(x =>
+			return _collectionItemsMocks.Where(x=>x.Enabled).FirstOrDefault(x =>
 				x.SchemaName == selectQuery.RootSchemaName && x.CheckByParameters(queryParameters));
 		}
 

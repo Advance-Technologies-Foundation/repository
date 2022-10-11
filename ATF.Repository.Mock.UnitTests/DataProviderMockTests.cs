@@ -542,19 +542,20 @@ namespace ATF.Repository.Mock.UnitTests
 		}
 
 		[Test]
-		public void MockGetItems_WhenUseSimpleAggregationAvgColumn_ShouldReturnExpectedValues() {
+		[TestCase(true, 1, 15.5)]
+		[TestCase(false, 0, 0)]
+		public void MockGetItems_WhenUseSimpleAggregationAvgColumn_ShouldReturnExpectedValues(bool enabledMock, int receivedCount, decimal expectedValue) {
 			// Arrange
-			var expectedValue = 15.5m;
 			var filterValues = new List<string>() { "expectedString1", "expectedString2", "expectedString3" };
 			var mock = _dataProviderMock.MockScalar("TypedTestModel", AggregationScalarType.Avg).FilterHas(filterValues[0]).FilterHas(filterValues[1])
 				.FilterHas(filterValues[2]).Returns(expectedValue);
-
+			mock.Enabled = enabledMock;
 			// Act
 			var actualValue = _appDataContext
 				.Models<TypedTestModel>().Where(x => x.DetailModels.Any(y => filterValues.Contains(y.Parent.StringValue))).Average(x=>x.DecimalValue);
 
 			// Assert
-			Assert.AreEqual(1, mock.ReceivedCount);
+			Assert.AreEqual(receivedCount, mock.ReceivedCount);
 			Assert.AreEqual(expectedValue, actualValue);
 		}
 

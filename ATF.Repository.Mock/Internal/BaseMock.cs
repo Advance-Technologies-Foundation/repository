@@ -7,6 +7,7 @@
 
 	internal class BaseMock
 	{
+		public bool Enabled { get; set; }
 		public string SchemaName { get; }
 		public int ReceivedCount { get; private set; }
 
@@ -18,6 +19,7 @@
 		protected BaseMock(string schemaName) {
 			SchemaName = schemaName;
 			Success = true;
+			Enabled = true;
 			ExpectedParameters = new List<object>();
 		}
 

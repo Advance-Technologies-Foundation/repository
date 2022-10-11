@@ -15,6 +15,7 @@
 		IScalarMock Returns(object value);
 		IScalarMock Returns(bool success, string errorMessage);
 		IScalarMock ReceiveHandler(Action<IScalarMock> action);
+		bool Enabled { get; set; }
 	}
 	public interface IItemsMock: IMock
 	{
@@ -22,5 +23,6 @@
 		IItemsMock Returns(List<Dictionary<string, object>> items);
 		IItemsMock Returns(bool success, string errorMessage);
 		IItemsMock ReceiveHandler(Action<IItemsMock> action);
+		bool Enabled { get; set; }
 	}
 }
