@@ -36,7 +36,7 @@
 				RootSchemaName = schemaName,
 				AllColumns = false,
 				IsDistinct = false,
-				RowCount = 100,
+				RowCount = 20000,
 				Columns = columns,
 				Filters = filters
 			};

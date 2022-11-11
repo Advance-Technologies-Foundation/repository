@@ -18,6 +18,11 @@
 
 	public class LocalDataProvider: IDataProvider
 	{
+		internal class BuiltEntitySchemaQuery
+		{
+			public EntitySchemaQuery EntitySchemaQuery { get; set; }
+			public EntitySchemaQueryOptions Options { get; set; }
+		}
 
 		#region Fields: Private
 
@@ -176,12 +181,18 @@
 			return true;
 		}
 
-		private EntitySchemaQuery BuildEntitySchemaQuery(ISelectQuery source) {
+		private BuiltEntitySchemaQuery BuildEntitySchemaQuery(ISelectQuery source) {
 			var selectQuery = ReplicaToOriginConverter.ConvertSelectQuery(source);
 			var esq = selectQuery.BuildEsq(_userConnection);
+			esq.HideSecurityValue = false;
 			esq.RowCount = source.RowCount;
-			esq.SkipRowCount = source.RowsOffset;
-			return esq;
+			var options = source.RowsOffset > 0
+				? QueryExtension.GetEntitySchemaQueryOptions(selectQuery, null, _userConnection)
+				: null;
+			return new BuiltEntitySchemaQuery() {
+				EntitySchemaQuery = esq,
+				Options = options
+			};
 		}
 
 		#endregion
@@ -220,9 +231,11 @@
 				ErrorMessage = string.Empty
 			};
 			try {
-				var esq = BuildEntitySchemaQuery(selectQueryReplica);
-				esq.UseAdminRights = EnableAccessRights;
-				var entityCollection = esq.GetEntityCollection(_userConnection);
+				var buildData = BuildEntitySchemaQuery(selectQueryReplica);
+				buildData.EntitySchemaQuery.UseAdminRights = EnableAccessRights;
+				var entityCollection = buildData.Options != null
+					? buildData.EntitySchemaQuery.GetEntityCollection(_userConnection, buildData.Options)
+					: buildData.EntitySchemaQuery.GetEntityCollection(_userConnection);
 				foreach (var entity in entityCollection) {
 					var entityResult = ParseSelectResult(entity, selectQueryReplica.Columns);
 					if (entityResult != null) {

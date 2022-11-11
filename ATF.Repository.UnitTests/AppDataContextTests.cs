@@ -1365,6 +1365,7 @@
 			var expectedSelect = (SelectQueryReplica)TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
 			expectedSelect.RowsOffset = 5;
+			expectedSelect.IsPageable = true;
 			expectedSelect.Filters.Items.Add("f1",
 				(FilterReplica)TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 					true));
@@ -1406,6 +1407,7 @@
 			var expectedSelect = (SelectQueryReplica)TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
 			expectedSelect.RowsOffset = 1;
+			expectedSelect.IsPageable = true;
 			expectedSelect.Filters.Items.Add("f1", (FilterReplica)TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 				true));
 			expectedSelect.Filters.Items.Add("f2", (FilterReplica)TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
@@ -1457,7 +1459,7 @@
 			var expectedSelect = (SelectQueryReplica)TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
 			expectedSelect.RowsOffset = 1;
-
+			expectedSelect.IsPageable = true;
 			expectedSelect.Filters.Items.Add("f1", (FilterReplica)TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 				true));
 			expectedSelect.Filters.Items.Add("f2", (FilterReplica)TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
@@ -1510,6 +1512,7 @@
 			var expectedSelect = (SelectQueryReplica)TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
 			expectedSelect.RowsOffset = 1;
+			expectedSelect.IsPageable = true;
 
 			expectedSelect.Filters.Items.Add("f1", (FilterReplica)TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 				true));
@@ -1555,6 +1558,7 @@
 			var expectedSelect = (SelectQueryReplica)TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
 			expectedSelect.RowCount = 1;
 			expectedSelect.RowsOffset = 1;
+			expectedSelect.IsPageable = true;
 
 			expectedSelect.Filters.Items.Add("f1", (FilterReplica)TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 				true));

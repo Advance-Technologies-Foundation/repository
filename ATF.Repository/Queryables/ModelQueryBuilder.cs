@@ -14,7 +14,7 @@
 		internal SelectQueryReplica SelectQuery { get; set; }
 		internal Type ModelType { get; set; }
 
-		internal static int MaxRowsCount = 100;
+		internal static int MaxRowsCount = 20000;
 	}
 	internal class ModelQueryBuilder
 	{
@@ -38,6 +38,7 @@
 			var config = GenerateModelQueryBuildConfig(modelType);
 			expressionMetadataChain.Items.TakeWhile(x => ApplyExpressionChainItemOnSelectQuery(x, config)).ToList();
 			OptimizeFilters(config.SelectQuery.Filters);
+			config.SelectQuery.IsPageable = config.SelectQuery.RowsOffset > 0;
 			return config.SelectQuery;
 		}
 
