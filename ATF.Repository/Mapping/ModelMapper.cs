@@ -13,10 +13,11 @@
 		private static readonly IDictionary<Type, Func<PropertyInfo, ModelItem>> TypeConverters = GetTypeConverters();
 
 		public static List<ModelItem> GetModelItems(Type modelType) {
-			if (!CashedItems.ContainsKey(modelType)) {
+			/*if (!CashedItems.ContainsKey(modelType)) {
 				CashedItems.Add(modelType, FetchModelItemsFromModelType(modelType));
 			}
-			return CashedItems[modelType];
+			return CashedItems[modelType];*/
+			return FetchModelItemsFromModelType(modelType);
 		}
 
 		public static List<ModelItem> GetProperties(Type modelType) {
