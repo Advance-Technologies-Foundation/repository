@@ -93,7 +93,7 @@
 			var response = new List<ModelItem>();
 			modelType.GetProperties().ForEach(x => {
 				var modelItem = GetModelItem(x);
-				if (modelItem != null) {
+				if (modelItem != null && !response.Contains(modelItem)) {
 					response.Add(modelItem);
 				}
 			});
