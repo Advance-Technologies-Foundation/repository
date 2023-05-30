@@ -22,6 +22,7 @@
 		{
 			public EntitySchemaQuery EntitySchemaQuery { get; set; }
 			public EntitySchemaQueryOptions Options { get; set; }
+			public Dictionary<string, string> ServerToClientColumnNameMap { get; set; }
 		}
 
 		#region Fields: Private
@@ -103,16 +104,23 @@
 			});
 		}
 
-		private Dictionary<string, object> ParseSelectResult(Entity entity, ISelectQueryColumns selectQueryColumns) {
+		private Dictionary<string, object> ParseSelectResult(Entity entity, ISelectQueryColumns selectQueryColumns,
+			Dictionary<string, string> serverToClientColumnNameMap) {
 			var result = new Dictionary<string, object>();
 			var schema = entity.Schema;
 			foreach (var selectQueryColumn in selectQueryColumns.Items) {
-				var column = schema.Columns.FindByName(selectQueryColumn.Key);
+				var serverToClientKeyValuePair =
+					serverToClientColumnNameMap?.FirstOrDefault(x => x.Value == selectQueryColumn.Key) ?? null;
+				var key = serverToClientKeyValuePair != null
+					? serverToClientKeyValuePair.Value.Key
+					: selectQueryColumn.Key;
+				var column = schema.Columns.FindByName(key);
 				if (column != null) {
 					var value = entity.GetColumnValue(column.ColumnValueName);
 					result.Add(selectQueryColumn.Key, value);
 				}
 			}
+
 			return result.Any() ? result : null;
 		}
 
@@ -183,7 +191,7 @@
 
 		private BuiltEntitySchemaQuery BuildEntitySchemaQuery(ISelectQuery source) {
 			var selectQuery = ReplicaToOriginConverter.ConvertSelectQuery(source);
-			var esq = selectQuery.BuildEsq(_userConnection);
+			var esq = selectQuery.BuildEsq(_userConnection, out var serverToClientColumnNameMap);
 			esq.HideSecurityValue = false;
 			esq.RowCount = source.RowCount;
 			var options = source.RowsOffset > 0
@@ -191,7 +199,8 @@
 				: null;
 			return new BuiltEntitySchemaQuery() {
 				EntitySchemaQuery = esq,
-				Options = options
+				Options = options,
+				ServerToClientColumnNameMap = serverToClientColumnNameMap
 			};
 		}
 
@@ -237,7 +246,7 @@
 					? buildData.EntitySchemaQuery.GetEntityCollection(_userConnection, buildData.Options)
 					: buildData.EntitySchemaQuery.GetEntityCollection(_userConnection);
 				foreach (var entity in entityCollection) {
-					var entityResult = ParseSelectResult(entity, selectQueryReplica.Columns);
+					var entityResult = ParseSelectResult(entity, selectQueryReplica.Columns, buildData.ServerToClientColumnNameMap);
 					if (entityResult != null) {
 						response.Items.Add(entityResult);
 					}
