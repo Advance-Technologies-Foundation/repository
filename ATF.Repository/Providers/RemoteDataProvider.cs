@@ -21,10 +21,11 @@
 		private readonly string _applicationUrl;
 		private readonly string _username;
 		private readonly string _password;
-		private const string SelectEndpointUri = "/0/DataService/json/SyncReply/SelectQuery";
-		private const string BatchEndpointUrl = "/0/DataService/json/SyncReply/BatchQuery";
-		private const string SysSettingEndpointUrl = "/0/DataService/json/SyncReply/QuerySysSettings";
-		private const string FeatureEndpointUrl = "/0/rest/FeatureService/GetFeatureState";
+		private readonly bool _isNetCore;
+		private string SelectEndpointUri => _isNetCore ? "/DataService/json/SyncReply/SelectQuery" :  "/0/DataService/json/SyncReply/SelectQuery";
+		private string BatchEndpointUrl => _isNetCore ? "/DataService/json/SyncReply/BatchQuery": "/0/DataService/json/SyncReply/BatchQuery";
+		private string SysSettingEndpointUrl => _isNetCore ? "/DataService/json/SyncReply/QuerySysSettings" :  "/0/DataService/json/SyncReply/QuerySysSettings";
+		private string FeatureEndpointUrl => _isNetCore ? "/rest/FeatureService/GetFeatureState": "/0/rest/FeatureService/GetFeatureState";
 
 		#endregion;
 
@@ -43,6 +44,7 @@
 			_applicationUrl = applicationUrl;
 			_username = username;
 			_password = password;
+			_isNetCore = isNetCore;
 		}
 
 		#endregion
@@ -50,7 +52,7 @@
 		#region Methods: Private
 
 		private CreatioClientAdapter CreateCreatioClientAdapter() {
-			return new CreatioClientAdapter(_applicationUrl, _username, _password);
+			return new CreatioClientAdapter(_applicationUrl, _username, _password, _isNetCore);
 		}
 
 		private List<Dictionary<string, object>> ParseSelectResponse(SelectResponse selectResponse) {
