@@ -8,7 +8,7 @@
 		<TargetFramework>netstandard2.0</TargetFramework>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="creatio.client" Version="1.0.7" />
+		<PackageReference Include="creatio.client" Version="1.0.18" />
 		<PackageReference Include="CreatioSDK" Version="7.17.4.2265" />
 		<PackageReference Include="Common.Logging" Version="3.4.1" />
 		<PackageReference Include="Castle.Core" Version="4.4.1" />
