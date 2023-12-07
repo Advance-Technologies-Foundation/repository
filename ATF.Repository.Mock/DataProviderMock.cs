@@ -43,13 +43,13 @@
 		}
 
 		public IItemsMock MockItems(string schemaName) {
-			var mock = new ItemsMock(schemaName);
+			var mock = new ItemsMock(schemaName) { Position = _collectionItemsMocks.Count };
 			_collectionItemsMocks.Add(mock);
 			return mock;
 		}
 
 		public IScalarMock MockScalar(string schemaName, AggregationScalarType aggregationType) {
-			var mock = new ScalarMock(schemaName, aggregationType);
+			var mock = new ScalarMock(schemaName, aggregationType) { Position = _scalarItemsMocks.Count };
 			_scalarItemsMocks.Add(mock);
 			return mock;
 		}
@@ -73,13 +73,13 @@
 				return null;
 			}
 			var queryParameters = QueryParametersExtractor.ExtractParameters(selectQuery);
-			return _scalarItemsMocks.Where(x=>x.Enabled).FirstOrDefault(x =>
+			return _scalarItemsMocks.OrderBy(x=>x.Position).Where(x=>x.Enabled).FirstOrDefault(x =>
 				x.SchemaName == selectQuery.RootSchemaName && x.CheckByParameters(queryParameters));
 		}
 
 		private BaseMock GetCollectionMock(ISelectQuery selectQuery) {
 			var queryParameters = QueryParametersExtractor.ExtractParameters(selectQuery);
-			return _collectionItemsMocks.Where(x=>x.Enabled).FirstOrDefault(x =>
+			return _collectionItemsMocks.OrderBy(x=>x.Position).Where(x=>x.Enabled).FirstOrDefault(x =>
 				x.SchemaName == selectQuery.RootSchemaName && x.CheckByParameters(queryParameters));
 		}
 

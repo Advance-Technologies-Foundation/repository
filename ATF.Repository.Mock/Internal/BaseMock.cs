@@ -7,6 +7,7 @@
 
 	internal class BaseMock
 	{
+		public int Position { get; set; }
 		public bool Enabled { get; set; }
 		public string SchemaName { get; }
 		public int ReceivedCount { get; private set; }
