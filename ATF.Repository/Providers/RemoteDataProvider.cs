@@ -17,10 +17,8 @@
 	{
 		#region Fields: Private
 
-		private ICreatioClientAdapter _creatioClientAdapter;
 		private readonly string _applicationUrl;
-		private readonly string _username;
-		private readonly string _password;
+
 		private readonly bool _isNetCore;
 		private string SelectEndpointUri => _isNetCore ? "/DataService/json/SyncReply/SelectQuery" :  "/0/DataService/json/SyncReply/SelectQuery";
 		private string BatchEndpointUrl => _isNetCore ? "/DataService/json/SyncReply/BatchQuery": "/0/DataService/json/SyncReply/BatchQuery";
@@ -31,10 +29,7 @@
 
 		#region Properties: Internal
 
-		internal ICreatioClientAdapter CreatioClientAdapter {
-			get => _creatioClientAdapter ?? (_creatioClientAdapter = CreateCreatioClientAdapter());
-			set => _creatioClientAdapter = value;
-		}
+		internal ICreatioClientAdapter CreatioClientAdapter;
 
 		#endregion
 
@@ -42,18 +37,19 @@
 
 		public RemoteDataProvider(string applicationUrl, string username, string password, bool isNetCore = false) {
 			_applicationUrl = applicationUrl;
-			_username = username;
-			_password = password;
 			_isNetCore = isNetCore;
+			CreatioClientAdapter = new CreatioClientAdapter(applicationUrl, username, password, isNetCore);
+		}
+
+		public RemoteDataProvider(string applicationUrl, string authApp, string clientId, string clientSecret, bool isNetCore = false) {
+			_applicationUrl = applicationUrl;
+			_isNetCore = isNetCore;
+			CreatioClientAdapter = new CreatioClientAdapter(applicationUrl, authApp, clientId, clientSecret, isNetCore);
 		}
 
 		#endregion
 
 		#region Methods: Private
-
-		private CreatioClientAdapter CreateCreatioClientAdapter() {
-			return new CreatioClientAdapter(_applicationUrl, _username, _password, _isNetCore);
-		}
 
 		private List<Dictionary<string, object>> ParseSelectResponse(SelectResponse selectResponse) {
 			var response = new List<Dictionary<string, object>>();
