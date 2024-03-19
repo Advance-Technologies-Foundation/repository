@@ -1,3 +1,6 @@
+using ATF.Repository;
+using ATF.Repository.Providers;
+
 namespace ATF.Repository.Mock.UnitTests
 {
 	using System;
@@ -912,5 +915,46 @@ namespace ATF.Repository.Mock.UnitTests
 			Assert.AreEqual(expectedValue, response.Enabled);
 			Assert.IsNull(response.ErrorMessage);
 		}
+
+		[Test]
+		public void TestAssembliesCount() {
+			// Arrange
+			int iterationCount = 100;
+			var recordId = Guid.NewGuid();
+			_dataProviderMock.MockItems("TypedTestModel").FilterHas(recordId)
+				.Returns(new List<Dictionary<string, object>>() { new Dictionary<string, object>() {
+					{"Id", recordId},
+					{"StringValue", recordId.ToString()},
+					{"LookupValue", recordId}
+				} });
+			var dynamicAssemblyCount = AppDomain.CurrentDomain.GetAssemblies()
+				.Where(x => x.FullName.StartsWith("DynamicProxyGenAssembly2")).Select(x => x.FullName).ToList().Count;
+			var problemCount = dynamicAssemblyCount + iterationCount;
+
+			// Act
+			for (int i = 0; i < iterationCount; i++) {
+				var executor = new AppDataExecutor(_dataProviderMock);
+				var item = executor.GetTestModel(recordId);
+			}
+
+			// Assert
+			var actualValue = AppDomain.CurrentDomain.GetAssemblies().Where(x=>x.FullName.StartsWith("DynamicProxyGenAssembly2")).Select(x => x.FullName).ToList().Count;
+			Assert.LessOrEqual(actualValue, problemCount);
+		}
 	}
+
+	public class AppDataExecutor
+	{
+		private IAppDataContext _appDataContext;
+
+		public AppDataExecutor(IDataProvider dataProvider) {
+			_appDataContext = AppDataContextFactory.GetAppDataContext(dataProvider);
+		}
+
+		public TypedTestModel GetTestModel(Guid id) {
+			return _appDataContext.GetModel<TypedTestModel>(id);
+		}
+	}
+
 }
+

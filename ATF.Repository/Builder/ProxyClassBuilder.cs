@@ -8,7 +8,7 @@
 	using Castle.DynamicProxy;
 	using Terrasoft.Common;
 
-	internal static class InterceptorRepository
+	/*internal static class InterceptorRepository
 	{
 		private static readonly IDictionary<Type, IInterceptor> _interceptors = new Dictionary<Type, IInterceptor>();
 
@@ -20,6 +20,22 @@
 		public static void Add(Type type, IInterceptor interceptor) {
 			if (!_interceptors.ContainsKey(type)) {
 				_interceptors.Add(type, interceptor);
+			}
+		}
+	}*/
+
+	internal static class ProxyClassRepository
+	{
+		private static readonly IDictionary<Type, Type> _proxies = new Dictionary<Type, Type>();
+
+		public static Type Get(Type type) {
+			return _proxies.ContainsKey(type)
+				? _proxies[type]
+				: null;
+		}
+		public static void Add(Type type, Type interceptor) {
+			if (!_proxies.ContainsKey(type)) {
+				_proxies.Add(type, interceptor);
 			}
 		}
 	}
@@ -39,17 +55,52 @@
 		}
 
 		private IInterceptor GetInterceptor<T>() where T : BaseModel {
-			Type type = typeof(T);
+			return new InstanceProxyHelper<T>();
+			/*Type type = typeof(T);
 			var interceptor = InterceptorRepository.Get(type);
 			if (interceptor == null) {
 				interceptor =  new InstanceProxyHelper<T>();
 				InterceptorRepository.Add(type, interceptor);
 			}
-			return interceptor;
+			return interceptor;*/
+		}
+
+		private Type GetProxyClassType(Type type) {
+			var proxyClassType = ProxyClassRepository.Get(type);
+			if (proxyClassType == null) {
+				proxyClassType =  _generator.ProxyBuilder.CreateClassProxyType(type, null, ProxyGenerationOptions.Default);
+				ProxyClassRepository.Add(type, proxyClassType);
+			}
+
+			return proxyClassType;
+		}
+		private object CreateProxyClass(Type proxyClassType, params IInterceptor[] interceptors) {
+			var arguments = BuildArgumentListForClassProxy(ProxyGenerationOptions.Default, interceptors);
+			return Activator.CreateInstance(proxyClassType, arguments.ToArray());
+		}
+
+		protected List<object> BuildArgumentListForClassProxy(ProxyGenerationOptions options,
+			IInterceptor[] interceptors) {
+			var arguments = new List<object>(options.MixinData.Mixins) { interceptors };
+			if (options.Selector != null) {
+				arguments.Add(options.Selector);
+			}
+
+			return arguments;
+		}
+
+		private T BuildByInterceptor<T>() where T : BaseModel, new() {
+			var typeForProxy = typeof(T);
+			var proxyClassType = GetProxyClassType(typeForProxy);
+			var interceptor = GetInterceptor<T>();
+			var item = (T)CreateProxyClass(proxyClassType, interceptor);
+			return item;
+			/*var item = (T)_generator.CreateClassProxy(typeof(T), GetInterceptor<T>());
+			return item;*/
 		}
 
 		public T Build<T>() where T : BaseModel, new() {
-			var item = (T)_generator.CreateClassProxy(typeof(T), GetInterceptor<T>());
+			var item = BuildByInterceptor<T>();
 			item.Repository = _repository;
 			return item;
 		}

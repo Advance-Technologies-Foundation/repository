@@ -9,9 +9,9 @@
 	</PropertyGroup>
 	<ItemGroup>
 		<PackageReference Include="creatio.client" Version="1.0.18" />
-		<PackageReference Include="CreatioSDK" Version="7.17.4.2265" />
+		<PackageReference Include="CreatioSDK" Version="8.1.0.6716" />
 		<PackageReference Include="Common.Logging" Version="3.4.1" />
-		<PackageReference Include="Castle.Core" Version="4.4.1" />
+		<PackageReference Include="Castle.Core" Version="5.1.1" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="3.1.6" />
 		<PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
 	</ItemGroup>

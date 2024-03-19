@@ -81,12 +81,15 @@
 		}
 
 		private T ConvertJTokenToValue<T>(JToken token) {
-			if (token == null || (string.IsNullOrEmpty(token.ToString()) && !typeof(T).IsNullableType())) {
+			if (token == null || (string.IsNullOrEmpty(token.ToString()) && !IsNullableType(typeof(T)))) {
 				return default(T);
 			}
 			return token.ToObject<T>();
 		}
 
+		private bool IsNullableType(Type type) {
+			return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
+		}
 		private bool IsLookupDataValueType(DataValueType dataValueType) {
 			return dataValueType == DataValueType.Lookup || dataValueType == DataValueType.Enum;
 		}

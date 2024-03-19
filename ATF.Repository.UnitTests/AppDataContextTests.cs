@@ -2607,5 +2607,52 @@
 			});
 		}
 
+		[Test]
+		public void TestAssembliesCount() {
+			// Arrange
+			int iterationCount = 100;
+			Guid expectedId = Guid.NewGuid();
+			string part = "Order";
+			string expectedNumber = $"{part}Number";
+			Guid lookupRecordId = Guid.NewGuid();
+			var expectedSelect = (SelectQueryReplica)TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
+			expectedSelect.Filters.Items.Add("f1",
+				(FilterReplica)TestSelectBuilder.CreateComparisonFilter("AnotherLookupValue.Name", FilterComparisonType.StartWith, DataValueType.Text,
+					part));
+			_dataProvider
+				.GetItems(Arg.Is<SelectQueryReplica>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
+				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
+					new Dictionary<string, object>() {
+						{"Id", expectedId},
+						{"AnotherLookupValue", lookupRecordId},
+					}
+				}});
+			var expectedLookupSelect = (SelectQueryReplica)TestSelectBuilder.GetTestSelectQuery<LookupTestModel>();
+			expectedLookupSelect.Filters.Items.Add("f1",
+				(FilterReplica)TestSelectBuilder.CreateComparisonFilter("Id", FilterComparisonType.Equal, DataValueType.Guid,
+					lookupRecordId));
+			_dataProvider
+				.GetItems(Arg.Is<SelectQueryReplica>(x => QueryComparison.AreSelectQueryEqual(expectedLookupSelect, x)))
+				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
+					new Dictionary<string, object>() {
+						{"Id", lookupRecordId},
+						{"Name", expectedNumber}
+					}
+				}});
+			var dynamicAssemblyCount = AppDomain.CurrentDomain.GetAssemblies()
+				.Where(x => x.FullName.StartsWith("DynamicProxyGenAssembly2")).Select(x => x.FullName).ToList().Count;
+			var problemCount = dynamicAssemblyCount + iterationCount;
+			// Act
+			for (int i = 0; i < iterationCount; i++) {
+				var appDataContext = AppDataContextFactory.GetAppDataContext(_dataProvider);
+				var queryable = appDataContext.Models<TypedTestModel>().Where(x => x.AnotherLookupValue.Name.StartsWith(part));
+				var order = queryable.ToList().First();
+			}
+
+			// Assert
+			var actualValue = AppDomain.CurrentDomain.GetAssemblies().Where(x=>x.FullName.StartsWith("DynamicProxyGenAssembly2")).Select(x => x.FullName).ToList().Count;
+			Assert.LessOrEqual(actualValue, problemCount);
+		}
 	}
+
 }
