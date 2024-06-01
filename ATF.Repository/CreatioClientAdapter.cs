@@ -1,4 +1,6 @@
-﻿namespace ATF.Repository
+﻿using System.Net;
+
+namespace ATF.Repository
 {
 	using Creatio.Client;
 
@@ -12,6 +14,10 @@
 		private CreatioClient _creatioClient;
 		internal CreatioClientAdapter(string applicationUrl, string username, string password, bool isNetCore = false) {
 			_creatioClient = new CreatioClient(applicationUrl, username, password, isNetCore);
+		}
+	
+		internal CreatioClientAdapter(string applicationUrl, ICredentials credentials, bool isNetCore = false) {
+			_creatioClient = new CreatioClient(applicationUrl, true, credentials, isNetCore);
 		}
 
 		internal CreatioClientAdapter(string applicationUrl, string authApp, string clientId, string clientSecret, bool isNetCore = false) {
