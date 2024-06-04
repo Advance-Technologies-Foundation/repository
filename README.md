@@ -50,19 +50,19 @@ This is an external library and not a part of **Creatio** kernel.
 
 2. Use the following command to install a NuGet package:
 
-```dotnetcli
-dotnet add package ATF.Repository
-```
+	```dotnetcli
+	dotnet add package ATF.Repository
+	```
 
 3. After the command completes, look at the project file to make sure the package was installed.
 
 You can open the `.csproj` file to see the added reference:
 
-```xml
-<ItemGroup>
-  <PackageReference Include="ATF.Repository" Version="2.0.6" />
-</ItemGroup>
-```
+	```xml
+	<ItemGroup>
+	  <PackageReference Include="ATF.Repository" Version="2.0.6" />
+	</ItemGroup>
+	```
 
 ## Install as Creatio-package to the Creatio-solution
 
@@ -91,14 +91,30 @@ We can, depending on our needs, create either a local or a remote data provider.
 ```csharp
 IDataProvider localDataProvider = new LocalDataProvider(UserConnection);
 ```
-#### Creating a remote data provider (*ATF.Repository.RemoteDataProvider*):
+#### Create a remote data provider (`ATF.Repository.RemoteDataProvider`) in one of three ways:
 
-```csharp
-string url = "https://site.url";
-string login = "Login"; // Creatio User Login
-string password = "Password"; // Creatio User Password
-IDataProvider remoteDataProvider = new RemoteDataProvider(url, login, password);
-```
+- For [Cookie-based authentication](https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/authentication/authentication-basics/overview)
+	```csharp
+	string url = "https://site.url";	// Creatio site URL
+	string login = "Login"; 		// Creatio User Login
+	string password = "Password"; 		// Creatio User Password
+	IDataProvider remoteDataProvider = new RemoteDataProvider(url, login, password);
+	```
+
+- For [OAuth 2.0](https://academy.creatio.com/docs/8.x/dev/development-on-creatio-platform/integrations-and-api/authentication/oauth-2-0-authorization/identity-service-overview)
+	```csharp
+	string url = "https://site.url";		// Creatio site URL
+	string clientId = "clientId"; 			// Creatio User Login
+	string clientSecret = "secter";			// Creatio User Password
+ 	string authApp = "https://site-is.url";	// Creatio IdentityService URL
+	IDataProvider remoteDataProvider = new RemoteDataProvider(url, authApp, clientId, clientSecret);
+	```
+
+- For [NTLM user authentication](https://learn.microsoft.com/en-us/troubleshoot/windows-server/windows-security/ntlm-user-authentication)
+	```csharp
+	string url = "https://site.url";	// Creatio site URL
+	IDataProvider provider = new RemoteDataProvider(appUlr, CredentialCache.DefaultNetworkCredentials);
+	```
 
 ### Creating a repository instance:
 For creating repository instance we should use *AppDataContextFactory.GetAppDataContext*.

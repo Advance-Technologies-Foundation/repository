@@ -41,6 +41,18 @@
 			CreatioClientAdapter = new CreatioClientAdapter(applicationUrl, username, password, isNetCore);
 		}
 
+		/// <summary>
+		/// Initializes a new instance of the CreatioClient class with NTLM authentication.
+		/// </summary>
+		/// <param name="applicationUrl">Application Url (e.g.: https://somename.creatio.com)</param>
+		/// <param name="credentials">See <see cref="ICredentials"/></param>
+		/// <param name="isNetCore">Optional parameter, default value <c>false</c></param>
+		public RemoteDataProvider(string applicationUrl, ICredentials credentials, bool isNetCore = false) {
+			_applicationUrl = applicationUrl;
+			_isNetCore = isNetCore;
+			CreatioClientAdapter = new CreatioClientAdapter(applicationUrl, credentials, isNetCore);
+		}
+		
 		public RemoteDataProvider(string applicationUrl, string authApp, string clientId, string clientSecret, bool isNetCore = false) {
 			_applicationUrl = applicationUrl;
 			_isNetCore = isNetCore;
