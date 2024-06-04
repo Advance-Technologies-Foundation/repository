@@ -8,21 +8,8 @@
 		<TargetFramework>netstandard2.0</TargetFramework>
 	</PropertyGroup>
 
-	<!--Use local creatioclient, when in DEBUG, remove when CreatioCLient version 1.0.24 becomes available on nuget.org-->
-	<Choose>
-		<When Condition="'$(Configuration)' == 'Debug'">
-			<ItemGroup>
-				<ProjectReference Include="..\..\creatioclient\creatioclient\creatioclient.csproj" />
-			</ItemGroup>
-		</When>
-		<Otherwise>
-			<ItemGroup>
-				<PackageReference Include="creatio.client" Version="1.0.24" />
-			</ItemGroup>
-		</Otherwise>
-	</Choose>
-	
 	<ItemGroup Label="Nuget">
+		<PackageReference Include="creatio.client" Version="1.0.24" />
 		<PackageReference Include="CreatioSDK" Version="8.1.0.6716" />
 		<PackageReference Include="Common.Logging" Version="3.4.1" />
 		<PackageReference Include="Castle.Core" Version="5.1.1" />
