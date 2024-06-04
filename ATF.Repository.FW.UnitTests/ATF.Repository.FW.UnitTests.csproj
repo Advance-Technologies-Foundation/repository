@@ -44,9 +44,8 @@
 		  <HintPath>..\packages\Common.Logging.Core.3.4.1\lib\net40\Common.Logging.Core.dll</HintPath>
 		  <Private>True</Private>
 		</Reference>
-		<Reference Include="Creatio.Client, Version=1.0.2.4, Culture=neutral, PublicKeyToken=null">
-		  <HintPath>..\packages\creatio.client.1.0.7\lib\netstandard2.0\Creatio.Client.dll</HintPath>
-		  <Private>True</Private>
+		<Reference Include="Creatio.Client, Version=1.0.24.0, Culture=neutral, processorArchitecture=MSIL">
+		  <HintPath>..\packages\creatio.client.1.0.24\lib\netstandard2.0\Creatio.Client.dll</HintPath>
 		</Reference>
 		<Reference Include="Creatio.FeatureToggling, Version=1.0.15.0, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879, processorArchitecture=MSIL">
 		  <HintPath>..\packages\CreatioSDK.8.1.0.6716\lib\net40\Creatio.FeatureToggling.dll</HintPath>
@@ -57,9 +56,8 @@
 		  <Private>True</Private>
 		</Reference>
 		<Reference Include="mscorlib" />
-		<Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed">
-		  <HintPath>..\packages\Newtonsoft.Json.12.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
-		  <Private>True</Private>
+		<Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+		  <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
 		</Reference>
 		<Reference Include="NSubstitute, Version=4.2.0.0, Culture=neutral, PublicKeyToken=92dd2e9066daa5ca">
 		  <HintPath>..\packages\NSubstitute.4.2.2\lib\net46\NSubstitute.dll</HintPath>
