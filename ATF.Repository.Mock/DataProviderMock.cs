@@ -85,7 +85,7 @@
 
 		public IExecuteResponse BatchExecute(List<IBaseQuery> queries) {
 			queries.ForEach(ReceiveBatchQueryItem);
-			return new ExecuteResponse() {
+			return new ATF.Repository.Mock.Internal.ExecuteResponse() {
 				Success = true,
 				ErrorMessage = string.Empty,
 				QueryResults = new List<IExecuteItemResponse>()
