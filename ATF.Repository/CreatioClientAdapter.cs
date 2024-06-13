@@ -6,12 +6,17 @@ namespace ATF.Repository
 
 	public interface ICreatioClientAdapter
 	{
-		string ExecutePostRequest(string url, string requestData, int requestTimeout);
+		string ExecutePostRequest(string url, string requestData, int requestTimeout, int retryCount = 3, int retryDelay = 1);
 	}
 
 	internal class CreatioClientAdapter: ICreatioClientAdapter
 	{
-		private CreatioClient _creatioClient;
+		private ICreatioClient _creatioClient;
+		
+		internal CreatioClientAdapter(ICreatioClient client) {
+			_creatioClient = client;
+		}
+		
 		internal CreatioClientAdapter(string applicationUrl, string username, string password, bool isNetCore = false) {
 			_creatioClient = new CreatioClient(applicationUrl, username, password, isNetCore);
 		}
@@ -25,8 +30,8 @@ namespace ATF.Repository
 				CreatioClient.CreateOAuth20Client(applicationUrl, authApp, clientId, clientSecret, isNetCore);
 		}
 
-		public virtual string ExecutePostRequest(string url, string requestData, int requestTimeout) {
-			return _creatioClient.ExecutePostRequest(url, requestData, requestTimeout);
+		public virtual string ExecutePostRequest(string url, string requestData, int requestTimeout, int retryCount = 3, int retryDelay = 1) {
+			return _creatioClient.ExecutePostRequest(url, requestData, requestTimeout, retryCount, retryDelay);
 		}
 	}
 }

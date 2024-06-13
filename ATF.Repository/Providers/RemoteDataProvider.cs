@@ -1,4 +1,6 @@
-﻿namespace ATF.Repository.Providers
+﻿using Creatio.Client;
+
+namespace ATF.Repository.Providers
 {
 	using ATF.Repository.Replicas;
 	using System;
@@ -35,6 +37,13 @@
 
 		#region Constructors: Public
 
+		public RemoteDataProvider(ICreatioClient client, string applicationUrl, bool isNetCore = false) {
+			_applicationUrl = applicationUrl;
+			_isNetCore = isNetCore;
+			CreatioClientAdapter = new CreatioClientAdapter(client);
+		}
+		
+		
 		public RemoteDataProvider(string applicationUrl, string username, string password, bool isNetCore = false) {
 			_applicationUrl = applicationUrl;
 			_isNetCore = isNetCore;
@@ -52,7 +61,6 @@
 			_isNetCore = isNetCore;
 			CreatioClientAdapter = new CreatioClientAdapter(applicationUrl, credentials, isNetCore);
 		}
-		
 		public RemoteDataProvider(string applicationUrl, string authApp, string clientId, string clientSecret, bool isNetCore = false) {
 			_applicationUrl = applicationUrl;
 			_isNetCore = isNetCore;

@@ -9,7 +9,7 @@
 	</PropertyGroup>
 
 	<ItemGroup Label="Nuget">
-		<PackageReference Include="creatio.client" Version="1.0.24" />
+<!--		<PackageReference Include="creatio.client" Version="1.0.24" />-->
 		<PackageReference Include="CreatioSDK" Version="8.1.0.6716" />
 		<PackageReference Include="Common.Logging" Version="3.4.1" />
 		<PackageReference Include="Castle.Core" Version="5.1.1" />
@@ -21,5 +21,9 @@
 		<None Update="logo.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <ProjectReference Include="..\..\creatioclient\creatioclient\creatioclient.csproj" />
 	</ItemGroup>
 </Project>
