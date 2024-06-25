@@ -70,6 +70,12 @@
 
 			var featureNull = _appDataContext.Models<SysSettings>().FirstOrDefault(x => !x.IsCacheable);
 			Assert.IsNull(featureNull);
+
+			var feature2 = _appDataContext.Models<SysSettings>().FirstOrDefault(x => x.IsCacheable == true);
+			Assert.AreEqual("UseNewShell", feature2?.Code ?? "");
+
+			var featureNull2 = _appDataContext.Models<SysSettings>().FirstOrDefault(x => x.IsCacheable == false);
+			Assert.IsNull(featureNull2);
 		}
 
 		[Test]
@@ -193,6 +199,48 @@
 		}
 
 		[Test]
+		public void Get_WhenFilterByDateTime_ByEqual_ShouldReturnExpectedValues() {
+			var model = _appDataContext.Models<SysSettingsValue>().FirstOrDefault(x => x.DateTimeValue == DateTime.Now);
+			Assert.AreEqual(_sysSettingsId, model?.SysSettingsId ?? Guid.Empty);
+		}
+
+		[Test]
+		public void Get_WhenFilterByDateTime_ByGreater_ShouldReturnExpectedValues() {
+			var model = _appDataContext.Models<SysSettingsValue>().FirstOrDefault(x => x.DateTimeValue > DateTime.Now.AddDays(-1));
+			Assert.AreEqual(_sysSettingsId, model?.SysSettingsId ?? Guid.Empty);
+		}
+
+		[Test]
+		public void Get_WhenFilterByDateTime_ByGreaterOrEqual_ShouldReturnExpectedValues() {
+			var model1 = _appDataContext.Models<SysSettingsValue>().FirstOrDefault(x => x.DateTimeValue >= DateTime.Now.AddDays(-1));
+			Assert.AreEqual(_sysSettingsId, model1?.SysSettingsId ?? Guid.Empty);
+
+			var model2 = _appDataContext.Models<SysSettingsValue>().FirstOrDefault(x => x.DateTimeValue >= DateTime.Now);
+			Assert.AreEqual(_sysSettingsId, model2?.SysSettingsId ?? Guid.Empty);
+		}
+
+		[Test]
+		public void Get_WhenFilterByDateTime_ByLess_ShouldReturnExpectedValues() {
+			var model = _appDataContext.Models<SysSettingsValue>().FirstOrDefault(x => x.DateTimeValue < DateTime.Now.AddDays(1));
+			Assert.AreEqual(_sysSettingsId, model?.SysSettingsId ?? Guid.Empty);
+		}
+
+		[Test]
+		public void Get_WhenFilterByDateTime_ByLessOrEqual_ShouldReturnExpectedValues() {
+			var model1 = _appDataContext.Models<SysSettingsValue>().FirstOrDefault(x => x.DateTimeValue <= DateTime.Now.AddDays(1));
+			Assert.AreEqual(_sysSettingsId, model1?.SysSettingsId ?? Guid.Empty);
+
+			var model2 = _appDataContext.Models<SysSettingsValue>().FirstOrDefault(x => x.DateTimeValue <= DateTime.Now);
+			Assert.AreEqual(_sysSettingsId, model2?.SysSettingsId ?? Guid.Empty);
+		}
+
+		[Test]
+		public void Get_WhenFilterByDateTime_ByNotEqual_ShouldReturnExpectedValues() {
+			var featureNotEqual = _appDataContext.Models<SysSettingsValue>().FirstOrDefault(x => x.DateTimeValue != DateTime.Now.AddDays(-1));
+			Assert.AreEqual(_sysSettingsId, featureNotEqual?.SysSettingsId ?? Guid.Empty);
+		}
+
+		[Test]
 		public void Get_WhenFilterWithAnd_ShouldReturnExpectedValues() {
 			_inMemoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
 				model.SysSettingsId = _sysSettingsId;
@@ -313,7 +361,48 @@
 			});
 			var list = _appDataContext.Models<SysSettings>().Where(x => x.SysSettingsValues.Where(x=>x.BooleanValue).Max(y=>y.DateTimeValue) > DateTime.Now.AddDays(1)).ToList();
 			Assert.AreEqual(1, list.Count);
+
+			var listZero = _appDataContext.Models<SysSettings>().Where(x => x.SysSettingsValues.Where(x=>x.BooleanValue).Max(y=>y.DateTimeValue) < DateTime.Now.AddDays(1)).ToList();
+			Assert.AreEqual(0, listZero.Count);
 		}
 
+		[Test]
+		public void Get_WhenUseDetailAverageFilters_ShouldReturnExpectedValues() {
+			//var sum = typeof(Enumerable).GetMethods().Where(x => x.Name == "Sum" && x.IsGenericMethod);
+			//Expression<Func<SysSettings, bool>> action2 = x => x.SysSettingsValues.Sum(y=>y.IntegerValue) == 11;
+			_inMemoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+				model.BooleanValue = true;
+				model.TextValue = "TextValue additional";
+				model.IntegerValue = 21;
+				model.FloatValue = 12.18m;
+				model.DateTimeValue = DateTime.Now.AddDays(2);
+				model.GuidValue = Guid.NewGuid();
+				model.SysSettingsId = _sysSettingsId;
+			});
+			var list = _appDataContext.Models<SysSettings>().Where(x => x.SysSettingsValues.Where(x=>x.BooleanValue).Average(y=>y.FloatValue) > 10).ToList();
+			Assert.AreEqual(1, list.Count);
+
+			var listNull = _appDataContext.Models<SysSettings>().Where(x => x.SysSettingsValues.Where(x=>x.BooleanValue).Average(y=>y.FloatValue) < 10).ToList();
+			Assert.AreEqual(0, listNull.Count);
+		}
+
+		[Test]
+		public void Get_WhenUseDetailCountFilters_ShouldReturnExpectedValues() {
+			//var sum = typeof(Enumerable).GetMethods().Where(x => x.Name == "Sum" && x.IsGenericMethod);
+			//Expression<Func<SysSettings, bool>> action2 = x => x.SysSettingsValues.Sum(y=>y.IntegerValue) == 11;
+			_inMemoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+				model.BooleanValue = true;
+				model.TextValue = "TextValue additional";
+				model.IntegerValue = 21;
+				model.FloatValue = 12.18m;
+				model.DateTimeValue = DateTime.Now.AddDays(2);
+				model.GuidValue = Guid.NewGuid();
+				model.SysSettingsId = _sysSettingsId;
+			});
+			var list = _appDataContext.Models<SysSettings>().Where(x => x.SysSettingsValues.Where(x=>x.BooleanValue).Count() == 2).ToList();
+			Assert.AreEqual(1, list.Count);
+
+
+		}
 	}
 }

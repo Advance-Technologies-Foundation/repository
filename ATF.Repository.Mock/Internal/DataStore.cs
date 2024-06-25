@@ -160,6 +160,10 @@
 		}
 
 		private T GetTypedValue<T>(object value) {
+			if (typeof(T) == typeof(DateTime) && value is DateTime dateTimeValue) {
+				value = new DateTime(dateTimeValue.Year, dateTimeValue.Month, dateTimeValue.Day, dateTimeValue.Hour,
+					dateTimeValue.Minute, dateTimeValue.Second);
+			}
 			return (T)Convert.ChangeType(value, typeof(T));
 		}
 

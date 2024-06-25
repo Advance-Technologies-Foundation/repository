@@ -159,10 +159,13 @@
 					detailExpression, Expression.Lambda(filterExpression, nestedContext.RowExpression));
 			}
 			var columnValueType = schemaPath.Last.PathItems.Last().DataColumn.DataType;
+			var methodInfo = GetAggregationMethodInfo(filterLeftExpression.AggregationType, columnValueType);
+			if (filterLeftExpression.AggregationType == AggregationType.Count) {
+				return Expression.Call(null, methodInfo, detailExpression);
+			}
 			var subValueExpression = GetDataRowFieldExpression(nestedContext.RowExpression, schemaPath.Last.Path,
 				columnValueType);
 			var aggregationExpression = Expression.Lambda(subValueExpression, nestedContext.RowExpression);
-			var methodInfo = GetAggregationMethodInfo(filterLeftExpression.AggregationType, columnValueType);
 			return Expression.Call(null, methodInfo, detailExpression, aggregationExpression);
 		}
 
@@ -178,24 +181,37 @@
 			if (aggregationType == AggregationType.Max) {
 				return GetGenericTypedAggregationMethodInfo("Max", columnValueType);
 			}
+
+			if (aggregationType == AggregationType.Avg) {
+				return GetGenericTypedAggregationMethodInfo("Average", columnValueType);
+			}
+
+			if (aggregationType == AggregationType.Count) {
+				return GetGenericTypedAggregationMethodInfo("Count", columnValueType);
+			}
+
 			throw new NotImplementedException();
 		}
 
 		private static MethodInfo GetGenericTypedAggregationMethodInfo(string name, Type columnValueType) {
-			var methodInfo = typeof(Enumerable)
-				.GetMethods().FirstOrDefault(x =>
-					x.Name == name && x.IsGenericMethod && x.ReturnType == columnValueType);
+			var methods = typeof(Enumerable).GetMethods().Where(x=>x.Name == name).ToList();
+			var methodInfo = methods.FirstOrDefault(x =>
+					x.IsGenericMethod && x.ReturnType == columnValueType);
 			if (methodInfo != null) {
 				return methodInfo.MakeGenericMethod(typeof(DataRow));
 			}
 
-			methodInfo = typeof(Enumerable)
-				.GetMethods().FirstOrDefault(x =>
-					x.Name == name && x.IsGenericMethod && x.GetGenericArguments().Length == 2);
+			methodInfo = methods.FirstOrDefault(x =>
+					x.IsGenericMethod && x.GetGenericArguments().Length == 2);
 			if (methodInfo != null) {
 				return methodInfo.MakeGenericMethod(typeof(DataRow), columnValueType);
 			}
 
+			methodInfo = methods.FirstOrDefault(x =>
+				x.IsGenericMethod && x.GetGenericArguments().Length == 1 && x.ReturnType == typeof(int));
+			if (methodInfo != null) {
+				return methodInfo.MakeGenericMethod(typeof(DataRow));
+			}
 			throw new NotImplementedException(
 				$"Not found aggregation function {name} for result type {columnValueType.Name}");
 		}
@@ -214,7 +230,12 @@
 				Value = parameter.Value,
 				DataValueType = parameter.DataValueType
 			};
-			return p.GetValue(null);
+			var value = p.GetValue(null);
+			if (parameter.DataValueType.GetValueType() == typeof(DateTime) && value is DateTime dateTimeValue) {
+				return new DateTime(dateTimeValue.Year, dateTimeValue.Month, dateTimeValue.Day, dateTimeValue.Hour,
+					dateTimeValue.Minute, dateTimeValue.Second);
+			}
+			return value;
 		}
 
 		private static Tuple<Expression, Type> BuildCompareSchemaColumnFilterPart(ExpressionContext expressionContext, IBaseExpression schemaColumnFilter) {
