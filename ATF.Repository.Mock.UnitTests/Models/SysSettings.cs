@@ -1,6 +1,7 @@
 ﻿namespace ATF.Repository.Mock.UnitTests.Models
 {
 	using System;
+	using System.Collections.Generic;
 	using ATF.Repository.Attributes;
 
 	[Schema("SysSettings")]
@@ -29,5 +30,8 @@
 
 		[SchemaProperty("IsSSPAvailable")]
 		public bool IsSSPAvailable { get; set; }
+
+		[DetailProperty("SysSettingsId")]
+		public virtual List<SysSettingsValue> SysSettingsValues { get; set; }
 	}
 }

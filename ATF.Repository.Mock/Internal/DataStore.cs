@@ -15,7 +15,12 @@
 
 		private readonly DataSet _dataSet;
 		private readonly List<Type> _registeredModelTypes;
-		private const string DefaultPrimaryValueColumnName = "Id";
+
+		#endregion
+
+		#region Fields: Internal
+
+		internal const string DefaultPrimaryValueColumnName = "Id";
 
 		#endregion
 

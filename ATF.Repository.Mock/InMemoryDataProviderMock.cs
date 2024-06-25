@@ -90,20 +90,11 @@
 		}
 
 		private List<DataRow> GetFilteredItems(ISelectQuery selectQuery) {
-			var filteredItems = new List<DataRow>();
+
 			var table = _dataSet.Tables[selectQuery.RootSchemaName];
 			var expressionContext = new ExpressionContext(table);
-			var filterExpression = ExpressionBuilder.BuildFilter(expressionContext, selectQuery);
-			var iterationExpression = (Expression<Func<DataRow, bool>>)filterExpression;
-			Func<DataRow, bool> iterationMethod = iterationExpression.Compile();
-
-			foreach (var dataRow in table.AsEnumerable()) {
-				if (iterationMethod.Invoke(dataRow)) {
-					filteredItems.Add(dataRow);
-				}
-			}
-
-			return filteredItems;
+			var filter = ExpressionBuilder.BuildFilter(expressionContext, selectQuery);
+			return table.GetFilteredItems(filter);
 		}
 
 		#endregion

@@ -4,64 +4,51 @@
 	using System.Collections.Generic;
 	using System.Data;
 	using System.Linq;
-	using Terrasoft.Common;
+	using System.Linq.Expressions;
 	using Terrasoft.Nui.ServiceModel.DataContract;
 
 	#region Class: ExpressionBuilderExtensions
 
 	internal static class ExpressionBuilderExtensions
 	{
-		#region Class: DataPathItem
-
-		internal class DataPathItem
-		{
-			public DataTable DataTable { get; set; }
-			public DataColumn DataColumn { get; set; }
-		}
-
-		#endregion
-
-		#region Class: DataPath
-
-		internal class DataPath
-		{
-			public List<DataPathItem> Items { get; set; }
-
-			public DataPath() {
-				Items = new List<DataPathItem>();
-			}
-		}
-
-		#endregion
-
-
 		#region Methods: Private
 
-		private static void ParsePath(this DataTable dataTable, string path, Action<DataTable, DataColumn> action) {
-			var workTable = dataTable;
-			path.Split('.').ForEach(pathPart => {
-				var column = workTable.Columns[pathPart];
-				action.Invoke(workTable, column);
-				var lookupInfo = workTable.GetLookupRelationship(column.ColumnName);
-				if (lookupInfo != null) {
-					workTable = dataTable.DataSet.Tables[lookupInfo.ReferenceSchemaName];
+		private static DataRow GetLastActiveRow(this DataRow row, string path)
+		{
+			var schemaPath = row.Table.GetSchemaPath(path);
+			var activeRow = row;
+			var last = schemaPath.First.PathItems.LastOrDefault();
+			schemaPath.First.PathItems.ForEach(pathItem => {
+				if (activeRow == null || pathItem == last) {
+					return;
 				}
+				var lookupValue = activeRow.GetTypedColumnValue<Guid>(pathItem.DataColumn.ColumnName);
+				activeRow = lookupValue != Guid.Empty
+					? pathItem.LookupTable.AsEnumerable()
+						.FirstOrDefault(x =>
+							x.GetTypedColumnValue<Guid>(DataStore.DefaultPrimaryValueColumnName) == lookupValue)
+					: null;
 			});
+			return activeRow;
 		}
 
 		#endregion
 
 		#region Methods: Internal
 
-		internal static DataPath GetSchemaColumnDataPath(this DataTable dataTable, string path) {
-			var dataPath = new DataPath();
-			dataTable.ParsePath(path, (table, dataColumn) => {
-				dataPath.Items.Add(new DataPathItem() {
-					DataTable = dataTable,
-					DataColumn = dataColumn
-				});
-			});
-			return dataPath;
+		internal static T GetTypedColumnValue<T>(this DataRow row, string columnName)
+		{
+			return row.IsNull(columnName) ? default(T) : row.Field<T>(columnName);
+		}
+		internal static SchemaPath GetSchemaPath(this DataTable dataTable, string path) {
+			return PathParser.Parse(dataTable, path);
+		}
+
+		internal static Type GetSchemaPathDataType(this DataTable table, string path)
+		{
+			var schemaPath = table.GetSchemaPath(path);
+			var columnPath = schemaPath.Last ?? schemaPath.First;
+			return columnPath.PathItems.Last().DataColumn.DataType;
 		}
 
 		internal static Type GetValueType(this Terrasoft.Nui.ServiceModel.DataContract.DataValueType dataValueType) {
@@ -87,71 +74,77 @@
 				case DataValueType.Enum:
 				case DataValueType.Guid:
 					return typeof(Guid);
+				case DataValueType.DateTime:
+				case DataValueType.Date:
+				case DataValueType.Time:
+					return typeof(DateTime);
 				default:
 					throw new NotImplementedException();
 			}
 		}
+		internal static List<DataRow> GetFilteredItems(this DataTable dataTable, Expression filter) {
+			var filteredItems = new List<DataRow>();
 
-		internal static Type GetColumnPathDataType(this DataTable table, string columnPath)
-		{
-			var dataPath = table.GetSchemaColumnDataPath(columnPath);
-			return dataPath.Items.Last().DataColumn.DataType;
-		}
+			var filterExpression = (Expression<Func<DataRow, bool>>)filter;
+			Func<DataRow, bool> filterMethod = filterExpression.Compile();
 
-		internal static T GetTypedColumnValue<T>(this DataRow row, string columnName)
-		{
-			return row.IsNull(columnName) ? default(T) : row.Field<T>(columnName);
+			foreach (var dataRow in dataTable.AsEnumerable()) {
+				if (filterMethod.Invoke(dataRow)) {
+					filteredItems.Add(dataRow);
+				}
+			}
+
+			return filteredItems;
 		}
 
 		#endregion
 
 		#region Methods: Public
 
-		public static T GetTypedPathValue<T>(this DataRow row, string columnPath)
+		public static bool HasTypedPathValue(this DataRow row, string path)
 		{
-			var dataPath = row.Table.GetSchemaColumnDataPath(columnPath);
-			var activeRow = row;
-			var hasValue = true;
-			T value = default;
-			dataPath.Items.ForEach(item => {
-				if (!hasValue) {
-					return;
-				}
-				if (item != dataPath.Items.Last()) {
-					var lookupRelationship = item.DataTable.GetLookupRelationship(item.DataColumn.ColumnName);
-					var lookupValue = activeRow.GetTypedColumnValue<Guid>(item.DataColumn.ColumnName);
-					activeRow = activeRow.Table.DataSet.Tables[lookupRelationship.ReferenceSchemaName].AsEnumerable()
-						.FirstOrDefault(x => x.GetTypedColumnValue<Guid>("Id") == lookupValue);
-					if (lookupValue == Guid.Empty || activeRow == null) {
-						hasValue = false;
-					}
-				} else {
-					value = activeRow.GetTypedColumnValue<T>(item.DataColumn.ColumnName);
-				}
-			});
-			return value;
+			var schemaPath = row.Table.GetSchemaPath(path);
+			var activeRow = row.GetLastActiveRow(path);
+			var last = schemaPath.First.PathItems.LastOrDefault();
+			return activeRow != null && (schemaPath.DetailPart != null || !activeRow.IsNull(last.DataColumn));
 		}
 
-		public static bool PathHasValue(this DataRow row, string columnPath)
+		public static T GetTypedPathValue<T>(this DataRow row, string path)
 		{
-			var dataPath = row.Table.GetSchemaColumnDataPath(columnPath);
-			var activeRow = row;
-			var hasValue = true;
-			dataPath.Items.ForEach(item => {
-				hasValue = hasValue && activeRow != null && !activeRow.IsNull(item.DataColumn);
-				if (!hasValue) {
-					return;
-				}
-				var lookupRelationship = item.DataTable.GetLookupRelationship(item.DataColumn.ColumnName);
-				if (item == dataPath.Items.Last() || lookupRelationship == null ||
-					item.DataColumn.DataType != typeof(Guid)) {
-					return;
-				}
-				var lookupValue = activeRow.GetTypedColumnValue<Guid>(item.DataColumn.ColumnName);
-				activeRow = activeRow.Table.DataSet.Tables[lookupRelationship.ReferenceSchemaName].AsEnumerable()
-					.FirstOrDefault(x => x.GetTypedColumnValue<Guid>("Id") == lookupValue);
-			});
-			return hasValue;
+			T value = default;
+			if (!row.HasTypedPathValue(path)) {
+				return value;
+			}
+			var activeRow = row.GetLastActiveRow(path);
+			if (activeRow == null) {
+				return value;
+			}
+			var schemaPath = row.Table.GetSchemaPath(path);
+			var last = schemaPath.First.PathItems.Last();
+			return activeRow.GetTypedColumnValue<T>(last.DataColumn.ColumnName);
+		}
+
+		public static List<DataRow> Detail(this DataRow row, string path) {
+			var response = new List<DataRow>();
+			if (!row.HasTypedPathValue(path)) {
+				return response;
+			}
+			var schemaPath = row.Table.GetSchemaPath(path);
+			if (schemaPath?.DetailPart == null) {
+				return response;
+			}
+			var activeRow = row.GetLastActiveRow(path);
+			if (activeRow == null) {
+				return response;
+			}
+
+			var masterValue = activeRow.GetTypedColumnValue<Guid>(schemaPath.DetailPart.MasterDataColumn.ColumnName);
+			if (masterValue == Guid.Empty || schemaPath.DetailPart.DetailDataColumn.DataType != typeof(Guid)) {
+				return response;
+			}
+			var detailDataColumnName = schemaPath.DetailPart.DetailDataColumn.ColumnName;
+			return schemaPath.DetailPart.DetailDataTable.AsEnumerable()
+				.Where(x => x.GetTypedColumnValue<Guid>(detailDataColumnName) == masterValue).ToList();
 		}
 
 		#endregion
