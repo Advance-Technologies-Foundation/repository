@@ -3,10 +3,12 @@
 	using System;
 	using System.Collections.Generic;
 	using System.Data;
+	using System.Linq;
 	using System.Linq.Expressions;
 	using ATF.Repository.Mock.Internal;
 	using ATF.Repository.Providers;
 	using Terrasoft.Common;
+	using Terrasoft.Nui.ServiceModel.DataContract;
 
 	#region Class: InMemoryDataProviderMock
 
@@ -89,12 +91,17 @@
 			return ExpressionBuilder.BuildColumnValueExtractor(expressionContext, itemValue);
 		}
 
-		private List<DataRow> GetFilteredItems(ISelectQuery selectQuery) {
-
+		private List<DataRow> GetFilteredItems(ISelectQuery selectQuery, bool isAggregateQuery) {
 			var table = _dataSet.Tables[selectQuery.RootSchemaName];
 			var expressionContext = new ExpressionContext(table);
-			var filter = ExpressionBuilder.BuildFilter(expressionContext, selectQuery);
-			return table.GetFilteredItems(filter);
+			var filterExpression = ExpressionBuilder.BuildFilter(expressionContext, selectQuery);
+			var sortExpression = ExpressionBuilder.BuildSortExpression(expressionContext, selectQuery);
+			var filteredItems = table.GetFilteredItems(filterExpression);
+			return isAggregateQuery
+				? filteredItems
+				: filteredItems.GetSortedItems(expressionContext, sortExpression)
+					.SkipItems(selectQuery.RowsOffset).TakeItems(selectQuery.RowCount);
+
 		}
 
 		#endregion
@@ -106,14 +113,55 @@
 		}
 
 		public IItemsResponse GetItems(ISelectQuery selectQuery) {
-			List<DataRow> filteredItems = GetFilteredItems(selectQuery);
-			List<Dictionary<string, object>> items =
-				ConvertFilteredItemsToRequestedDictionaries(selectQuery, filteredItems);
+			var isAggregateQuery = IsSingleColumnAggregateQuery(selectQuery);
+			var filteredItems = GetFilteredItems(selectQuery, isAggregateQuery);
+			var items = isAggregateQuery
+				? ConvertFilteredItemsToAggregateDictionaries(selectQuery, filteredItems)
+				: ConvertFilteredItemsToRequestedDictionaries(selectQuery, filteredItems);
 			return new ATF.Repository.Mock.Internal.ItemsResponse() {
 				Success = true,
 				ErrorMessage = null,
 				Items = items
 			};
+		}
+
+		private List<Dictionary<string, object>> ConvertFilteredItemsToAggregateDictionaries(ISelectQuery selectQuery, List<DataRow> filteredItems) {
+			var columnPair = selectQuery.Columns.Items.First();
+			var column = columnPair.Value;
+			var table = _dataSet.Tables[selectQuery.RootSchemaName];
+			var expressionContext = new ExpressionContext(table);
+			var columnPath = column.Expression.FunctionArgument.ColumnPath;
+			var columnValuePath = table.GetSchemaPathDataType(columnPath);
+			var aggregateExpression = ExpressionBuilder.GetSingleAggregationExpression(expressionContext,
+				column.Expression.AggregationType, columnValuePath, expressionContext.RowsExpression,
+				columnPath);
+			var resultType = column.Expression.AggregationType == AggregationType.Count
+				? typeof(int)
+				: columnValuePath;
+			var genericInvokeAggregateCollectionExpressionMethod =
+				RepositoryReflectionUtilities.GetGenericMethod(GetType(), "InvokeAggregateCollectionExpression",
+					resultType);
+			var aggregateValue = genericInvokeAggregateCollectionExpressionMethod.Invoke(this,
+				new object[] { expressionContext, aggregateExpression, filteredItems });
+			return new List<Dictionary<string, object>>() {
+				new Dictionary<string, object>() {
+					{columnPair.Key, aggregateValue}
+				}
+			};
+		}
+
+		private T InvokeAggregateCollectionExpression<T>(ExpressionContext expressionContext, Expression aggregateExpression, List<DataRow> items) {
+			var aggregateLambdaExpression =
+				(Expression<Func<List<DataRow>, T>>)Expression.Lambda(aggregateExpression,
+					expressionContext.RowsExpression);
+			var aggregateMethod = aggregateLambdaExpression.Compile();
+			var response = aggregateMethod.Invoke(items);
+			return response;
+		}
+
+		private bool IsSingleColumnAggregateQuery(ISelectQuery selectQuery) {
+			var column = selectQuery.Columns.Items.First().Value;
+			return selectQuery.Columns.Items.Count == 1 && column.Expression.FunctionType != FunctionType.None;
 		}
 
 		public IExecuteResponse BatchExecute(List<IBaseQuery> queries) {

@@ -12,6 +12,7 @@
 
 	internal class DetailPathItem: IPathItem
 	{
+		public string Path { get; set; }
 		public DataTable MasterDataTable { get; set; }
 		public DataColumn MasterDataColumn { get; set; }
 		public DataTable DetailDataTable { get; set; }
@@ -65,6 +66,13 @@
 		private ColumnPath _last;
 		public ColumnPath Last => _last ?? (_last = CreateLast());
 
+		private string _fullDetailPath;
+
+		public string FullDetailPath => string.IsNullOrEmpty(_fullDetailPath)
+			? (_fullDetailPath = GetFullDetailPath())
+			: _fullDetailPath;
+
+
 		internal SchemaPath(List<IPathItem> pathItems) {
 			_pathItems = pathItems;
 		}
@@ -80,6 +88,18 @@
 			return pathItems.Any()
 				? new ColumnPath(pathItems)
 				: null;
+		}
+
+		private string GetFullDetailPath() {
+			var list = new List<string>();
+			if (First != null && !string.IsNullOrEmpty(First.Path)) {
+				list.Add(First.Path);
+			}
+
+			if (DetailPart != null && !string.IsNullOrEmpty(DetailPart.Path)) {
+				list.Add(DetailPart.Path);
+			}
+			return string.Join(PathParser.PathSeparator, list);
 		}
 
 		private ColumnPath CreateFirst() {
@@ -129,6 +149,7 @@
 				return false;
 			}
 			detailPathItem.DetailDataColumn = detailPathItem.DetailDataTable.Columns[detailColumnName];
+			detailPathItem.Path = path;
 			return true;
 		}
 

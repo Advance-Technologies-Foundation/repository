@@ -33,6 +33,37 @@
 				x.Name == "Detail" && x.GetParameters().Length == 2 &&
 				x.GetParameters()[1].ParameterType == typeof(string));
 
+		private static readonly MethodInfo OrderByMethodInfo =  typeof(Enumerable)
+			.GetMethods().First(x =>
+				x.Name == "OrderBy" && x.GetParameters().Length == 2);
+
+		private static readonly MethodInfo ThenByMethodInfo =  typeof(Enumerable)
+			.GetMethods().First(x =>
+				x.Name == "ThenBy" && x.GetParameters().Length == 2);
+
+		private static readonly MethodInfo OrderByDescendingMethodInfo =  typeof(Enumerable)
+			.GetMethods().First(x =>
+				x.Name == "OrderByDescending" && x.GetParameters().Length == 2);
+
+		private static readonly MethodInfo ThenByDescendingMethodInfo =  typeof(Enumerable)
+			.GetMethods().First(x =>
+				x.Name == "ThenByDescending" && x.GetParameters().Length == 2);
+
+		private static readonly MethodInfo StartsWithMethodInfo = typeof(string)
+			.GetMethods().First(x =>
+				x.Name == "StartsWith" && x.GetParameters().Length == 1 &&
+				x.GetParameters()[0].ParameterType == typeof(string));
+
+		private static readonly MethodInfo ContainsMethodInfo = typeof(string)
+			.GetMethods().First(x =>
+				x.Name == "Contains" && x.GetParameters().Length == 1 &&
+				x.GetParameters()[0].ParameterType == typeof(string));
+
+		private static readonly MethodInfo EndsWithMethodInfo = typeof(string)
+			.GetMethods().First(x =>
+				x.Name == "EndsWith" && x.GetParameters().Length == 1 &&
+				x.GetParameters()[0].ParameterType == typeof(string));
+
 		#endregion
 
 		#region Methods: Private
@@ -63,7 +94,30 @@
 			if (filter.FilterType == FilterType.Exists) {
 				return BuildExistsFilter(expressionContext, filter);
 			}
+
+			if (filter.FilterType == FilterType.InFilter) {
+				return BuildInFilter(expressionContext, filter);
+			}
 			throw new NotImplementedException();
+		}
+
+		private static Expression BuildInFilter(ExpressionContext expressionContext, IFilter filter) {
+			var leftExpression = BuildCompareFilterPart(expressionContext, filter.LeftExpression);
+			Expression expression = null;
+			filter.RightExpressions.ForEach(item => {
+				var rightExpression = BuildCompareFilterPart(expressionContext, item);
+				var comparisonExpression = BuildCompareFilter(filter.ComparisonType, leftExpression, rightExpression);
+				expression = expression != null
+					? Expression.Or(expression, comparisonExpression)
+					: comparisonExpression;
+			});
+			var blockExpression = Expression.Block(expression);
+			var hasValueExpression = BuildHasValueFilterPart(expressionContext, filter.LeftExpression.ExpressionType, filter.LeftExpression.ColumnPath);
+			if (hasValueExpression != null) {
+				return Expression.And(hasValueExpression, blockExpression);
+			}
+
+			return blockExpression;
 		}
 
 		private static Expression GetDetailExpression(Expression rowParameterExpression, string columnPath) {
@@ -72,12 +126,12 @@
 		}
 
 		private static Expression BuildExistsFilter(ExpressionContext expressionContext, IFilter filter) {
-			var columnPath = filter.LeftExpression.ColumnPath;
-			var schemaPath = expressionContext.ContextTable.GetSchemaPath(columnPath);
-			var hasValueExpression = BuildHasValueFilterPart(expressionContext, filter.LeftExpression);
+			var schemaPath = expressionContext.ContextTable.GetSchemaPath(filter.LeftExpression.ColumnPath);
+			var hasValueExpression = BuildHasValueFilterPart(expressionContext, filter.LeftExpression.ExpressionType,
+				schemaPath.FullDetailPath);
 			var nestedContext = expressionContext.GetNestedExpressionContext(schemaPath.DetailPart.DetailDataTable);
 			var detailExpression =
-				GetDetailExpression(expressionContext.RowExpression, filter.LeftExpression.ColumnPath);
+				GetDetailExpression(expressionContext.RowExpression, schemaPath.FullDetailPath);
 			var filterExpression = BuildFilter(nestedContext, filter.SubFilters);
 			var anyExpression = filterExpression != null
 				? Expression.Call(typeof(Enumerable), "Any", new[] { typeof(DataRow) },
@@ -91,7 +145,7 @@
 			var leftExpression = BuildCompareFilterPart(expressionContext, filter.LeftExpression);
 			var rightExpression = BuildCompareFilterPart(expressionContext, filter.RightExpression);
 			var comparisonExpression = BuildCompareFilter(filter.ComparisonType, leftExpression, rightExpression);
-			var hasValueExpression = BuildHasValueFilterPart(expressionContext, filter.LeftExpression);
+			var hasValueExpression = BuildHasValueFilterPart(expressionContext, filter.LeftExpression.ExpressionType, filter.LeftExpression.ColumnPath);
 			if (hasValueExpression != null) {
 				return Expression.And(hasValueExpression, comparisonExpression);
 			}
@@ -99,13 +153,13 @@
 			return comparisonExpression;
 		}
 
-		private static Expression BuildHasValueFilterPart(ExpressionContext expressionContext, IBaseExpression filterExpression) {
-			if (filterExpression.ExpressionType != EntitySchemaQueryExpressionType.SchemaColumn &&
-				filterExpression.ExpressionType != EntitySchemaQueryExpressionType.SubQuery) {
+		private static Expression BuildHasValueFilterPart(ExpressionContext expressionContext, EntitySchemaQueryExpressionType expressionType, string columnPath) {
+			if (expressionType != EntitySchemaQueryExpressionType.SchemaColumn &&
+				expressionType != EntitySchemaQueryExpressionType.SubQuery) {
 				return null;
 			}
 
-			var columnNameExpression = Expression.Constant(filterExpression.ColumnPath, typeof(string));
+			var columnNameExpression = Expression.Constant(columnPath, typeof(string));
 			return Expression.Call(null, HasTypedPathValueMethodInfo, expressionContext.RowExpression, columnNameExpression);
 		}
 
@@ -128,7 +182,37 @@
 			if (comparisonType == FilterComparisonType.LessOrEqual) {
 				return Expression.LessThanOrEqual(leftExpression, rightExpression);
 			}
+			if (comparisonType == FilterComparisonType.StartWith) {
+				return GetStartsWithExpression(leftExpression, rightExpression);
+			}
+			if (comparisonType == FilterComparisonType.NotStartWith) {
+				return Expression.Not(GetStartsWithExpression(leftExpression, rightExpression));
+			}
+			if (comparisonType == FilterComparisonType.EndWith) {
+				return GetEndsWithExpression(leftExpression, rightExpression);
+			}
+			if (comparisonType == FilterComparisonType.NotEndWith) {
+				return Expression.Not(GetEndsWithExpression(leftExpression, rightExpression));
+			}
+			if (comparisonType == FilterComparisonType.Contain) {
+				return GetContainsExpression(leftExpression, rightExpression);
+			}
+			if (comparisonType == FilterComparisonType.NotContain) {
+				return Expression.Not(GetContainsExpression(leftExpression, rightExpression));
+			}
 			throw new NotImplementedException();
+		}
+
+		private static Expression GetStartsWithExpression(Expression leftExpression, Expression rightExpression) {
+			return Expression.Call(leftExpression, StartsWithMethodInfo, rightExpression);
+		}
+
+		private static Expression GetEndsWithExpression(Expression leftExpression, Expression rightExpression) {
+			return Expression.Call(leftExpression, EndsWithMethodInfo, rightExpression);
+		}
+
+		private static Expression GetContainsExpression(Expression leftExpression, Expression rightExpression) {
+			return Expression.Call(leftExpression, ContainsMethodInfo, rightExpression);
 		}
 
 		private static Expression BuildCompareFilterPart(ExpressionContext expressionContext, IBaseExpression filterLeftExpression) {
@@ -152,21 +236,15 @@
 			var schemaPath = expressionContext.ContextTable.GetSchemaPath(columnPath);
 			var nestedContext = expressionContext.GetNestedExpressionContext(schemaPath.DetailPart.DetailDataTable);
 			var detailExpression =
-				GetDetailExpression(expressionContext.RowExpression, filterLeftExpression.ColumnPath);
+				GetDetailExpression(expressionContext.RowExpression, schemaPath.FullDetailPath);
 			var filterExpression = BuildFilter(nestedContext, filterLeftExpression.SubFilters);
 			if (filterExpression != null) {
 				detailExpression = Expression.Call(typeof(Enumerable), "Where", new[] { typeof(DataRow) },
 					detailExpression, Expression.Lambda(filterExpression, nestedContext.RowExpression));
 			}
 			var columnValueType = schemaPath.Last.PathItems.Last().DataColumn.DataType;
-			var methodInfo = GetAggregationMethodInfo(filterLeftExpression.AggregationType, columnValueType);
-			if (filterLeftExpression.AggregationType == AggregationType.Count) {
-				return Expression.Call(null, methodInfo, detailExpression);
-			}
-			var subValueExpression = GetDataRowFieldExpression(nestedContext.RowExpression, schemaPath.Last.Path,
-				columnValueType);
-			var aggregationExpression = Expression.Lambda(subValueExpression, nestedContext.RowExpression);
-			return Expression.Call(null, methodInfo, detailExpression, aggregationExpression);
+			return GetSingleAggregationExpression(nestedContext, filterLeftExpression.AggregationType, columnValueType,
+				detailExpression, schemaPath.Last.Path);
 		}
 
 		private static MethodInfo GetAggregationMethodInfo(AggregationType aggregationType, Type columnValueType) {
@@ -272,6 +350,7 @@
 			return responseExpression;
 		}
 
+
 		#endregion
 
 		#region Methods: Internal
@@ -282,9 +361,65 @@
 			return lambda;
 		}
 
+		internal static Expression BuildSortExpression(ExpressionContext expressionContext, ISelectQuery selectQuery) {
+			if (!selectQuery.Columns.Items.Any(x => x.Value.OrderPosition > 0)) {
+				return null;
+			}
+
+			Expression sortExpression = expressionContext.RowsExpression;
+			var columnsToSort = selectQuery.Columns.Items.Where(x => x.Value.OrderPosition >= 0)
+				.OrderBy(x => x.Value.OrderPosition).ToList();
+			var first = columnsToSort.First();
+			columnsToSort.ForEach(item => {
+				sortExpression = BuildSortExpression(expressionContext, sortExpression, item.Value, item.Value == first.Value);
+				});
+			return sortExpression;
+		}
+
+		private static Expression BuildSortExpression(ExpressionContext expressionContext, Expression sourceExpression, ISelectQueryColumn column, bool first) {
+			var methodInfoTemplate = GetSortMethodInfoTemplate(column.OrderDirection, first);
+			if (methodInfoTemplate == null) {
+				return sourceExpression;
+			}
+			var columnValueType = expressionContext.ContextTable.GetSchemaPathDataType(column.Expression.ColumnPath);
+			var nestedContext = expressionContext.GetNestedExpressionContext(expressionContext.ContextTable);
+			var subValueExpression = GetDataRowFieldExpression(nestedContext.RowExpression, column.Expression.ColumnPath,
+				columnValueType);
+			var sortLambdaExpression = Expression.Lambda(subValueExpression, nestedContext.RowExpression);
+			var methodInfo = methodInfoTemplate.MakeGenericMethod(typeof(DataRow), columnValueType);
+			return Expression.Call(null, methodInfo, sourceExpression, sortLambdaExpression);
+		}
+
+		private static MethodInfo GetSortMethodInfoTemplate(OrderDirection columnOrderDirection, bool first) {
+			switch (columnOrderDirection) {
+				case OrderDirection.Ascending:
+					return first
+						? OrderByMethodInfo
+						: ThenByMethodInfo;
+				case OrderDirection.Descending:
+					return first
+						? OrderByDescendingMethodInfo
+						: ThenByDescendingMethodInfo;
+				case OrderDirection.None:
+				default:
+					return null;
+			}
+		}
+
 		internal static Tuple<Expression, Type> BuildColumnValueExtractor(ExpressionContext expressionContext,
 			ISelectQueryColumn selectQueryColumn) {
 			return BuildCompareSchemaColumnFilterPart(expressionContext, selectQueryColumn.Expression.ColumnPath);
+		}
+
+		internal static Expression GetSingleAggregationExpression(ExpressionContext expressionContext, AggregationType aggregationType, Type columnValueType, Expression source, string path) {
+			var methodInfo = GetAggregationMethodInfo(aggregationType, columnValueType);
+			if (aggregationType == AggregationType.Count) {
+				return Expression.Call(null, methodInfo, source);
+			}
+			var subValueExpression = GetDataRowFieldExpression(expressionContext.RowExpression, path,
+				columnValueType);
+			var aggregationExpression = Expression.Lambda(subValueExpression, expressionContext.RowExpression);
+			return Expression.Call(null, methodInfo, source, aggregationExpression);
 		}
 
 		#endregion

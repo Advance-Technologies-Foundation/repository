@@ -1,5 +1,6 @@
 ﻿namespace ATF.Repository.Mock.Internal
 {
+	using System.Collections.Generic;
 	using System.Data;
 	using System.Linq.Expressions;
 
@@ -18,6 +19,7 @@
 
 		internal DataTable ContextTable { get; private set; }
 		internal ParameterExpression RowExpression { get; set; }
+		internal ParameterExpression RowsExpression { get; set; }
 
 		#endregion
 
@@ -27,6 +29,7 @@
 			_level = level;
 			ContextTable = dataTable;
 			RowExpression = Expression.Parameter(typeof(DataRow), $"row{_level}");
+			RowsExpression = Expression.Parameter(typeof(List<DataRow>), $"rows{_level}");
 		}
 
 		#endregion

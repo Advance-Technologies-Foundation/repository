@@ -11,6 +11,7 @@
 
 	internal static class ExpressionBuilderExtensions
 	{
+
 		#region Methods: Private
 
 		private static DataRow GetLastActiveRow(this DataRow row, string path)
@@ -19,7 +20,7 @@
 			var activeRow = row;
 			var last = schemaPath.First.PathItems.LastOrDefault();
 			schemaPath.First.PathItems.ForEach(pathItem => {
-				if (activeRow == null || pathItem == last) {
+				if (activeRow == null || (pathItem == last && schemaPath.DetailPart == null)) {
 					return;
 				}
 				var lookupValue = activeRow.GetTypedColumnValue<Guid>(pathItem.DataColumn.ColumnName);
@@ -95,6 +96,30 @@
 			}
 
 			return filteredItems;
+		}
+
+		internal static List<DataRow> GetSortedItems(this List<DataRow> items, ExpressionContext expressionContext, Expression sortExpression) {
+			if (!items.Any()) {
+				return items;
+			}
+
+			if (sortExpression == null) {
+				return items;
+			}
+
+			var exp = Expression.Lambda(sortExpression, expressionContext.RowsExpression);
+			var sortLambdaExpression = (Expression<Func<List<DataRow>, IOrderedEnumerable<DataRow>>>)exp;
+			var sortMethod = sortLambdaExpression.Compile();
+			var response = sortMethod.Invoke(items).ToList();
+			return response;
+		}
+
+		internal static List<DataRow> TakeItems(this List<DataRow> items, int takeCount) {
+			return takeCount < 0 ? items : items.Take(takeCount).ToList();
+		}
+
+		internal static List<DataRow> SkipItems(this List<DataRow> items, int skipCount) {
+			return skipCount <= 0 ? items : items.Skip(skipCount).ToList();
 		}
 
 		#endregion
