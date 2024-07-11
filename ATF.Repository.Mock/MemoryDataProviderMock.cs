@@ -10,19 +10,21 @@
 	using Terrasoft.Common;
 	using Terrasoft.Nui.ServiceModel.DataContract;
 
-	#region Class: InMemoryDataProviderMock
+	#region Class: MemoryDataProviderMock
 
-	public class InMemoryDataProviderMock : IDataProvider
+	public class MemoryDataProviderMock : IDataProvider
 	{
 		#region Fields: Private
 
 		private readonly DataSet _dataSet = new DataSet();
+		private readonly Dictionary<string, object> _sysSettingMockValues = new Dictionary<string, object>();
+		private readonly Dictionary<string, bool> _featureMockValues = new Dictionary<string, bool>();
 
 		#endregion
 
 		#region Properties: Public
 
-		private IDataStore _dataStore;
+		private DataStore _dataStore;
 		public IDataStore DataStore => _dataStore ?? (_dataStore = new DataStore(_dataSet));
 
 		#endregion
@@ -94,7 +96,7 @@
 		private List<DataRow> GetFilteredItems(ISelectQuery selectQuery, bool isAggregateQuery) {
 			var table = _dataSet.Tables[selectQuery.RootSchemaName];
 			var expressionContext = new ExpressionContext(table);
-			var filterExpression = ExpressionBuilder.BuildFilter(expressionContext, selectQuery);
+			var filterExpression = ExpressionBuilder.BuildQueryFilter(expressionContext, selectQuery.Filters);
 			var sortExpression = ExpressionBuilder.BuildSortExpression(expressionContext, selectQuery);
 			var filteredItems = table.GetFilteredItems(filterExpression);
 			return isAggregateQuery
@@ -104,25 +106,35 @@
 
 		}
 
-		#endregion
-
-		#region Methods: Public
-
-		public IDefaultValuesResponse GetDefaultValues(string schemaName) {
-			throw new System.NotImplementedException();
+		private void ExecuteDeleteQuery(IDeleteQuery deleteQuery) {
+			var table = _dataSet.Tables[deleteQuery.RootSchemaName];
+			var expressionContext = new ExpressionContext(table);
+			var filterExpression = ExpressionBuilder.BuildQueryFilter(expressionContext, deleteQuery.Filters);
+			var filteredItems = table.GetFilteredItems(filterExpression);
+			_dataStore.DeleteRecords(filteredItems);
 		}
 
-		public IItemsResponse GetItems(ISelectQuery selectQuery) {
-			var isAggregateQuery = IsSingleColumnAggregateQuery(selectQuery);
-			var filteredItems = GetFilteredItems(selectQuery, isAggregateQuery);
-			var items = isAggregateQuery
-				? ConvertFilteredItemsToAggregateDictionaries(selectQuery, filteredItems)
-				: ConvertFilteredItemsToRequestedDictionaries(selectQuery, filteredItems);
-			return new ATF.Repository.Mock.Internal.ItemsResponse() {
-				Success = true,
-				ErrorMessage = null,
-				Items = items
-			};
+		private void ExecuteUpdateQuery(IUpdateQuery updateQuery) {
+			var recordValues = GetSaveQueryValues(updateQuery.ColumnValues.Items);
+			var table = _dataSet.Tables[updateQuery.RootSchemaName];
+			var expressionContext = new ExpressionContext(table);
+			var filterExpression = ExpressionBuilder.BuildQueryFilter(expressionContext, updateQuery.Filters);
+			var filteredItems = table.GetFilteredItems(filterExpression);
+			_dataStore.UpdateRecords(filteredItems, recordValues);
+		}
+
+		private void ExecuteInsertQuery(IInsertQuery insertQuery) {
+			var recordValues = GetSaveQueryValues(insertQuery.ColumnValues.Items);
+			_dataStore.InsertRecord(insertQuery.RootSchemaName, recordValues);
+		}
+
+		private Dictionary<string, object> GetSaveQueryValues(Dictionary<string, IColumnExpression> columnValuesItems) {
+			var response = new Dictionary<string, object>();
+			columnValuesItems.ForEach(x => {
+				var actualValue = ValueBuilder.GetActualValue(x.Value.Parameter);
+				response.Add(x.Key, actualValue);
+			});
+			return response;
 		}
 
 		private List<Dictionary<string, object>> ConvertFilteredItemsToAggregateDictionaries(ISelectQuery selectQuery, List<DataRow> filteredItems) {
@@ -164,16 +176,71 @@
 			return selectQuery.Columns.Items.Count == 1 && column.Expression.FunctionType != FunctionType.None;
 		}
 
+		#endregion
+
+		#region Methods: Public
+
+		public IDefaultValuesResponse GetDefaultValues(string schemaName) {
+			return new Internal.DefaultValuesResponse() {
+				Success = true,
+				DefaultValues = DataStore.GetDefaultValues(schemaName)
+			};
+		}
+
+		public IItemsResponse GetItems(ISelectQuery selectQuery) {
+			var isAggregateQuery = IsSingleColumnAggregateQuery(selectQuery);
+			var filteredItems = GetFilteredItems(selectQuery, isAggregateQuery);
+			var items = isAggregateQuery
+				? ConvertFilteredItemsToAggregateDictionaries(selectQuery, filteredItems)
+				: ConvertFilteredItemsToRequestedDictionaries(selectQuery, filteredItems);
+			return new ATF.Repository.Mock.Internal.ItemsResponse() {
+				Success = true,
+				ErrorMessage = null,
+				Items = items
+			};
+		}
+
 		public IExecuteResponse BatchExecute(List<IBaseQuery> queries) {
-			throw new System.NotImplementedException();
+			queries.ForEach(query => {
+				if (query is IInsertQuery insertQuery) {
+					ExecuteInsertQuery(insertQuery);
+				}
+				if (query is IUpdateQuery updateQuery) {
+					ExecuteUpdateQuery(updateQuery);
+				}
+				if (query is IDeleteQuery deleteQuery) {
+					ExecuteDeleteQuery(deleteQuery);
+				}
+			});
+			return new Internal.ExecuteResponse() {
+				Success = true
+			};
 		}
 
+		public void MockSysSettingValue<T>(string sysSettingCode, T value) {
+			_sysSettingMockValues[sysSettingCode] = value;
+		}
 		public T GetSysSettingValue<T>(string sysSettingCode) {
-			throw new System.NotImplementedException();
+			if (_sysSettingMockValues.ContainsKey(sysSettingCode) && _sysSettingMockValues[sysSettingCode] is T typedValue) {
+				return typedValue;
+			}
+
+			if (typeof(T) == typeof(string)) {
+				return (T)Convert.ChangeType(string.Empty, typeof(T));
+			}
+
+			return default(T);
 		}
 
+		public void MockFeatureEnable(string featureCode, bool value) {
+			_featureMockValues[featureCode] = value;
+		}
 		public bool GetFeatureEnabled(string featureCode) {
-			throw new System.NotImplementedException();
+			if (_featureMockValues.TryGetValue(featureCode, out var enabled)) {
+				return enabled;
+			}
+
+			return false;
 		}
 
 		#endregion

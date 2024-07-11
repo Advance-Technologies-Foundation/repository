@@ -297,23 +297,10 @@
 		private static Expression BuildCompareParameterFilterPart(ExpressionContext expressionContext, IBaseExpression filterLeftExpression) {
 			var valueType = filterLeftExpression.Parameter.DataValueType.GetValueType();
 			var actualValueType = filterLeftExpression.Parameter.Value?.GetType() ?? null;
-			var actualValue = GetActualValue(filterLeftExpression.Parameter);
+			var actualValue = ValueBuilder.GetActualValue(filterLeftExpression.Parameter);
 			return valueType != actualValueType
 				? (Expression)Expression.Convert(Expression.Constant(actualValue), valueType)
 				: Expression.Constant(actualValue, valueType ?? actualValueType);
-		}
-
-		private static object GetActualValue(IParameter parameter) {
-			var p = new Parameter() {
-				Value = parameter.Value,
-				DataValueType = parameter.DataValueType
-			};
-			var value = p.GetValue(null);
-			if (parameter.DataValueType.GetValueType() == typeof(DateTime) && value is DateTime dateTimeValue) {
-				return new DateTime(dateTimeValue.Year, dateTimeValue.Month, dateTimeValue.Day, dateTimeValue.Hour,
-					dateTimeValue.Minute, dateTimeValue.Second);
-			}
-			return value;
 		}
 
 		private static Tuple<Expression, Type> BuildCompareSchemaColumnFilterPart(ExpressionContext expressionContext, IBaseExpression schemaColumnFilter) {
@@ -355,8 +342,8 @@
 
 		#region Methods: Internal
 
-		internal static Expression BuildFilter(ExpressionContext expressionContext, ISelectQuery selectQuery) {
-			var filterExpression = BuildFilter(expressionContext, selectQuery.Filters) ?? BuildEmptyFilterExpression(expressionContext.RowExpression);
+		internal static Expression BuildQueryFilter(ExpressionContext expressionContext, IFilterGroup filterGroup) {
+			var filterExpression = BuildFilter(expressionContext, filterGroup) ?? BuildEmptyFilterExpression(expressionContext.RowExpression);
 			var lambda = Expression.Lambda(filterExpression, expressionContext.RowExpression);
 			return lambda;
 		}

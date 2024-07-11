@@ -7,27 +7,33 @@
 	using NUnit.Framework;
 
 	[TestFixture]
-	public class InMemoryDataProviderMockTests
+	public class MemoryDataProviderMockTests
 	{
-		private InMemoryDataProviderMock _inMemoryDataProviderMock;
+		private MemoryDataProviderMock _memoryDataProviderMock;
 		private IAppDataContext _appDataContext;
+		private IAppDataContext _secondAppDataContext;
 		private Guid _sysSettingsId;
 		private Guid _sysAdminUnit;
 
+		private DateTime TrimDateTime(DateTime dateTime) {
+			return new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour, dateTime.Minute, dateTime.Second);
+		}
+
 		[SetUp]
 		public void SetUp() {
-			_inMemoryDataProviderMock = new InMemoryDataProviderMock();
-			_inMemoryDataProviderMock.DataStore.RegisterModelSchema<SysSettings>();
-			_inMemoryDataProviderMock.DataStore.RegisterModelSchema<SysSettingsValue>();
-			_inMemoryDataProviderMock.DataStore.RegisterModelSchema<SysAdminUnit>();
-			_appDataContext = AppDataContextFactory.GetAppDataContext(_inMemoryDataProviderMock);
+			_memoryDataProviderMock = new MemoryDataProviderMock();
+			_memoryDataProviderMock.DataStore.RegisterModelSchema<SysSettings>();
+			_memoryDataProviderMock.DataStore.RegisterModelSchema<SysSettingsValue>();
+			_memoryDataProviderMock.DataStore.RegisterModelSchema<SysAdminUnit>();
+			_appDataContext = AppDataContextFactory.GetAppDataContext(_memoryDataProviderMock);
+			_secondAppDataContext = AppDataContextFactory.GetAppDataContext(_memoryDataProviderMock);
 
 			_sysSettingsId = Guid.NewGuid();
 			_sysAdminUnit = Guid.NewGuid();
-			_inMemoryDataProviderMock.DataStore.AddModel<SysAdminUnit>(_sysAdminUnit, model => {
+			_memoryDataProviderMock.DataStore.AddModel<SysAdminUnit>(_sysAdminUnit, model => {
 				model.Name = "All employers";
 			});
-			_inMemoryDataProviderMock.DataStore.AddModel<SysSettings>(_sysSettingsId, model => {
+			_memoryDataProviderMock.DataStore.AddModel<SysSettings>(_sysSettingsId, model => {
 				model.Name = "Use Freedom UI interface";
 				model.Code = "UseNewShell";
 				model.Description =
@@ -36,7 +42,7 @@
 				model.IsCacheable = true;
 				model.IsPersonal = true;
 			});
-			_inMemoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
 				model.SysSettingsId = _sysSettingsId;
 				model.SysAdminUnitId = _sysAdminUnit;
 				model.BooleanValue = true;
@@ -49,7 +55,7 @@
 		}
 
 		private Guid SetUpSortData(DateTime dateTime) {
-			var sysSettings = _inMemoryDataProviderMock.DataStore.AddModel<SysSettings>(model => {
+			var sysSettings = _memoryDataProviderMock.DataStore.AddModel<SysSettings>(model => {
 				model.Name = "Use Freedom UI interface";
 				model.Code = "CoreInter";
 				model.Description = "";
@@ -58,7 +64,7 @@
 				model.IsPersonal = true;
 			});
 
-			_inMemoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
 				model.BooleanValue = true;
 				model.TextValue = "TextValue additional";
 				model.IntegerValue = 24;
@@ -67,7 +73,7 @@
 				model.GuidValue = Guid.NewGuid();
 				model.SysSettingsId = sysSettings.Id;
 			});
-			_inMemoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
 				model.BooleanValue = true;
 				model.TextValue = "TextValue additional";
 				model.IntegerValue = 22;
@@ -76,7 +82,7 @@
 				model.GuidValue = Guid.NewGuid();
 				model.SysSettingsId = sysSettings.Id;
 			});
-			_inMemoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
 				model.BooleanValue = true;
 				model.TextValue = "TextValue additional";
 				model.IntegerValue = 23;
@@ -280,7 +286,7 @@
 
 		[Test]
 		public void Get_WhenFilterWithAnd_ShouldReturnExpectedValues() {
-			_inMemoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
 				model.SysSettingsId = _sysSettingsId;
 				model.BooleanValue = true;
 				model.TextValue = "TextValue";
@@ -305,7 +311,7 @@
 
 		[Test]
 		public void Get_WhenFilterWithLookupAndTableHasNullReference_ShouldReturnExpectedValues() {
-			_inMemoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
 				model.BooleanValue = true;
 				model.TextValue = "TextValue";
 				model.IntegerValue = 21;
@@ -319,7 +325,7 @@
 
 		[Test]
 		public void Get_WhenUseSeveralFiltersWithLookupAndTableHasNullReference_ShouldReturnExpectedValues() {
-			_inMemoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
 				model.BooleanValue = true;
 				model.TextValue = "TextValue";
 				model.IntegerValue = 21;
@@ -333,7 +339,7 @@
 
 		[Test]
 		public void Get_WhenUseDetailAnyFilters_ShouldReturnExpectedValues() {
-			_inMemoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
 				model.BooleanValue = true;
 				model.TextValue = "TextValue";
 				model.IntegerValue = 21;
@@ -357,7 +363,7 @@
 
 		[Test]
 		public void Get_WhenUseDetailSumFilters_ShouldReturnExpectedValues() {
-			_inMemoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
 				model.BooleanValue = true;
 				model.TextValue = "TextValue";
 				model.IntegerValue = 21;
@@ -372,7 +378,7 @@
 
 		[Test]
 		public void Get_WhenUseDetailMinFilters_ShouldReturnExpectedValues() {
-			_inMemoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
 				model.BooleanValue = true;
 				model.TextValue = "TextValue additional";
 				model.IntegerValue = 21;
@@ -387,7 +393,7 @@
 
 		[Test]
 		public void Get_WhenUseDetailMaxFilters_ShouldReturnExpectedValues() {
-			_inMemoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
 				model.BooleanValue = true;
 				model.TextValue = "TextValue additional";
 				model.IntegerValue = 21;
@@ -405,7 +411,7 @@
 
 		[Test]
 		public void Get_WhenUseDetailAverageFilters_ShouldReturnExpectedValues() {
-			_inMemoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
 				model.BooleanValue = true;
 				model.TextValue = "TextValue additional";
 				model.IntegerValue = 21;
@@ -423,7 +429,7 @@
 
 		[Test]
 		public void Get_WhenUseDetailCountFilters_ShouldReturnExpectedValues() {
-			_inMemoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
 				model.BooleanValue = true;
 				model.TextValue = "TextValue additional";
 				model.IntegerValue = 21;
@@ -442,7 +448,7 @@
 
 		[Test]
 		public void Get_WhenUseDetailWithDetailSubFiltersFilters_ShouldReturnExpectedValues() {
-			_inMemoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
 				model.BooleanValue = true;
 				model.TextValue = "TextValue additional";
 				model.IntegerValue = 21;
@@ -452,16 +458,16 @@
 				model.SysSettingsId = _sysSettingsId;
 			});
 
-			var supervisorSysAdminUnit = _inMemoryDataProviderMock.DataStore.AddModel<SysAdminUnit>(model => {
+			var supervisorSysAdminUnit = _memoryDataProviderMock.DataStore.AddModel<SysAdminUnit>(model => {
 				model.Name = "Supervisor";
 			});
-			var oldShellSysSetting = _inMemoryDataProviderMock.DataStore.AddModel<SysSettings>(model => {
+			var oldShellSysSetting = _memoryDataProviderMock.DataStore.AddModel<SysSettings>(model => {
 				model.Code = "UseOldShell";
 				model.ValueTypeName = "Boolean";
 				model.IsCacheable = true;
 				model.IsPersonal = true;
 			});
-			_inMemoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
 				model.BooleanValue = true;
 				model.TextValue = "TextValue additional";
 				model.IntegerValue = 21;
@@ -638,7 +644,7 @@
 		[Test]
 		public void Get_WhenUseMinDateTime_ShouldReturnExpectedValues() {
 			var dt = DateTime.Now;
-			var expectedValue = new DateTime(dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second);
+			var expectedValue = TrimDateTime(dt);
 			var sysSettingsId = SetUpSortData(dt);
 			var min = _appDataContext.Models<SysSettingsValue>()
 				.Where(x => x.SysSettingsId == sysSettingsId).Min(x=>x.DateTimeValue);
@@ -664,11 +670,77 @@
 		[Test]
 		public void Get_WhenUseMaxDateTime_ShouldReturnExpectedValues() {
 			var dt = DateTime.Now;
-			var expectedValue = new DateTime(dt.Year, dt.Month, dt.Day, dt.Hour, dt.Minute, dt.Second).AddDays(2);
+			var expectedValue = TrimDateTime(dt).AddDays(2);
 			var sysSettingsId = SetUpSortData(dt);
 			var max = _appDataContext.Models<SysSettingsValue>()
 				.Where(x => x.SysSettingsId == sysSettingsId).Max(x=>x.DateTimeValue);
 			Assert.AreEqual(expectedValue, max);
+		}
+
+		[Test]
+		public void CreateNewModel_ShouldReturnExpectedValues() {
+			var floatValue = 20.21m;
+			var booleanValue = true;
+			var intValue = 10;
+			var guidValue = Guid.NewGuid();
+			var dateTimeValue = TrimDateTime(DateTime.Now);
+			var textValue = Guid.NewGuid().ToString();
+			var model = _appDataContext.CreateModel<SysSettingsValue>();
+			model.SysAdminUnitId = _sysAdminUnit;
+			model.FloatValue = floatValue;
+			model.BooleanValue = booleanValue;
+			model.IntegerValue = intValue;
+			model.GuidValue = guidValue;
+			model.DateTimeValue = dateTimeValue;
+			model.TextValue = textValue;
+			var response = _appDataContext.Save();
+			Assert.AreEqual(true, response.Success);
+			var createdModel = _secondAppDataContext.GetModel<SysSettingsValue>(model.Id);
+			Assert.AreEqual(floatValue, createdModel.FloatValue);
+			Assert.AreEqual(booleanValue, createdModel.BooleanValue);
+			Assert.AreEqual(intValue, createdModel.IntegerValue);
+			Assert.AreEqual(guidValue, createdModel.GuidValue);
+			Assert.AreEqual(dateTimeValue, createdModel.DateTimeValue);
+			Assert.AreEqual(textValue, createdModel.TextValue);
+			Assert.AreEqual(_sysAdminUnit, createdModel.SysAdminUnitId);
+		}
+
+		[Test]
+		public void UpdateExistedModel_ShouldReturnExpectedValues() {
+			var floatValue = 30.21m;
+			var booleanValue = true;
+			var intValue = 20;
+			var guidValue = Guid.NewGuid();
+			var dateTimeValue = TrimDateTime(DateTime.Now.AddDays(-5));
+			var textValue = Guid.NewGuid().ToString();
+			var model = _appDataContext.Models<SysSettingsValue>().FirstOrDefault(x=>x.SysSettingsId == _sysSettingsId);
+			model.SysAdminUnitId = _sysAdminUnit;
+			model.FloatValue = floatValue;
+			model.BooleanValue = booleanValue;
+			model.IntegerValue = intValue;
+			model.GuidValue = guidValue;
+			model.DateTimeValue = dateTimeValue;
+			model.TextValue = textValue;
+			var response = _appDataContext.Save();
+			Assert.AreEqual(true, response.Success);
+			var updatedModel = _secondAppDataContext.GetModel<SysSettingsValue>(model.Id);
+			Assert.AreEqual(floatValue, updatedModel.FloatValue);
+			Assert.AreEqual(booleanValue, updatedModel.BooleanValue);
+			Assert.AreEqual(intValue, updatedModel.IntegerValue);
+			Assert.AreEqual(guidValue, updatedModel.GuidValue);
+			Assert.AreEqual(dateTimeValue, updatedModel.DateTimeValue);
+			Assert.AreEqual(textValue, updatedModel.TextValue);
+			Assert.AreEqual(_sysAdminUnit, updatedModel.SysAdminUnitId);
+		}
+
+		[Test]
+		public void DeleteExistedModel_ShouldReturnExpectedValues() {
+			var model = _appDataContext.Models<SysSettingsValue>().FirstOrDefault(x=>x.SysSettingsId == _sysSettingsId);
+			_appDataContext.DeleteModel(model);
+			var response = _appDataContext.Save();
+			Assert.AreEqual(true, response.Success);
+			var createdModel = _secondAppDataContext.GetModel<SysSettingsValue>(model.Id);
+			Assert.IsNull(createdModel);
 		}
 	}
 }

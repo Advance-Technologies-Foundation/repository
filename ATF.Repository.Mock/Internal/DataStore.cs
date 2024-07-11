@@ -16,11 +16,20 @@
 		private readonly DataSet _dataSet;
 		private readonly List<Type> _registeredModelTypes;
 
+		private readonly List<string> _defaultColumnNames = new List<string>()
+			{ "Id", "CreatedOn", "CreatedBy", "ModifiedOn", "ModifiedBy", "ProcessListeners" };
+
 		#endregion
 
 		#region Fields: Internal
 
 		internal const string DefaultPrimaryValueColumnName = "Id";
+
+		#endregion
+
+		#region Properties: Public
+
+		public bool EmulateSystemColumnsBehavior { get; set; }
 
 		#endregion
 
@@ -141,17 +150,59 @@
 			SetRawDataToDataSet(schemaName, values);
 		}
 
+		private void SetModelDataToDefaultValues<T>(T model) where T : BaseModel, new() {
+			var schemaName = GetRegisteredSchemaName(model.GetType());
+			var table = FetchDataTable(schemaName);
+			ModelMapper.GetProperties(typeof(T)).ForEach(propertyItem => {
+				if (EmulateSystemColumnsBehavior && IsSystemColumn(propertyItem.EntityColumnName)) {
+					return;
+				}
+				var column = table.Columns.Contains(propertyItem.EntityColumnName)
+					? table.Columns[propertyItem.EntityColumnName]
+					: null;
+				if (column == null) {
+					return;
+				}
+				var propertyValue = propertyItem.PropertyInfo.GetValue(model);
+				if (IsNotDefaultValue(propertyItem.PropertyInfo.PropertyType, propertyValue)) {
+					column.DefaultValue = GetTypedValue(propertyItem.PropertyInfo.PropertyType, propertyValue);
+				}
+			});
+		}
+
+		private bool IsSystemColumn(string columnName) {
+			return _defaultColumnNames.Contains(columnName);
+		}
+
+		private bool IsNotDefaultValue(Type type, object value) {
+			var method = RepositoryReflectionUtilities.GetGenericMethod(GetType(), "IsNotDefaultValue", type);
+			return (bool)method.Invoke(this, new object[] { value });
+		}
+
+		private bool IsNotDefaultValue<T>(object value) {
+			var def = default(T);
+			if (value == null) {
+				return false;
+			}
+			return def != null && value is T typedValue && def.Equals(typedValue);
+		}
+
+
 		private void SetRawDataToDataSet(string schemaName, Dictionary<string, object> values) {
 			var dataTable = FetchDataTable(schemaName);
 			var row = dataTable.NewRow();
+			SetValueToDataRow(row, values);
+			dataTable.Rows.Add(row);
+		}
+
+		private void SetValueToDataRow(DataRow dataRow, Dictionary<string, object> values) {
 			values.ForEach(item => {
-				if (!dataTable.Columns.Contains(item.Key)) {
+				if (!dataRow.Table.Columns.Contains(item.Key)) {
 					return;
 				}
-				var value = GetTypedValue(dataTable.Columns[item.Key].DataType, item.Value);
-				row[item.Key] = value;
+				var value = GetTypedValue(dataRow.Table.Columns[item.Key].DataType, item.Value);
+				dataRow[item.Key] = value;
 			});
-			dataTable.Rows.Add(row);
 		}
 
 		private object GetTypedValue(Type dataType, object value) {
@@ -161,10 +212,58 @@
 
 		private T GetTypedValue<T>(object value) {
 			if (typeof(T) == typeof(DateTime) && value is DateTime dateTimeValue) {
-				value = new DateTime(dateTimeValue.Year, dateTimeValue.Month, dateTimeValue.Day, dateTimeValue.Hour,
-					dateTimeValue.Minute, dateTimeValue.Second);
+				value = dateTimeValue.TrimMilliseconds();
+			}
+
+			if (typeof(T) == typeof(Guid) && value == null) {
+				value = Guid.Empty;
 			}
 			return (T)Convert.ChangeType(value, typeof(T));
+		}
+
+		private Dictionary<string, object> GetActualInsertingValues(Dictionary<string, object> values) {
+			if (!values.ContainsKey(DefaultPrimaryValueColumnName)) {
+					values.Add(DefaultPrimaryValueColumnName, Guid.NewGuid());
+			}
+			if (!EmulateSystemColumnsBehavior) {
+				return values;
+			}
+			if (values.ContainsKey("CreatedOn")) {
+				values["CreatedOn"] = DateTime.Now.TrimMilliseconds();
+			}
+			if (values.ContainsKey("ModifiedOn")) {
+				values["ModifiedOn"] = DateTime.Now.TrimMilliseconds();
+			}
+			return values;
+		}
+
+		private Dictionary<string, object> GetActualUpdatingValues(Dictionary<string, object> values) {
+			if (!EmulateSystemColumnsBehavior) {
+				return values.Where(x => x.Key != DefaultPrimaryValueColumnName).ToDictionary(x => x.Key, x => x.Value);
+			}
+			var actualValues = values.Where(x => !IsSystemColumn(x.Key)).ToDictionary(x => x.Key, x => x.Value);
+			if (values.ContainsKey("ModifiedOn")) {
+				actualValues["ModifiedOn"] = DateTime.Now.TrimMilliseconds();
+			}
+			return actualValues;
+		}
+
+		#endregion
+
+		#region Methods: Internal
+
+		internal void InsertRecord(string schemaName, Dictionary<string, object> values) {
+			var actualValues = GetActualInsertingValues(values);
+			AddModelRawData(schemaName, new List<Dictionary<string, object>>() {actualValues});
+		}
+
+		internal void UpdateRecords(List<DataRow> rows, Dictionary<string, object> values) {
+			var actualValues = GetActualUpdatingValues(values);
+			rows.ForEach(row=> SetValueToDataRow(row, actualValues));
+		}
+
+		internal void DeleteRecords(List<DataRow> rows) {
+			rows.ForEach(row => row.Delete());
 		}
 
 		#endregion
@@ -179,13 +278,34 @@
 			types.ForEach(RegisterModelSchemaInDataStore);
 		}
 
+		public void SetDefaultValues<T>(Action<T> action) where T : BaseModel, new() {
+			var model = new T {
+				Id = Guid.NewGuid()
+			};
+			action.Invoke(model);
+			SetModelDataToDefaultValues(model);
+		}
+
+		public Dictionary<string, object> GetDefaultValues(string schemaName) {
+			var response = new Dictionary<string, object>();
+			var dataTable = FetchDataTable(schemaName);
+			foreach (DataColumn column in dataTable.Columns) {
+				if (IsNotDefaultValue(column.DataType, column.DefaultValue)) {
+					response.Add(column.ColumnName, column.DefaultValue);
+				}
+			}
+
+			return response;
+		}
+
 		public T AddModel<T>(Action<T> action) where T : BaseModel, new() {
 			return AddModel<T>(Guid.NewGuid(), action);
 		}
 
 		public T AddModel<T>(Guid recordId, Action<T> action) where T : BaseModel, new() {
-			var model = new T();
-			model.Id = recordId;
+			var model = new T {
+				Id = recordId
+			};
 			action.Invoke(model);
 			SetModelDataToDataSet(model);
 			return model;
@@ -193,11 +313,12 @@
 
 
 		public void AddModelRawData<T>(List<Dictionary<string, object>> recordList) where T : BaseModel {
-			throw new NotImplementedException();
+			var schemaName = GetRegisteredSchemaName(typeof(T));
+			AddModelRawData(schemaName, recordList);
 		}
 
 		public void AddModelRawData(string schemaName, List<Dictionary<string, object>> recordList) {
-			throw new NotImplementedException();
+			recordList.ForEach(recordValues => SetRawDataToDataSet(schemaName, recordValues));
 		}
 
 		#endregion

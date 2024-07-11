@@ -1,11 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace ATF.Repository.Mock.Internal
+﻿namespace ATF.Repository.Mock.Internal
 {
-
-
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
 
 	internal class MockSavingItem: IMockSavingItem
 	{

@@ -59,6 +59,12 @@
 				case DataValueType.MediumText:
 				case DataValueType.LongText:
 				case DataValueType.RichText:
+				case DataValueType.HashText:
+				case DataValueType.SecureText:
+				case DataValueType.MaxSizeText:
+				case DataValueType.PhoneText:
+				case DataValueType.WebText:
+				case DataValueType.EmailText:
 					return typeof(string);
 				case DataValueType.Boolean:
 					return typeof(bool);
@@ -68,6 +74,7 @@
 				case DataValueType.Float3:
 				case DataValueType.Float4:
 				case DataValueType.Float8:
+				case DataValueType.Money:
 					return typeof(decimal);
 				case DataValueType.Integer:
 					return typeof(int);
@@ -79,10 +86,33 @@
 				case DataValueType.Date:
 				case DataValueType.Time:
 					return typeof(DateTime);
+				case DataValueType.Blob:
+				case DataValueType.Image:
+				case DataValueType.Object:
+				case DataValueType.ImageLookup:
+				case DataValueType.ValueList:
+				case DataValueType.Color:
+				case DataValueType.LocalizableStringDataValueType:
+				case DataValueType.EntityDataValueType:
+				case DataValueType.EntityCollectionDataValueType:
+				case DataValueType.EntityColumnMappingCollectionDataValueType:
+				case DataValueType.File:
+				case DataValueType.Mapping:
+				case DataValueType.LocalizableParameterValuesListDataValueType:
+				case DataValueType.MetaDataTextDataValueType:
+				case DataValueType.ObjectList:
+				case DataValueType.CompositeObjectList:
+				case DataValueType.FileLocator:
 				default:
 					throw new NotImplementedException();
 			}
 		}
+
+		internal static DateTime TrimMilliseconds(this DateTime dateTime) {
+			return new DateTime(dateTime.Year, dateTime.Month, dateTime.Day, dateTime.Hour,
+				dateTime.Minute, dateTime.Second);
+		}
+
 		internal static List<DataRow> GetFilteredItems(this DataTable dataTable, Expression filter) {
 			var filteredItems = new List<DataRow>();
 
