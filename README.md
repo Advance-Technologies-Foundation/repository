@@ -33,14 +33,24 @@ This is an external library and not a part of **Creatio** kernel.
 	- [Work with Creatio Feature Toggling](#work-with-creatio-feature-toggling)
 	- [Work with Creatio System Settings](#work-with-creatio-system-settings)
 - [Testing](#testing)
-	- [Check model using ChangeTracker](#check-model-using-ChangeTracker)
-	- [Using mocking data provider](#using-mocking-data-provider)
+	- [Check model using ChangeTracker](#check-models-using-ChangeTracker)
+	- [Using mocking data provider](#use-mocking-data-provider)
 		- [Mocking Model default values](#mocking-model-default-values)
 		- [Mocking Get Models result](#mocking-get-models-result)
 		- [Mocking Scalar result](#mocking-scalar-result)
 		- [Mocking Save result](#mocking-save-result)
 		- [Mocking System Setting value](#mocking-system-setting-value)
 		- [Mocking Feature status](#mocking-feature-status)
+	- [Use memory mocking data provider](#use-memory-mocking-data-provider)
+		- [What is DataStore](#what-is-datastore)
+			- [Regiser models in the DataStore](#regiser-models-in-the-datastore)
+			- [Set default values in the DataStore](#set-default-values-in-the-datastore)
+			- [Add a record to the DataStore](#add-a-record-to-the-datastore)
+			- [Add multiple records to the DataStore](#add-multiple-records-to-the-datastore)
+		- [Memory mocking System Setting value](#memory-mocking-system-setting-value)
+		- [Memory mocking Feature status](#memory-mocking-feature-status)
+		
+		
 
 # Installation
 
@@ -391,7 +401,22 @@ var limitInMinutes = response.Value;
 
 # Testing
 
-Testing it is an important part of the full development cycle. To be sure your application works correctly, you can write tests with using one of two testing strategies: tracking of Model changes or using mocking data provider. 
+Testing it is an important part of the full development cycle. To be sure your application works correctly, you can write tests with using one of two testing strategies: tracking of Model changes or using specified mocking data providers. 
+
+Everything you need for tracking of Model changes is already included in the `ATF.Repository` nuget package.
+To work with specified mocking data providers, you need to install an additional nuget package, `ATF.Repository.Mock`(https://www.nuget.org/packages/ATF.Repository.Mock).
+
+`ATF.Repository.Mock` is a powerful tool for mocking all interactions with data.
+
+First you need to install that package to your unit-test project.
+
+```dotnetcli
+dotnet add package ATF.Repository.Mock
+```
+Then you will be able to use the two specified mocking data providers:
+- `DataProviderMock` - This is a mock provider that allows mocking requests to the data provider based on a filter and returning preconfigured responses. The responses can be filtered depending on the filtering conditions in the main request.
+- `MemoryDataProviderMock` - This mock provider emulates working with a database. It allows registering records in the DataStore and returns those that match the filtering conditions. It is worth noting that unlike the previous version, this mock provider fully supports CUD operations on records.
+
 
 ## Check models using ChangeTracker
 
@@ -452,11 +477,7 @@ var newCount = trackedModels.Count(x => x.GetStatus() == ModelState.New);
 
 ## Use mocking data provider
 
-Another way to be sure your application works correctly is testing your solution using mocking data provider. To use that way you have to use new nuget package `ATF.Repository.Mock` (https://www.nuget.org/packages/ATF.Repository.Mock).
-
-`ATF.Repository.Mock` is a powerful tool for mocking all interactions with data.
-
-First you need to install that package to your unit-test project.
+To use mocking data provider `DataProviderMock` you need to install nuget-package `ATF.Repository.Mock` to your unit-test project.
 
 ```dotnetcli
 dotnet add package ATF.Repository.Mock
@@ -666,6 +687,148 @@ var response = _appDataContext.GetSysSettingValue<int>("SystemSettingsCode");
 ```csharp
 dataProviderMock.MockFeatureEnable("FirstFeature", true);
 dataProviderMock.MockFeatureEnable("SecondFeature", false);
+
+var firstResponse = appDataContext.GetFeatureEnabled("FirstFeature");
+// firstResponse.Enabled will be equal true;
+
+var secondResponse = appDataContext.GetFeatureEnabled("SecondFeature");
+// secondResponse.Enabled will be equal false;
+```
+
+## Use memory mocking data provider
+
+To use mocking data provider `MemoryDataProviderMock` you need to install nuget-package `ATF.Repository.Mock` to your unit-test project.
+
+```dotnetcli
+dotnet add package ATF.Repository.Mock
+```
+Then you will be able to use `MemoryDataProviderMock` class.
+
+Unlike using `DataProviderMock`, where you emulate responses to expected requests, `MemoryDataProviderMock` allows you to have a full-fledged in-memory database that supports CRUD operations. This capability exists due to interaction with data through `IDataStore`.
+
+```csharp
+var memoryDataProviderMock = new MemoryDataProviderMock();
+var appDataContext = AppDataContextFactory.GetAppDataContext(memoryDataProviderMock);
+```
+
+## What is DataStore
+
+`IDataStore` - is a tool that allows registering models in the database, filling them with default values, and adding records both individually and in large collections. It is a tool that answers the question: how to write tests without relying on an unknown implementation yet.
+
+Access to `IDataStore` is achieved through the corresponding property of `MemoryDataProviderMock`.
+
+```csharp
+var memoryDataProviderMock = new MemoryDataProviderMock();
+var dataStore = memoryDataProviderMock.DataStore;
+```
+
+### Regiser models in the DataStore
+
+To register a model, it is sufficient to call the corresponding method `RegisterModelSchema` of the `IDataStore` interface.
+
+```csharp
+var memoryDataProviderMock = new MemoryDataProviderMock();
+memoryDataProviderMock.DataStore.RegisterModelSchema<MyModel>();
+```
+
+If you have an entire collection of models, you can use a method that accepts a collection of models for registration.
+
+```csharp
+var memoryDataProviderMock = new MemoryDataProviderMock();
+memoryDataProviderMock.DataStore.RegisterModelSchema(typeof(MyModel1), typeof(MyModel2), typeof(MyModel3));
+```
+
+### Set default values in the DataStore
+
+To set the values with which a model will be created, you can use the corresponding method `SetDefaultValues` of the `IDataStore` interface. This action allows you to fill a reference model with values that will become the default for each subsequently created model of that type.
+
+```csharp
+var memoryDataProviderMock = new MemoryDataProviderMock();
+_memoryDataProviderMock.DataStore.SetDefaultValues<MyModel>(model => {
+	model.Code = "Default code";
+	model.OwnerId = ownerId;
+});
+
+var appDataContext = AppDataContextFactory.GetAppDataContext(memoryDataProviderMock);
+var model = appDataContext.CreateModel<MyModel>();
+// model.Code will be equal "Default code"
+
+```
+
+### Add a record to the DataStore
+
+To add a single record, there is a convenient method `AddModel` of the `IDataStore` interface, which allows registering a model record in the in-memory database. In this case, the record's identifier will be generated automatically.
+
+```csharp
+var memoryDataProviderMock = new MemoryDataProviderMock();
+_memoryDataProviderMock.DataStore.AddModel<MyModel>(model => {
+	model.BooleanValue = true;
+	model.TextValue = "TextValue";
+	model.IntegerValue = 11;
+	model.FloatValue = 12.18m;
+	model.DateTimeValue = DateTime.Now;
+	model.GuidValue = Guid.NewGuid();
+});
+```
+
+If you want to explicitly specify the identifier, you can do so using the same method.
+
+```csharp
+var memoryDataProviderMock = new MemoryDataProviderMock();
+memoryDataProviderMock.DataStore.AddModel<MyModel>(myRecordId, model => {
+	model.Name = "My record";
+});
+```
+
+### Add multiple records to the DataStore
+
+If you wish to register multiple records at once, you can use the method `AddModelRawData` of the `IDataStore` interface. This method accepts a list of collections of column values and registers one record for each such collection.
+
+```csharp
+
+var list = new List<Dictionary<string, object>>() {
+	new Dictionary<string, object>() {
+		{"Id", record1Id},
+		{"Name", "Name 1"},
+		{"Code", "Code1"}
+	},
+	new Dictionary<string, object>() {
+		{"Id", record2Id},
+		{"Name", "Name 2"},
+		{"Code", "Code2"}
+	}
+};
+var memoryDataProviderMock = new MemoryDataProviderMock();
+memoryDataProviderMock.DataStore.AddModelRawData("MyModel", list);
+// or
+memoryDataProviderMock.DataStore.AddModelRawData<MyModel>(list);
+
+```
+
+## Memory mocking System Setting value
+
+```csharp
+var memoryDataProviderMock = new MemoryDataProviderMock();
+
+memoryDataProviderMock.MockSysSettingValue("SystemSettingsCode", 180);
+
+var appDataContext = AppDataContextFactory.GetAppDataContext(memoryDataProviderMock);
+
+var response = appDataContext.GetSysSettingValue<int>("SystemSettingsCode");
+
+// response.Value will be equal 180;
+```
+
+## Memory mocking Feature status
+
+```csharp
+
+var memoryDataProviderMock = new MemoryDataProviderMock();
+
+memoryDataProviderMock.MockFeatureEnable("FirstFeature", true);
+memoryDataProviderMock.MockFeatureEnable("SecondFeature", false);
+
+var appDataContext = AppDataContextFactory.GetAppDataContext(memoryDataProviderMock);
 
 var firstResponse = appDataContext.GetFeatureEnabled("FirstFeature");
 // firstResponse.Enabled will be equal true;

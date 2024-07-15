@@ -9,7 +9,6 @@
 		void RegisterModelSchema<T>() where T : BaseModel;
 		void RegisterModelSchema(params Type[] types);
 		void SetDefaultValues<T>(Action<T> action) where T : BaseModel, new();
-		Dictionary<string, object> GetDefaultValues(string schemaName);
 		T AddModel<T>(Action<T> action) where T : BaseModel, new();
 		T AddModel<T>(Guid recordId, Action<T> action) where T : BaseModel, new();
 		void AddModelRawData<T>(List<Dictionary<string, object>> recordList) where T : BaseModel;

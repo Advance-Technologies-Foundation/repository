@@ -266,6 +266,17 @@
 			rows.ForEach(row => row.Delete());
 		}
 
+		internal Dictionary<string, object> GetDefaultValues(string schemaName) {
+			var response = new Dictionary<string, object>();
+			var dataTable = FetchDataTable(schemaName);
+			foreach (DataColumn column in dataTable.Columns) {
+				if (IsNotDefaultValue(column.DataType, column.DefaultValue)) {
+					response.Add(column.ColumnName, column.DefaultValue);
+				}
+			}
+			return response;
+		}
+
 		#endregion
 
 		#region Methods: Public
@@ -284,18 +295,6 @@
 			};
 			action.Invoke(model);
 			SetModelDataToDefaultValues(model);
-		}
-
-		public Dictionary<string, object> GetDefaultValues(string schemaName) {
-			var response = new Dictionary<string, object>();
-			var dataTable = FetchDataTable(schemaName);
-			foreach (DataColumn column in dataTable.Columns) {
-				if (IsNotDefaultValue(column.DataType, column.DefaultValue)) {
-					response.Add(column.ColumnName, column.DefaultValue);
-				}
-			}
-
-			return response;
 		}
 
 		public T AddModel<T>(Action<T> action) where T : BaseModel, new() {

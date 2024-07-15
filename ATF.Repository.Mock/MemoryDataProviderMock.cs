@@ -183,7 +183,7 @@
 		public IDefaultValuesResponse GetDefaultValues(string schemaName) {
 			return new Internal.DefaultValuesResponse() {
 				Success = true,
-				DefaultValues = DataStore.GetDefaultValues(schemaName)
+				DefaultValues = _dataStore.GetDefaultValues(schemaName)
 			};
 		}
 

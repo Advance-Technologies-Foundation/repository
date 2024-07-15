@@ -42,6 +42,7 @@
 				model.IsCacheable = true;
 				model.IsPersonal = true;
 			});
+
 			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
 				model.SysSettingsId = _sysSettingsId;
 				model.SysAdminUnitId = _sysAdminUnit;
@@ -741,6 +742,36 @@
 			Assert.AreEqual(true, response.Success);
 			var createdModel = _secondAppDataContext.GetModel<SysSettingsValue>(model.Id);
 			Assert.IsNull(createdModel);
+		}
+
+		[Test]
+		public void AddModelRawData_ShouldRegisterExpectedRecords() {
+			var sysSettings1Id = Guid.NewGuid();
+			var sysSettings2Id = Guid.NewGuid();
+			var list = new List<Dictionary<string, object>>() {
+				new Dictionary<string, object>() {
+					{"Id", sysSettings1Id},
+					{"Name", sysSettings1Id.ToString()},
+					{"Code", sysSettings1Id.ToString()}
+				},
+				new Dictionary<string, object>() {
+					{"Id", sysSettings2Id},
+					{"Name", sysSettings2Id.ToString()},
+					{"Code", sysSettings2Id.ToString()}
+				}
+			};
+			// Act
+			_memoryDataProviderMock.DataStore.AddModelRawData("SysSettings", list);
+
+			// Assert
+			var model1 = _appDataContext.GetModel<SysSettings>(sysSettings1Id);
+			Assert.IsNotNull(model1);
+			Assert.AreEqual(sysSettings1Id.ToString(), model1.Name);
+			Assert.AreEqual(sysSettings1Id.ToString(), model1.Code);
+			var model2 = _appDataContext.GetModel<SysSettings>(sysSettings2Id);
+			Assert.IsNotNull(model2);
+			Assert.AreEqual(sysSettings2Id.ToString(), model2.Name);
+			Assert.AreEqual(sysSettings2Id.ToString(), model2.Code);
 		}
 	}
 }
