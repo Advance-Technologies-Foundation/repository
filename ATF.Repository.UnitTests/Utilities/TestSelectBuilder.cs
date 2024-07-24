@@ -64,6 +64,19 @@
 			};
 		}
 
+		public static IFilter CreateIsNullFilter(string columnPath, bool isNull,
+			DataValueType dataValueType) {
+			return new FilterReplica() {
+				FilterType = FilterType.IsNullFilter,
+				ComparisonType = isNull ? FilterComparisonType.IsNull : FilterComparisonType.IsNotNull,
+				IsEnabled = true,
+				LeftExpression = new ColumnExpressionReplica() {
+					ColumnPath = columnPath,
+					ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn
+				}
+			};
+		}
+
 		public static object GetQueryValue(object rawValue, DataValueType dataValueType) {
 			if (DataValueTypeUtilities.IsDateDataValueType(dataValueType) && rawValue != null) {
 				return $"\"{((DateTime)rawValue):yyyy-MM-ddTHH:mm:ss.fff}\"";

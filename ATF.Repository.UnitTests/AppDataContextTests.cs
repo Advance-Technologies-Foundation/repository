@@ -2653,6 +2653,31 @@
 			var actualValue = AppDomain.CurrentDomain.GetAssemblies().Where(x=>x.FullName.StartsWith("DynamicProxyGenAssembly2")).Select(x => x.FullName).ToList().Count;
 			Assert.LessOrEqual(actualValue, problemCount);
 		}
+
+		[Test]
+		public void Models_WhenHasGuidEmptyFilter_ShouldReturnExpectedValue() {
+			// Arrange
+			var mainRecordId = Guid.NewGuid();
+			var expectedSelect = (SelectQueryReplica)TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
+			expectedSelect.Filters.Items.Add("f1",
+				(FilterReplica)TestSelectBuilder.CreateIsNullFilter("GuidValue", true, DataValueType.Guid));
+			_dataProvider
+				.GetItems(Arg.Is<SelectQueryReplica>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", mainRecordId}
+						}
+					}
+				});
+
+			// Act
+			var queryable = _appDataContext.Models<TypedTestModel>().Where(x => x.GuidValueId == Guid.Empty);
+			var mainRecord = queryable.ToList().First();
+
+			// Assert
+			Assert.AreEqual(mainRecordId, mainRecord.Id);
+		}
 	}
 
 }

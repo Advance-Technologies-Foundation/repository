@@ -92,6 +92,9 @@
 		}
 
 		private static FilterReplica GenerateSimpleComparisonFilter(ExpressionMetadata filterMetadata) {
+			if (TryConvertToComplexNullFilter(filterMetadata, out FilterReplica nullFilter)) {
+				return nullFilter;
+			}
 			var rightExpressions = filterMetadata.RightExpressions.Select(ConvertExpression).ToList();
 			var filter = new FilterReplica() {
 				FilterType = rightExpressions.Count > 1 ? FilterType.InFilter : FilterType.CompareFilter,
@@ -105,6 +108,34 @@
 				filter.FilterType = FilterType.IsNullFilter;
 			}
 			return filter;
+		}
+
+		private static bool TryConvertToComplexNullFilter(ExpressionMetadata filterMetadata, out FilterReplica filterReplica) {
+			if ((filterMetadata.ComparisonType == FilterComparisonType.Equal ||
+					filterMetadata.ComparisonType == FilterComparisonType.NotEqual) &&
+				((filterMetadata.LeftExpression.Parameter.Type == typeof(Guid) &&
+						filterMetadata.RightExpression?.Parameter.Value is Guid guidValue && guidValue == Guid.Empty) ||
+					(filterMetadata.LeftExpression.Parameter.Type == typeof(DateTime) &&
+						filterMetadata.RightExpression?.Parameter.Value is DateTime dateTimeValue &&
+						dateTimeValue == DateTime.MinValue))) {
+				filterReplica = ConvertToComplexNullFilter(filterMetadata);
+				return true;
+			}
+
+			filterReplica = null;
+			return false;
+		}
+
+		private static FilterReplica ConvertToComplexNullFilter(ExpressionMetadata filterMetadata) {
+			var comparisonType = filterMetadata.ComparisonType == FilterComparisonType.Equal
+				? FilterComparisonType.IsNull
+				: FilterComparisonType.IsNotNull;
+			return new FilterReplica() {
+				FilterType = FilterType.InFilter,
+				ComparisonType = comparisonType,
+				IsNull = true,
+				LeftExpression = ConvertExpression(filterMetadata.LeftExpression)
+			};
 		}
 
 		private static BaseExpressionReplica ConvertExpression(ExpressionMetadata filterMetadataLeftExpression) {
