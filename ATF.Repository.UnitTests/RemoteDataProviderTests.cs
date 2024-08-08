@@ -10,7 +10,7 @@
 	using Terrasoft.Core.Entities;
 	using Terrasoft.Nui.ServiceModel.DataContract;
 
-	[TestFixture]
+	[TestFixture(Category = "UnitTests")]
 	public class RemoteDataProviderTests
 	{
 		private RemoteDataProvider _remoteDataProvider;

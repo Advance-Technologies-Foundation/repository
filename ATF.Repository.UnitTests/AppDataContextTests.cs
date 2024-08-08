@@ -43,7 +43,7 @@
 		}
 	}
 
-	[TestFixture]
+	[TestFixture(Category = "UnitTests")]
 	public class AppDataContextTests
 	{
 		private IDataProvider _dataProvider;
@@ -63,6 +63,7 @@
 				{Success = true, DefaultValues = new Dictionary<string, object>()});
 			var model = _appDataContext.CreateModel<TypedTestModel>();
 			Assert.AreNotEqual(Guid.Empty, model.Id);
+			
 		}
 
 		private static IEnumerable<PropertyValue> TypedPropertyCases() {

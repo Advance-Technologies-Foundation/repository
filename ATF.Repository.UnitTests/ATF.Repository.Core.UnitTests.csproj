@@ -1,29 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
 	<PropertyGroup>
-		<TargetFramework>netcoreapp3.1</TargetFramework>
-
+		<TargetFrameworks>net472;net6.0</TargetFrameworks>
 		<IsPackable>false</IsPackable>
-
 		<AssemblyName>ATF.Repository.Core.UnitTests</AssemblyName>
-
 		<RootNamespace>ATF.Repository.UnitTests</RootNamespace>
-
-		<LangVersion>8</LangVersion>
+		<LangVersion>7.3</LangVersion>
 	</PropertyGroup>
 
-	<ItemGroup>
+	<ItemGroup Label="References">
 		<PackageReference Include="Castle.Core" Version="5.1.1" />
 		<PackageReference Include="creatio.client" Version="1.0.24" />
-		<PackageReference Include="CreatioSDK" Version="8.1.0.6716" />
 		<PackageReference Include="NSubstitute" Version="4.2.2" />
-		<PackageReference Include="NUnit" Version="3.12.0" />
-		<PackageReference Include="NUnit3TestAdapter" Version="3.16.1" />
-		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <ProjectReference Include="..\ATF.Repository\ATF.Repository.csproj" />
+		<PackageReference Include="NUnit" Version="3.14.0" />
+		<PackageReference Include="NUnit3TestAdapter" Version="4.5.0" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
+		<ProjectReference Include="..\ATF.Repository\ATF.Repository.csproj" />
 	</ItemGroup>
 
 </Project>

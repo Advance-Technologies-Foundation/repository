@@ -7,7 +7,7 @@
 	using ATF.Repository.UnitTests.Models;
 	using NUnit.Framework;
 
-	[TestFixture]
+	[TestFixture(Category = "IntegrationTests")]
 	public class IntegrationRemoteTests
 	{
 		private RemoteDataProvider _remoteDataProvider;
