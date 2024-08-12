@@ -3,6 +3,7 @@
 	using System;
 	using System.Collections.Generic;
 	using System.Data;
+	using System.IO;
 	using System.Linq;
 	using ATF.Repository.Mapping;
 	using Terrasoft.Common;
@@ -197,12 +198,31 @@
 
 		private void SetValueToDataRow(DataRow dataRow, Dictionary<string, object> values) {
 			values.ForEach(item => {
-				if (!dataRow.Table.Columns.Contains(item.Key)) {
+				var column = FindDataColumn(dataRow.Table, item.Key);
+				if (column == null) {
 					return;
 				}
-				var value = GetTypedValue(dataRow.Table.Columns[item.Key].DataType, item.Value);
-				dataRow[item.Key] = value;
+				var value = GetTypedValue(column.DataType, item.Value);
+				dataRow[column.ColumnName] = value;
 			});
+		}
+
+		private DataColumn FindDataColumn(DataTable dataTable, string columnName) {
+			if (dataTable.Columns.Contains(columnName)) {
+				return dataTable.Columns[columnName];
+			}
+
+			DataColumn column = null;
+			foreach (DataColumn dataTableColumn in dataTable.Columns) {
+				if (column != null) {
+					continue;
+				}
+				if (dataTableColumn.DataType == typeof(Guid) && $"{dataTableColumn.ColumnName}Id" == columnName) {
+					column = dataTableColumn;
+				}
+			}
+
+			return column;
 		}
 
 		private object GetTypedValue(Type dataType, object value) {
@@ -215,6 +235,9 @@
 				value = dateTimeValue.TrimMilliseconds();
 			}
 
+			if (typeof(T) == typeof(Guid) && value is string stringValue && Guid.TryParse(stringValue, out var guidValue)) {
+				value = guidValue;
+			}
 			if (typeof(T) == typeof(Guid) && value == null) {
 				value = Guid.Empty;
 			}
@@ -277,6 +300,12 @@
 			return response;
 		}
 
+		private void ParseFile(string filePath) {
+			if (DataFileParser.TryParse(filePath, out var dataFileDto)) {
+				AddModelRawData(dataFileDto.SchemaName, dataFileDto.Records);
+			}
+		}
+
 		#endregion
 
 		#region Methods: Public
@@ -302,6 +331,7 @@
 		}
 
 		public T AddModel<T>(Guid recordId, Action<T> action) where T : BaseModel, new() {
+			RegisterModelSchema(typeof(T));
 			var model = new T {
 				Id = recordId
 			};
@@ -312,12 +342,18 @@
 
 
 		public void AddModelRawData<T>(List<Dictionary<string, object>> recordList) where T : BaseModel {
+			RegisterModelSchema(typeof(T));
 			var schemaName = GetRegisteredSchemaName(typeof(T));
 			AddModelRawData(schemaName, recordList);
 		}
 
 		public void AddModelRawData(string schemaName, List<Dictionary<string, object>> recordList) {
 			recordList.ForEach(recordValues => SetRawDataToDataSet(schemaName, recordValues));
+		}
+
+		public void LoadDataFromFileStore(string folderPath) {
+			var files = Directory.GetFiles(folderPath);
+			files.ForEach(ParseFile);
 		}
 
 		#endregion

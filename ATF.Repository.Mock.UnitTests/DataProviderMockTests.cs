@@ -1,14 +1,12 @@
-using ATF.Repository;
-using ATF.Repository.Providers;
-
 namespace ATF.Repository.Mock.UnitTests
 {
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Reflection;
-	using ATF.Repository.Mock.UnitTests.Models;
+	using ATF.Repository;
 	using ATF.Repository.Providers;
+	using ATF.Repository.Mock.UnitTests.Models;
 	using NUnit.Framework;
 
 	public class DataProviderMockTests

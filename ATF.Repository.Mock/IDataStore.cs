@@ -13,5 +13,6 @@
 		T AddModel<T>(Guid recordId, Action<T> action) where T : BaseModel, new();
 		void AddModelRawData<T>(List<Dictionary<string, object>> recordList) where T : BaseModel;
 		void AddModelRawData(string schemaName, List<Dictionary<string, object>> recordList);
+		void LoadDataFromFileStore(string folderPath);
 	}
 }
