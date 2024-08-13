@@ -246,7 +246,7 @@
 
 		private Dictionary<string, object> GetActualInsertingValues(Dictionary<string, object> values) {
 			if (!values.ContainsKey(DefaultPrimaryValueColumnName)) {
-					values.Add(DefaultPrimaryValueColumnName, Guid.NewGuid());
+				values.Add(DefaultPrimaryValueColumnName, Guid.NewGuid());
 			}
 			if (!EmulateSystemColumnsBehavior) {
 				return values;
@@ -302,7 +302,9 @@
 
 		private void ParseFile(string filePath) {
 			if (DataFileParser.TryParse(filePath, out var dataFileDto)) {
-				AddModelRawData(dataFileDto.SchemaName, dataFileDto.Records);
+				if (_dataSet.Tables.Contains(dataFileDto.SchemaName)) {
+					AddModelRawData(dataFileDto.SchemaName, dataFileDto.Records);
+				}
 			}
 		}
 
