@@ -1,4 +1,6 @@
-﻿namespace ATF.Repository.ExpressionConverters
+﻿using Terrasoft.Nui.ServiceModel.DataContract;
+
+namespace ATF.Repository.ExpressionConverters
 {
 	using System;
 	using System.Collections.Generic;
@@ -41,6 +43,21 @@
 			{FilterComparisonType.EndWith, FilterComparisonType.NotEndWith},
 			{FilterComparisonType.Contain, FilterComparisonType.NotContain},
 		};
+
+		private static Dictionary<string, DatePart> _availableDateParts = new Dictionary<string, DatePart>() {
+			{"Hour", DatePart.Hour},
+			{"Day", DatePart.Day},
+			{"Month", DatePart.Month},
+			{"Year", DatePart.Year},
+			{"DayOfWeek", DatePart.Weekday}
+		};
+
+		private static bool TryGetDatePartTypeValue(MemberInfo memberExpressionMember, out DatePart datePart) {
+			if (!_availableDateParts.TryGetValue(memberExpressionMember.Name, out datePart)) {
+				datePart = DatePart.None;
+			}
+			return datePart != DatePart.None;
+		}
 
 		internal static FilterComparisonType GetNotComparisonType(FilterComparisonType filterComparisonType) {
 			if (_notTypes.ContainsKey(filterComparisonType)) {
@@ -258,5 +275,19 @@
 			return null;
 		}
 
+		public static bool TryGetDatePartColumnMemberPath(MemberExpression memberExpression,
+			ExpressionModelMetadata modelMetadata, out string columnPath, out DatePart datePart) {
+			columnPath = string.Empty;
+			datePart = DatePart.None;
+			if (memberExpression?.Expression is MemberExpression sourceMemberExpression && sourceMemberExpression.Member is PropertyInfo propertyMemberInfo &&
+				propertyMemberInfo.PropertyType == typeof(DateTime) &&
+				TryGetDatePartTypeValue(memberExpression.Member, out var fetchedDatePart) &&
+				TryGetColumnMemberPath(sourceMemberExpression, modelMetadata, out var sourcePath)) {
+				datePart = fetchedDatePart;
+				columnPath = sourcePath;
+				return true;
+			}
+			return false;
+		}
 	}
 }

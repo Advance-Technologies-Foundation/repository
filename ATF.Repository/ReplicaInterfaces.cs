@@ -1,4 +1,6 @@
-﻿namespace ATF.Repository
+﻿using Terrasoft.Nui.ServiceModel.DataContract;
+
+namespace ATF.Repository
 {
 	using System;
 	using System.Collections.Generic;
@@ -173,5 +175,7 @@
 		IBaseExpression LeftArithmeticOperand { get; }
 
 		IBaseExpression RightArithmeticOperand { get; }
+
+		DatePart DatePartType { get; set; }
 	}
 }

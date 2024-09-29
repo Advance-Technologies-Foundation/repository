@@ -1,4 +1,6 @@
-﻿namespace ATF.Repository.ExpressionConverters
+﻿using Terrasoft.Nui.ServiceModel.DataContract;
+
+namespace ATF.Repository.ExpressionConverters
 {
 	using System.Collections.Generic;
 	using System.Linq.Expressions;
@@ -14,6 +16,8 @@
 		public AvailableFieldMethod FieldMethod { get; set; }
 
 		public AvailableColumnMethod ColumnMethod { get; set; }
+
+		public DatePart DatePart { get; set; }
 
 		public RawDetailExpressionMetadata RawDetailExpressionMetadata { get; set; }
 

@@ -4,6 +4,7 @@
 	using Terrasoft.Common;
 	using Terrasoft.Core.Entities;
 	using FunctionType = Terrasoft.Nui.ServiceModel.DataContract.FunctionType;
+	using DatePart = Terrasoft.Nui.ServiceModel.DataContract.DatePart;
 
 	internal class BaseExpressionReplica: IBaseExpression
 	{
@@ -39,5 +40,8 @@
 
 		[JsonProperty("rightArithmeticOperand")]
 		public IBaseExpression RightArithmeticOperand { get; set; }
+
+		[JsonProperty("datePartType")]
+		public DatePart DatePartType { get; set; }
 	}
 }

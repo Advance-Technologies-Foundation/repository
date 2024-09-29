@@ -1,4 +1,6 @@
-﻿namespace ATF.Repository.Queryables
+﻿using Terrasoft.Nui.ServiceModel.DataContract;
+
+namespace ATF.Repository.Queryables
 {
 	using System;
 	using System.Collections.Generic;
@@ -142,11 +144,25 @@
 			switch (filterMetadataLeftExpression.NodeType) {
 				case ExpressionMetadataNodeType.Column:
 					return ConvertToColumnExpression(filterMetadataLeftExpression);
+				case ExpressionMetadataNodeType.Function:
+					return ConvertToColumnFunctionExpression(filterMetadataLeftExpression);
 				case ExpressionMetadataNodeType.Detail:
 					return ConvertToDetailExpression(filterMetadataLeftExpression);
 				default:
 					return ConvertToBaseExpression(filterMetadataLeftExpression);
 			}
+		}
+
+		private static BaseExpressionReplica ConvertToColumnFunctionExpression(ExpressionMetadata filterMetadataLeftExpression) {
+			return new ColumnExpressionReplica() {
+				ExpressionType = EntitySchemaQueryExpressionType.Function,
+				FunctionType = FunctionType.DatePart,
+				DatePartType = filterMetadataLeftExpression.DatePart,
+				FunctionArgument = new FunctionArgumentReplica() {
+					ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,
+					ColumnPath = filterMetadataLeftExpression.Parameter.ColumnPath
+				}
+			};
 		}
 
 		private static ColumnExpressionReplica ConvertToDetailExpression(ExpressionMetadata detailMetadataLeftExpression) {

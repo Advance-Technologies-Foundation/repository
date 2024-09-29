@@ -1,4 +1,6 @@
-﻿namespace ATF.Repository.ExpressionConverters
+﻿using Terrasoft.Nui.ServiceModel.DataContract;
+
+namespace ATF.Repository.ExpressionConverters
 {
 	using System;
 	using System.Linq.Expressions;
@@ -40,7 +42,20 @@
 				return ConvertDetailMemberAccessParameter(rawExpressionMetadata, modelMetadata);
 			}
 
+			if (rawExpressionMetadata.DatePart != DatePart.None) {
+				return ConvertDatePartMemberAccessParameter(rawExpressionMetadata, modelMetadata);
+			}
+
 			return ConvertSimpleMemberAccessParameter(rawExpressionMetadata, modelMetadata);
+		}
+
+		private static ExpressionMetadata ConvertDatePartMemberAccessParameter(RawExpressionMetadata rawExpressionMetadata, ExpressionModelMetadata modelMetadata) {
+			var response = new ExpressionMetadata() {
+				NodeType = ExpressionMetadataNodeType.Function,
+				Parameter = rawExpressionMetadata.Parameter,
+				DatePart = rawExpressionMetadata.DatePart
+			};
+			return response;
 		}
 
 		private static ExpressionMetadata ConvertDetailMemberAccessParameter(RawExpressionMetadata rawExpressionMetadata, ExpressionModelMetadata modelMetadata) {

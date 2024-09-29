@@ -1,4 +1,6 @@
-﻿namespace ATF.Repository.ExpressionConverters
+﻿using Terrasoft.Nui.ServiceModel.DataContract;
+
+namespace ATF.Repository.ExpressionConverters
 {
 	using System;
 	using System.Collections.Generic;
@@ -45,7 +47,7 @@
 				return CreateConstantRawExpressionMetadata(methodCallExpression.Type, value);
 			}
 
-			if (TryToConvertToExternalCondition(methodCallExpression, modelMetadata,
+			if (TryConvertToExternalCondition(methodCallExpression, modelMetadata,
 				out var conditionRawMetadata)) {
 				return conditionRawMetadata;
 			}
@@ -68,7 +70,7 @@
 			throw new ExpressionConvertException();
 		}
 
-		private static bool TryToConvertToExternalCondition(MethodCallExpression methodCallExpression, ExpressionModelMetadata modelMetadata, out RawExpressionMetadata rawExpressionMetadata) {
+		private static bool TryConvertToExternalCondition(MethodCallExpression methodCallExpression, ExpressionModelMetadata modelMetadata, out RawExpressionMetadata rawExpressionMetadata) {
 			rawExpressionMetadata = null;
 			if (methodCallExpression.Object == null) {
 				return false;
@@ -188,12 +190,18 @@
 		}
 
 		private static RawExpressionMetadata ConvertMemberExpression(MemberExpression memberExpression, ExpressionModelMetadata modelMetadata) {
-			if (ExpressionConverterUtilities.TryGetColumnMemberPath(memberExpression, modelMetadata, out var path)) {
-				return CreateColumnRawExpressionMetadata(memberExpression, path);
+			if (ExpressionConverterUtilities.TryGetColumnMemberPath(memberExpression, modelMetadata, out var purePath)) {
+				return CreateColumnRawExpressionMetadata(memberExpression, purePath);
 			}
 
 			if (ExpressionConverterUtilities.TryDynamicInvoke(memberExpression, out var value)) {
 				return CreateConstantRawExpressionMetadata(memberExpression.Type, value);
+			}
+
+			if (ExpressionConverterUtilities.TryGetDatePartColumnMemberPath(memberExpression, modelMetadata, out var datePartSourcePath, out var datePart)) {
+				return CreateColumnRawExpressionMetadata(memberExpression, datePartSourcePath, metadata => {
+					metadata.DatePart = datePart;
+				});
 			}
 			throw new ExpressionConvertException();
 		}
@@ -208,14 +216,16 @@
 			};
 		}
 
-		private static RawExpressionMetadata CreateColumnRawExpressionMetadata(Expression expression, string path) {
-			return new RawExpressionMetadata() {
+		private static RawExpressionMetadata CreateColumnRawExpressionMetadata(Expression expression, string path, Action<RawExpressionMetadata> action = null) {
+			var metadata = new RawExpressionMetadata() {
 				Type = expression.NodeType,
 				Parameter = new ExpressionMetadataParameter() {
 					Type = expression.Type,
 					ColumnPath = path
 				}
 			};
+			action?.Invoke(metadata);
+			return metadata;
 		}
 
 		private static RawExpressionMetadata ConvertBinaryExpression(BinaryExpression binaryExpression, ExpressionModelMetadata modelMetadata) {

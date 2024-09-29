@@ -1,4 +1,6 @@
-﻿namespace ATF.Repository.UnitTests
+﻿using Terrasoft.Nui.ServiceModel.DataContract;
+
+namespace ATF.Repository.UnitTests
 {
 	using System;
 	using System.Collections.Generic;
@@ -2677,6 +2679,32 @@
 
 			// Assert
 			Assert.AreEqual(mainRecordId, mainRecord.Id);
+		}
+
+		[Test]
+		public void DatePart_WhenUseYearPartFilter_ShouldReturnsExpectedValue() {
+			// Arrange
+			var expectedValue = Guid.NewGuid();
+			var expectedSelect = (SelectQueryReplica)TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
+			expectedSelect.RowCount = 1;
+			expectedSelect.Filters.Items.Add("f1",
+				(FilterReplica)TestSelectBuilder.CreateDatePartFilter(FilterComparisonType.Equal, "DateTimeValue", DatePart.Year, 2022));
+
+			_dataProvider
+				.GetItems(Arg.Is<SelectQueryReplica>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
+				.Returns(new ItemsResponse() {
+					Success = true, Items = new List<Dictionary<string, object>>() {
+						new Dictionary<string, object>() {
+							{"Id", expectedValue}
+						}
+					}
+				});
+
+			// Act
+			var model = _appDataContext.Models<TypedTestModel>().FirstOrDefault(x => x.DateTimeValue.Year == 2022);
+
+			// Assert
+			Assert.AreEqual(expectedValue, model.Id);
 		}
 	}
 

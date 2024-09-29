@@ -75,9 +75,24 @@
 								expected.Parameter.Value.Equals(actual.Parameter.Value))));
 				case EntitySchemaQueryExpressionType.SubQuery:
 					return CompareSubQuery(expected, actual);
+				case EntitySchemaQueryExpressionType.Function:
+					return CompareFunctionColumn(expected, actual);
 				default:
 					throw new NotImplementedException();
 			}
+		}
+
+		private static bool CompareFunctionColumn(IBaseExpression expected, IBaseExpression actual) {
+			return expected.ExpressionType == actual.ExpressionType &&
+				expected.FunctionType == actual.FunctionType &&
+				expected.DatePartType == actual.DatePartType &&
+				CompareFunctionArgument(expected.FunctionArgument, actual.FunctionArgument);
+		}
+
+		private static bool CompareFunctionArgument(IBaseExpression expected, IBaseExpression actual) {
+			return (expected == null && actual == null) || (expected != null && actual != null &&
+				expected.ExpressionType == actual.ExpressionType &&
+				expected.ColumnPath == actual.ColumnPath);
 		}
 
 		private static bool CompareSubQuery(IBaseExpression expected, IBaseExpression actual) {

@@ -1,4 +1,6 @@
-﻿namespace ATF.Repository.UnitTests.Utilities
+﻿using Terrasoft.Nui.ServiceModel.DataContract;
+
+namespace ATF.Repository.UnitTests.Utilities
 {
 	using System;
 	using System.Linq;
@@ -73,6 +75,31 @@
 				LeftExpression = new ColumnExpressionReplica() {
 					ColumnPath = columnPath,
 					ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn
+				}
+			};
+		}
+
+		public static IFilter CreateDatePartFilter(FilterComparisonType comparisonType, string columnPath, DatePart datePart, object value) {
+			return new FilterReplica() {
+				FilterType = FilterType.CompareFilter,
+				ComparisonType = comparisonType,
+				TrimDateTimeParameterToDate = false,
+				IsEnabled = true,
+				LeftExpression = new ColumnExpressionReplica() {
+					ExpressionType = EntitySchemaQueryExpressionType.Function,
+					FunctionType = FunctionType.DatePart,
+					FunctionArgument = new FunctionArgumentReplica() {
+						ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,
+						ColumnPath = columnPath
+					},
+					DatePartType = datePart
+				},
+				RightExpression = new BaseExpressionReplica() {
+					ExpressionType = EntitySchemaQueryExpressionType.Parameter,
+					Parameter = new ParameterReplica() {
+						DataValueType = DataValueType.Integer,
+						Value = value
+					}
 				}
 			};
 		}

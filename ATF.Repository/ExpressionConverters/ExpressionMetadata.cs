@@ -1,4 +1,6 @@
-﻿namespace ATF.Repository.ExpressionConverters
+﻿using Terrasoft.Nui.ServiceModel.DataContract;
+
+namespace ATF.Repository.ExpressionConverters
 {
 	using System.Collections.Generic;
 	using System.Linq;
@@ -22,6 +24,8 @@
 		internal ExpressionMetadataParameter Parameter { get; set; }
 
 		internal string MethodName { get; set; }
+
+		internal DatePart DatePart { get; set; }
 
 		internal bool IsNot { get; set; }
 

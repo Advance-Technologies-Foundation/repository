@@ -6,6 +6,7 @@
 		Column,
 		Comparison,
 		Group,
-		Detail
+		Detail,
+		Function
 	}
 }
