@@ -211,6 +211,9 @@
 		<Compile Include="..\ATF.Repository.UnitTests\Models\AccountType.cs">
 		  <Link>Models\AccountType.cs</Link>
 		</Compile>
+		<Compile Include="..\ATF.Repository.UnitTests\Models\ActivityCategory.cs">
+			<Link>Models\ActivityCategory.cs</Link>
+		</Compile>
 		<Compile Include="..\ATF.Repository.UnitTests\Models\City.cs">
 		  <Link>Models\City.cs</Link>
 		</Compile>

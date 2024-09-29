@@ -90,6 +90,7 @@
 			target.Parameter = ConvertParameterReplicaToParameter(source.Parameter);
 			target.AggregationType = source.AggregationType;
 			target.ArithmeticOperation = source.ArithmeticOperation;
+			target.DatePartType = source.DatePartType;
 			target.ColumnPath = source.ColumnPath;
 			target.ExpressionType = source.ExpressionType;
 			target.FunctionArgument = source.FunctionArgument != null ? ConvertBaseExpressionReplicaToBaseExpression(source.FunctionArgument) : null;

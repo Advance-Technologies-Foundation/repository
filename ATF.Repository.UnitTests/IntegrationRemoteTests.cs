@@ -815,6 +815,30 @@
 		}
 
 		[Test]
+		public void Models_WhenCallModelWithDatePartPartFilters_ShouldReturnsExpectedValue() {
+			// Act
+			var models = _appDataContext.Models<City>().Where(x =>
+				x.CreatedOn.Hour == 12 &&
+				x.CreatedOn.Year > 2019).ToList();
+
+			// Assert
+			Assert.IsNotNull(models);
+			Assert.IsTrue(models.All(x=>x.CreatedOn.Hour == 12 && x.CreatedOn.Year > 2019));
+		}
+
+		[Test]
+		public void CreateModel_WhenHandleException_ShouldReturnsExpectedValue() {
+			// Act
+			var model = _appDataContext.CreateModel<ActivityCategory>();
+			model.Name = Guid.NewGuid().ToString();
+			var response = _appDataContext.Save();
+
+			// Assert
+			Assert.IsFalse(response.Success);
+			
+		}
+
+		[Test]
 		public void SysSettings_WhenGetDateTimeValue_ShouldReturnsExpectedValue() {
 			TestGetSysSettingsValue<DateTime>("CalculateClientARRFromDate",
 				new DateTime(2010, 1, 1, 2, 0, 0));

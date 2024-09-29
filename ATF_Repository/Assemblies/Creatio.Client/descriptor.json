@@ -2,7 +2,7 @@
   "Descriptor": {
     "UId": "fc789189-fd7a-4085-b52d-bf6695f07d83",
     "Name": "Creatio.Client.dll",
-    "FullName": "Creatio.Client, Version=1.0.18, Culture=neutral, PublicKeyToken=null",
-    "ModifiedOnUtc": "\/Date(1710843937000)\/"
+    "FullName": "Creatio.Client, Version=1.0.24, Culture=neutral, PublicKeyToken=null",
+    "ModifiedOnUtc": "\/Date(1727508709000)\/"
   }
 }

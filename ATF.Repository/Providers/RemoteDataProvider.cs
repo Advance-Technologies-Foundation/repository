@@ -116,7 +116,10 @@
 
 		private ExecuteResponse ConvertBatchResponse(BatchResponse batchResponse) {
 			return new ExecuteResponse() {
-				Success = !batchResponse.HasErrors
+				Success = batchResponse.Success,
+				ErrorMessage = batchResponse.ResponseStatus != null
+					? $"{batchResponse.ResponseStatus.ErrorCode}: {batchResponse.ResponseStatus.Message}"
+					: string.Empty
 			};
 		}
 
@@ -241,11 +244,18 @@
 
 	internal class BatchResponse
 	{
+		[JsonProperty(PropertyName = "responseStatus")]
 		public ResponseStatus ResponseStatus { get; set; }
 
 		public List<object> QueryResults { get; set; }
 
 		public bool HasErrors { get; set; }
+		
+		[DataMember(Name = "rowsAffected")]
+		public int RowsAffected { get; set; }
+
+		[DataMember(Name = "success")]
+		public bool Success { get; set; }
 	}
 
 	internal class ResponseStatus
@@ -255,6 +265,9 @@
 		public ResponseStatus(string errorCode, string message)
 			: this(errorCode) {
 			this.Message = message;
+		}
+
+		public ResponseStatus() {
 		}
 
 		[JsonProperty(PropertyName = "ErrorCode")]

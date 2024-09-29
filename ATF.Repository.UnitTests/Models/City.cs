@@ -6,6 +6,9 @@
 	[Schema("City")]
 	public class City: BaseModel
 	{
+		[SchemaProperty("CreatedOn")]
+		public DateTime CreatedOn { get; set; }
+
 		[SchemaProperty("Name")]
 		public string Name { get; set; }
 
