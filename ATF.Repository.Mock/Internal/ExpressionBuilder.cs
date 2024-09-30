@@ -64,6 +64,11 @@
 				x.Name == "EndsWith" && x.GetParameters().Length == 1 &&
 				x.GetParameters()[0].ParameterType == typeof(string));
 
+		private static readonly MemberInfo YearMemberInfo = typeof(DateTime).GetMembers().First(x => x.Name == "Year");
+		private static readonly MemberInfo MonthMemberInfo = typeof(DateTime).GetMembers().First(x => x.Name == "Month");
+		private static readonly MemberInfo DayMemberInfo = typeof(DateTime).GetMembers().First(x => x.Name == "Day");
+		private static readonly MemberInfo HourMemberInfo = typeof(DateTime).GetMembers().First(x => x.Name == "Hour");
+
 		#endregion
 
 		#region Methods: Private
@@ -227,6 +232,58 @@
 				return BuildCompareSubFilterPart(expressionContext, filterLeftExpression);
 			}
 
+			if (filterLeftExpression.ExpressionType == EntitySchemaQueryExpressionType.Function) {
+				return BuildCompareFunctionFilterPart(expressionContext, filterLeftExpression);
+			}
+
+			throw new NotImplementedException();
+		}
+
+		private static Expression BuildCompareFunctionFilterPart(ExpressionContext expressionContext,
+			IBaseExpression filterLeftExpression) {
+			if (filterLeftExpression.DatePartType != DatePart.None) {
+				return BuildCompareDatePartFunctionFilterPart(expressionContext, filterLeftExpression);
+			}
+			throw new NotImplementedException();
+		}
+
+		private static Expression BuildCompareDatePartFunctionFilterPart(ExpressionContext expressionContext,
+			IBaseExpression filterLeftExpression) {
+			var columnPath = filterLeftExpression.FunctionArgument?.ColumnPath ?? string.Empty;
+			if (string.IsNullOrEmpty(columnPath)) {
+				throw new Exception("ColumnPath in DatePartFilter cannot be empty");
+			}
+			var columnValueType = expressionContext.ContextTable.GetSchemaPathDataType(columnPath);
+			if (columnValueType != typeof(DateTime)) {
+				throw new Exception("DatePartFilter cannot be applied on not DateType column");
+			}
+			var dataRowFieldExpression = 
+				GetDataRowFieldExpression(expressionContext.RowExpression, columnPath,
+					columnValueType);
+			var datePartExpression = BuildDatePartExpression(expressionContext, dataRowFieldExpression,
+				filterLeftExpression.DatePartType);
+			return datePartExpression;
+		}
+
+		private static Expression BuildDatePartExpression(ExpressionContext expressionContext,
+			Expression sourceExpression, DatePart datePartType) {
+			var memberInfo = GetDatePartMemberInfo(datePartType);
+			return Expression.MakeMemberAccess(sourceExpression, memberInfo);
+		}
+
+		private static MemberInfo GetDatePartMemberInfo(DatePart datePartType) {
+			if (datePartType == DatePart.Year) {
+				return YearMemberInfo;
+			}
+			if (datePartType == DatePart.Month) {
+				return MonthMemberInfo;
+			}
+			if (datePartType == DatePart.Day) {
+				return DayMemberInfo;
+			}
+			if (datePartType == DatePart.Hour) {
+				return HourMemberInfo;
+			}
 			throw new NotImplementedException();
 		}
 

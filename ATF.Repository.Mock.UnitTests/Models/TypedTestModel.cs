@@ -33,6 +33,9 @@
 
 		[LookupProperty("AnotherLookupValue")]
 		public virtual TypedTestModel AnotherLookupValue { get; set; }
+		
+		[SchemaProperty("Parent")]
+		public Guid ParentId { get; set; }
 
 		[LookupProperty("Parent")]
 		public virtual TypedTestModel Parent { get; set; }

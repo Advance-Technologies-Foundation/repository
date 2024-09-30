@@ -773,5 +773,39 @@
 			Assert.AreEqual(sysSettings2Id.ToString(), model2.Name);
 			Assert.AreEqual(sysSettings2Id.ToString(), model2.Code);
 		}
+
+		[Test]
+		public void Models_WhenUseDatePartFilter_ShoiuldReturnsExpectedValue() {
+			//Expression<Func<TypedTestModel, int>> f = (x) => x.DateTimeValue.Year;
+			//var yearMemberInfo = typeof(DateTime).GetMembers().Where(x => x.Name == "Year");
+			var date = new DateTime(2022, 2, 15, 13, 32, 18);
+			var parent = _memoryDataProviderMock.DataStore.AddModel<TypedTestModel>(model => {
+				model.DateTimeValue = date;
+			});
+			_memoryDataProviderMock.DataStore.AddModel<TypedTestModel>(model => {
+				model.ParentId = parent.Id;
+			});
+
+			var yearModel = _appDataContext.Models<TypedTestModel>()
+				.FirstOrDefault(x => x.DateTimeValue.Year == date.Year);
+			Assert.AreEqual(date, yearModel.DateTimeValue);
+			
+			var monthModel = _appDataContext.Models<TypedTestModel>()
+				.FirstOrDefault(x => x.DateTimeValue.Month == date.Month);
+			Assert.AreEqual(date, monthModel.DateTimeValue);
+			
+			var dayModel = _appDataContext.Models<TypedTestModel>()
+				.FirstOrDefault(x => x.DateTimeValue.Day == date.Day);
+			Assert.AreEqual(date, dayModel.DateTimeValue);
+			
+			var hourModel = _appDataContext.Models<TypedTestModel>()
+				.FirstOrDefault(x => x.DateTimeValue.Hour == date.Hour);
+			Assert.AreEqual(date, hourModel.DateTimeValue);
+			
+			var lookupHourModel = _appDataContext.Models<TypedTestModel>()
+				.FirstOrDefault(x => x.Parent.DateTimeValue.Hour == date.Hour);
+			Assert.AreEqual(date, lookupHourModel.Parent.DateTimeValue);
+			
+		}
 	}
 }
