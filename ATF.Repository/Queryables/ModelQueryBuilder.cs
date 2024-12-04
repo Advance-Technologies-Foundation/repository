@@ -24,7 +24,8 @@
 				RootSchemaName = schemaName,
 				RowCount = ModelQueryBuildConfig.MaxRowsCount,
 				Columns = new SelectQueryColumnsReplica(),
-				Filters = new FilterGroupReplica()
+				Filters = new FilterGroupReplica(),
+				IgnoreDisplayValues = true
 			};
 		}
 

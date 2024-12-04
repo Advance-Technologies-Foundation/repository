@@ -6,6 +6,9 @@
 	[Schema("Lead")]
 	public class Lead: BaseModel
 	{
+		[SchemaProperty("CreatedOn")]
+		public DateTime CreatedOn { get; set; }
+
 		[SchemaProperty("Contact")]
 		public string Contact { get; set; }
 
