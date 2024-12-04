@@ -145,11 +145,38 @@
 					detailExpression);
 			return Expression.And(hasValueExpression, anyExpression);
 		}
+		
+		private static bool IsNumericAggregationType(AggregationType aggregationType) {
+			return aggregationType == AggregationType.Max || aggregationType == AggregationType.Min ||
+			       aggregationType == AggregationType.Sum || aggregationType == AggregationType.Avg;
+		}
+		
+		private static bool IsCollectionNumericAggregationExpression(IBaseExpression expression) {
+			return expression.ExpressionType == EntitySchemaQueryExpressionType.SubQuery &&
+			       IsNumericAggregationType(expression.AggregationType);
+		}
+		
+		private static Expression GetDetailAnyExpression(string columnPath, ExpressionContext expressionContext) {
+			var schemaPath = expressionContext.ContextTable.GetSchemaPath(columnPath);
+			var detailExpression =
+				GetDetailExpression(expressionContext.RowExpression, schemaPath.FullDetailPath);
+			return Expression.Call(typeof(Enumerable), "Any", new[] { typeof(DataRow) },
+				detailExpression);
+		}
 
 		private static Expression BuildCompareFilter(ExpressionContext expressionContext, IFilter filter) {
 			var leftExpression = BuildCompareFilterPart(expressionContext, filter.LeftExpression);
 			var rightExpression = BuildCompareFilterPart(expressionContext, filter.RightExpression);
 			var comparisonExpression = BuildCompareFilter(filter.ComparisonType, leftExpression, rightExpression);
+			
+			if (IsCollectionNumericAggregationExpression(filter.LeftExpression)) {
+				var detailAnyExpression = GetDetailAnyExpression(filter.LeftExpression.ColumnPath, expressionContext);
+				comparisonExpression = Expression.Condition(
+					detailAnyExpression,
+					comparisonExpression,
+					Expression.Constant(false));
+			}
+
 			var hasValueExpression = BuildHasValueFilterPart(expressionContext, filter.LeftExpression.ExpressionType, filter.LeftExpression.ColumnPath);
 			if (hasValueExpression != null) {
 				return Expression.And(hasValueExpression, comparisonExpression);
@@ -455,7 +482,8 @@
 			return BuildCompareSchemaColumnFilterPart(expressionContext, selectQueryColumn.Expression.ColumnPath);
 		}
 
-		internal static Expression GetSingleAggregationExpression(ExpressionContext expressionContext, AggregationType aggregationType, Type columnValueType, Expression source, string path) {
+		internal static Expression GetSingleAggregationExpression(ExpressionContext expressionContext, 
+			AggregationType aggregationType, Type columnValueType, Expression source, string path) {
 			var methodInfo = GetAggregationMethodInfo(aggregationType, columnValueType);
 			if (aggregationType == AggregationType.Count) {
 				return Expression.Call(null, methodInfo, source);

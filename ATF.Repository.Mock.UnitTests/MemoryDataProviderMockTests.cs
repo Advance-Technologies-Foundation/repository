@@ -391,6 +391,36 @@
 			var list = _appDataContext.Models<SysSettings>().Where(x => x.SysSettingsValues.Where(y=>y.BooleanValue).Min(y=>y.DateTimeValue) < DateTime.Now.AddYears(-1).AddDays(1)).ToList();
 			Assert.AreEqual(1, list.Count);
 		}
+		
+		[Test]
+		public void Get_WhenUseDetailAggregationFiltersAndSequenceIsEmpty_ShouldNotThrow() {
+			var newSysSettingsId = Guid.NewGuid();
+			_memoryDataProviderMock.DataStore.AddModel<SysSettings>(newSysSettingsId, model => {
+				model.Name = "test settings without a value";
+			});
+			Assert.That(() => {
+				var minFloatList = _appDataContext.Models<SysSettings>().Where(x => 
+					x.Id == newSysSettingsId &&
+					x.SysSettingsValues.Min(ssv => ssv.FloatValue) == 0).ToList();
+				var minIntList = _appDataContext.Models<SysSettings>().Where(x => 
+					x.Id == newSysSettingsId &&
+					x.SysSettingsValues.Min(ssv => ssv.IntegerValue) == 0).ToList();
+				var minIntListSubFilter = _appDataContext.Models<SysSettings>().Where(x => 
+					x.Id == newSysSettingsId &&
+					x.SysSettingsValues.Where(ssv => ssv.BooleanValue).Min(ssv => ssv.IntegerValue) == 0).ToList();
+				var maxList = _appDataContext.Models<SysSettings>().Where(x => 
+					x.Id == newSysSettingsId &&
+					x.SysSettingsValues.Max(ssv => ssv.FloatValue) == 0).ToList();
+				var sumList = _appDataContext.Models<SysSettings>().Where(x => 
+					x.Id == newSysSettingsId &&
+					x.SysSettingsValues.Sum(ssv => ssv.FloatValue) == 0).ToList();
+				Assert.AreEqual(0, minIntList.Count);
+				Assert.AreEqual(0, minIntListSubFilter.Count);
+				Assert.AreEqual(0, minFloatList.Count);
+				Assert.AreEqual(0, maxList.Count);
+				Assert.AreEqual(0, sumList.Count);
+			}, Throws.Nothing);
+		}
 
 		[Test]
 		public void Get_WhenUseDetailMaxFilters_ShouldReturnExpectedValues() {
