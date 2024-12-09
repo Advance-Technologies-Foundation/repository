@@ -25,7 +25,7 @@
 		[SetUp]
 		public void SetUp() {
 			_creatioClientAdapter = Substitute.For<ICreatioClientAdapter>();
-			_remoteDataProvider = new RemoteDataProvider("", "", "") {CreatioClientAdapter = _creatioClientAdapter};
+			_remoteDataProvider = new RemoteDataProvider("", "", "");
 		}
 
 		[Test]

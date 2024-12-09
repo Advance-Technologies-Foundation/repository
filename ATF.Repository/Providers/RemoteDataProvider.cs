@@ -4,6 +4,7 @@
 	using System;
 	using System.Collections.Generic;
 	using System.IO;
+	using System.Linq;
 	using System.Net;
 	using System.Runtime.Serialization;
 	using System.Threading;
@@ -116,10 +117,15 @@
 
 		private ExecuteResponse ConvertBatchResponse(BatchResponse batchResponse) {
 			return new ExecuteResponse() {
-				Success = batchResponse.Success,
+				Success = batchResponse.Success || (batchResponse.QueryResults != null && batchResponse.QueryResults.All(x=>x.Success)),
 				ErrorMessage = batchResponse.ResponseStatus != null
 					? $"{batchResponse.ResponseStatus.ErrorCode}: {batchResponse.ResponseStatus.Message}"
-					: string.Empty
+					: string.Empty,
+				QueryResults = batchResponse.QueryResults?.Select(x=>(IExecuteItemResponse)new ExecuteItemResponse() {
+					Id = x.Id,
+					Success = x.Success,
+					RowsAffected = x.RowsAffected
+				}).ToList()
 			};
 		}
 
@@ -242,20 +248,33 @@
 		public List<JObject> Rows { get; set; }
 	}
 
+	internal class BatchItemResponse
+	{
+		[JsonProperty(PropertyName = "id")]
+		public Guid Id { get; set; }
+		
+		[JsonProperty(PropertyName = "rowsAffected")]
+		public int RowsAffected { get; set; }
+		
+		[JsonProperty(PropertyName = "success")]
+		public bool Success { get; set; }
+	}
 	internal class BatchResponse
 	{
 		[JsonProperty(PropertyName = "responseStatus")]
 		public ResponseStatus ResponseStatus { get; set; }
 
-		public List<object> QueryResults { get; set; }
-
-		public bool HasErrors { get; set; }
+		[JsonProperty(PropertyName = "queryResults")]
+		public List<BatchItemResponse> QueryResults { get; set; }
 		
 		[DataMember(Name = "rowsAffected")]
 		public int RowsAffected { get; set; }
 
 		[DataMember(Name = "success")]
 		public bool Success { get; set; }
+
+		[DataMember(Name = "hasErrors")]
+		public bool HasErrors { get; set; }
 	}
 
 	internal class ResponseStatus
