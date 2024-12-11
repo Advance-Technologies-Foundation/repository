@@ -79,10 +79,12 @@
 		private void RegisterDetailRelationship(DataTable dataTable, ModelItem modelItem) {
 			var detailSchemaName = GetRegisteredSchemaName(modelItem.DataValueType);
 			var detailColumnName = GetSchemaColumnName(modelItem.DataValueType, modelItem.DetailLinkPropertyName);
-			var masterColumnName = !string.IsNullOrEmpty(modelItem.MasterEntityColumnName) && modelItem.MasterEntityColumnName != DefaultPrimaryValueColumnName
+			var masterColumnName = !string.IsNullOrEmpty(modelItem.MasterEntityColumnName) &&
+			    modelItem.MasterEntityColumnName != DefaultPrimaryValueColumnName
 				? GetSchemaColumnName(modelItem.DataValueType, modelItem.DetailLinkPropertyName)
 				: DefaultPrimaryValueColumnName;
-			dataTable.RegisterDetailRelationship(modelItem.PropertyName, detailSchemaName, detailColumnName, masterColumnName);
+			dataTable.RegisterDetailRelationship(modelItem.PropertyName, detailSchemaName,
+				detailColumnName, masterColumnName);
 		}
 
 		private string GetSchemaColumnName(Type modelType, string modelPropertyName) {
@@ -234,11 +236,18 @@
 			if (typeof(T) == typeof(DateTime) && value is DateTime dateTimeValue) {
 				value = dateTimeValue.TrimMilliseconds();
 			}
+			if (typeof(T) == typeof(DateTime) &&
+			    (value == null ||
+			     (value is string emptyDateTimeStringValue && emptyDateTimeStringValue ==  string.Empty))) {
+				value = DateTime.MinValue;
+			}
 
-			if (typeof(T) == typeof(Guid) && value is string stringValue && Guid.TryParse(stringValue, out var guidValue)) {
+			if (typeof(T) == typeof(Guid) && value is string stringValue &&
+			    Guid.TryParse(stringValue, out var guidValue)) {
 				value = guidValue;
 			}
-			if (typeof(T) == typeof(Guid) && value == null) {
+			if (typeof(T) == typeof(Guid) &&
+			    (value == null || (value is string emptyGuidStringValue && emptyGuidStringValue ==  string.Empty))) {
 				value = Guid.Empty;
 			}
 			return (T)Convert.ChangeType(value, typeof(T));
@@ -262,9 +271,11 @@
 
 		private Dictionary<string, object> GetActualUpdatingValues(Dictionary<string, object> values) {
 			if (!EmulateSystemColumnsBehavior) {
-				return values.Where(x => x.Key != DefaultPrimaryValueColumnName).ToDictionary(x => x.Key, x => x.Value);
+				return values.Where(x => x.Key != DefaultPrimaryValueColumnName)
+					.ToDictionary(x => x.Key, x => x.Value);
 			}
-			var actualValues = values.Where(x => !IsSystemColumn(x.Key)).ToDictionary(x => x.Key, x => x.Value);
+			var actualValues = values.Where(x => !IsSystemColumn(x.Key))
+				.ToDictionary(x => x.Key, x => x.Value);
 			if (values.ContainsKey("ModifiedOn")) {
 				actualValues["ModifiedOn"] = DateTime.Now.TrimMilliseconds();
 			}
