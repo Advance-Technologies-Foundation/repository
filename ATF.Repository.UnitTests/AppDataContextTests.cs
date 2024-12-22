@@ -45,6 +45,34 @@ namespace ATF.Repository.UnitTests
 		}
 	}
 
+	public class MyDataProvider : IDataProvider
+	{
+		public IDefaultValuesResponse GetDefaultValues(string schemaName)
+		{
+			return new DefaultValuesResponse();
+		}
+
+		public IItemsResponse GetItems(ISelectQuery selectQuery)
+		{
+			return new ItemsResponse();
+		}
+
+		public IExecuteResponse BatchExecute(List<IBaseQuery> queries)
+		{
+			return new ExecuteResponse();
+		}
+
+		public T GetSysSettingValue<T>(string sysSettingCode)
+		{
+			return default(T);
+		}
+
+		public bool GetFeatureEnabled(string featureCode)
+		{
+			return false;
+		}
+	}
+	
 	[TestFixture]
 	public class AppDataContextTests
 	{
@@ -2705,6 +2733,20 @@ namespace ATF.Repository.UnitTests
 
 			// Assert
 			Assert.AreEqual(expectedValue, model.Id);
+		}
+		
+		[Test]
+		public void Models_WhenUseSelect_ShouldReturnsExpectedValue() {
+			// Arrange
+			IDataProvider provider = new MyDataProvider();
+			var context = AppDataContextFactory.GetAppDataContext(provider);
+
+			// Act
+			var model = context.Models<TypedTestModel>().Select(x=>new {x.BooleanValue, x.IntValue, x.DetailModels.Count}).ToList();
+
+			// Assert
+			//Assert.AreEqual(expectedValue, model.Id);
+			Assert.IsEmpty(model);
 		}
 	}
 

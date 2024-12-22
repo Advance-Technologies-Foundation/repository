@@ -6,6 +6,13 @@
 		<ProjectGuid>{F6E64FAD-5F5C-46CD-95C1-07E9258810BA}</ProjectGuid>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 		<TargetFramework>netstandard2.0</TargetFramework>
+		<Version>2.0.2.10</Version>
+		<Title>ATF</Title>
+		<Copyright>Copyright ©2024</Copyright>
+		<PackageProjectUrl>https://github.com/Advance-Technologies-Foundation/repository</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/Advance-Technologies-Foundation/repository</RepositoryUrl>
+		<PackageTags>ATF Repository Creatio ORM</PackageTags>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	</PropertyGroup>
 
 	<ItemGroup Label="Nuget">

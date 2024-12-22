@@ -80,8 +80,9 @@
 			return Expression.Call(null, genericMethod, rowParameterExpression, columnNameExpression);
 		}
 
-		private static LambdaExpression BuildEmptyFilterExpression(ParameterExpression parameterExpression) {
-			throw new NotImplementedException();
+		private static Expression BuildEmptyFilterExpression(ParameterExpression parameterExpression)
+		{
+			return Expression.Constant(true, typeof(bool));
 		}
 
 		private static Expression BuildFilter(ExpressionContext expressionContext, IFilter filter) {

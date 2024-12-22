@@ -4,7 +4,7 @@
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<AssemblyVersion>2.0.1.0</AssemblyVersion>
 		<FileVersion>2.0.1.0</FileVersion>
-		<Version>2.0.2.10</Version>
+		<Version>2.0.2.11</Version>
 		<Title>ATF.Repository.Mock</Title>
 		<Authors>ATF</Authors>
 		<Description>The current package contains a sets of mocks for easy testing of the ATF.Repository data layer.</Description>

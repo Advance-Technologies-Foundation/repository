@@ -107,6 +107,21 @@
 			var featureNull2 = _appDataContext.Models<SysSettings>().FirstOrDefault(x => x.Code != "UseNewShell");
 			Assert.IsNull(featureNull2);
 		}
+		[Test]
+		public void GetItems_WhenUseWithoutFilters_ShouldReturnExpectedValues()
+		{
+			var items = _appDataContext.Models<SysSettings>().ToList();
+
+			Assert.IsNotEmpty(items);
+		}
+
+		[Test]
+		public void GetItems_WhenUseSelect_ShouldReturnExpectedValues()
+		{
+			var items = _appDataContext.Models<SysSettings>().Select(x => new { x.Code, x.Id }).ToList();
+
+			Assert.IsNotEmpty(items);
+		}
 
 		[Test]
 		public void Get_WhenFilterByBoolean_ShouldReturnExpectedValues() {
