@@ -114,7 +114,9 @@
 				var rightExpression = BuildCompareFilterPart(expressionContext, item);
 				var comparisonExpression = BuildCompareFilter(filter.ComparisonType, leftExpression, rightExpression);
 				expression = expression != null
-					? Expression.Or(expression, comparisonExpression)
+					? filter.ComparisonType == FilterComparisonType.NotEqual
+						? Expression.And(expression, comparisonExpression)
+						: Expression.Or(expression, comparisonExpression)
 					: comparisonExpression;
 			});
 			var blockExpression = Expression.Block(expression);

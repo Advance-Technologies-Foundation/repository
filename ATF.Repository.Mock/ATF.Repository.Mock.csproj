@@ -4,11 +4,11 @@
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<AssemblyVersion>2.0.1.0</AssemblyVersion>
 		<FileVersion>2.0.1.0</FileVersion>
-		<Version>2.0.2.11</Version>
+		<Version>2.0.2.12</Version>
 		<Title>ATF.Repository.Mock</Title>
 		<Authors>ATF</Authors>
 		<Description>The current package contains a sets of mocks for easy testing of the ATF.Repository data layer.</Description>
-		<Copyright>Copyright ©2024</Copyright>
+		<Copyright>Copyright ©2025</Copyright>
 		<PackageProjectUrl>https://github.com/Advance-Technologies-Foundation/repository</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/Advance-Technologies-Foundation/repository</RepositoryUrl>
 		<PackageTags>ATF Repository Creatio ORM Mock</PackageTags>

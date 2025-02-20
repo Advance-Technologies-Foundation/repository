@@ -594,6 +594,13 @@
 			var model = _appDataContext.Models<SysSettingsValue>().FirstOrDefault(x => !guidList.Contains(x.SysAdminUnitId));
 			Assert.AreEqual(_sysAdminUnit, model?.SysAdminUnitId ?? Guid.Empty);
 		}
+		
+		[Test]
+		public void Get_WhenUseNotContainListWithNoAppropriateData_ShouldReturnExpectedValues() {
+			var guidList = new List<Guid>() { _sysAdminUnit, Guid.NewGuid(), Guid.NewGuid() };
+			var model = _appDataContext.Models<SysSettingsValue>().FirstOrDefault(x => !guidList.Contains(x.SysAdminUnitId));
+			Assert.IsNull(model);
+		}
 
 		[Test]
 		public void Get_WhenUseStartsWith_ShouldReturnExpectedValues() {
