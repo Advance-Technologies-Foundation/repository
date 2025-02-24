@@ -197,6 +197,29 @@
 				_appDataContext.Models<SysSettingsValue>().FirstOrDefault(x => x.FloatValue != 12.18m);
 			Assert.IsNull(featureNotEqualNull);
 		}
+		
+		[Test]
+		public void Get_WhenFilterByGuid_ByGuidEmpty_ShouldReturnExpectedValues() {
+			var sysAdminUnitId = Guid.NewGuid();
+			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+				model.SysAdminUnitId = sysAdminUnitId;
+			});
+			
+			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+				model.SysAdminUnitId = sysAdminUnitId;
+				model.SysSettingsId = Guid.NewGuid();
+			});
+			
+			var notEmptyList =
+				_appDataContext.Models<SysSettingsValue>().Where(x=>x.SysSettingsId != Guid.Empty).ToList();
+			Assert.AreEqual(2, notEmptyList.Count);
+
+			var emptyList =
+				_appDataContext.Models<SysSettingsValue>().Where(x=>x.SysSettingsId == Guid.Empty).ToList();
+
+			Assert.AreEqual(1, emptyList.Count);
+			Assert.AreEqual(sysAdminUnitId, emptyList.First().SysAdminUnitId);
+		}
 
 		[Test]
 		public void Get_WhenFilterByInt_ByEqual_ShouldReturnExpectedValues() {
@@ -366,6 +389,9 @@
 			});
 			var list = _appDataContext.Models<SysSettings>().Where(x => x.SysSettingsValues.Any(y=>y.IntegerValue == 11)).ToList();
 			Assert.AreEqual(1, list.Count);
+			
+			var codeList = _appDataContext.Models<SysSettings>().Where(x => x.SysSettingsValues.Any(y=>y.IntegerValue == 11)).Select(x=>x.Code).ToList();
+			Assert.AreEqual(1, codeList.Count);
 
 			var listWithoutSubFilter = _appDataContext.Models<SysSettings>().Where(x => x.SysSettingsValues.Any()).ToList();
 			Assert.AreEqual(1, listWithoutSubFilter.Count);
@@ -859,5 +885,6 @@
 			Assert.AreEqual(date, lookupHourModel.Parent.DateTimeValue);
 			
 		}
+		
 	}
 }

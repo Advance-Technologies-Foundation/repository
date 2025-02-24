@@ -107,9 +107,36 @@
 			throw new NotImplementedException();
 		}
 
+		private static Expression BuildInIsNullExpression(ExpressionContext expressionContext, IFilter filter, Expression leftExpression) {
+			var expression = BuildHasValueFilterPart(expressionContext, filter.LeftExpression.ExpressionType,
+				filter.LeftExpression.ColumnPath);
+			if (expression != null && leftExpression.Type == typeof(Guid)) {
+				var comparisonExpression = BuildCompareFilter(FilterComparisonType.Equal, leftExpression, Expression.Constant(Guid.Empty));
+				expression = Expression.And(expression, comparisonExpression);
+			}
+			return expression;
+		}
+		
+		private static Expression BuildInIsNotNullExpression(ExpressionContext expressionContext, IFilter filter, Expression leftExpression) {
+			var expression = BuildHasValueFilterPart(expressionContext, filter.LeftExpression.ExpressionType,
+				filter.LeftExpression.ColumnPath);
+			if (expression != null && leftExpression.Type == typeof(Guid)) {
+				var comparisonExpression = BuildCompareFilter(FilterComparisonType.NotEqual, leftExpression, Expression.Constant(Guid.Empty));
+				expression = Expression.And(expression, comparisonExpression);
+			}
+			return expression;
+		}
+
 		private static Expression BuildInFilter(ExpressionContext expressionContext, IFilter filter) {
 			var leftExpression = BuildCompareFilterPart(expressionContext, filter.LeftExpression);
 			Expression expression = null;
+			if (filter.ComparisonType == FilterComparisonType.IsNull) {
+				return BuildInIsNullExpression(expressionContext, filter, leftExpression);
+			} 
+			if (filter.ComparisonType == FilterComparisonType.IsNotNull) {
+				return BuildInIsNotNullExpression(expressionContext, filter, leftExpression);
+			}
+
 			filter.RightExpressions.ForEach(item => {
 				var rightExpression = BuildCompareFilterPart(expressionContext, item);
 				var comparisonExpression = BuildCompareFilter(filter.ComparisonType, leftExpression, rightExpression);
