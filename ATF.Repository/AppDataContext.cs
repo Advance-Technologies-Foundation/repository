@@ -1,4 +1,6 @@
-﻿namespace ATF.Repository
+﻿using ATF.Repository.Providers.BpModelParser;
+
+namespace ATF.Repository
 {
 	using System;
 	using System.Collections.Generic;
@@ -124,7 +126,9 @@
 			}
 			return response;
 		}
-	}
+		
+		public RunProcessResponseWrapper<T>RunProcess<T>(T model) where T : BaseBpModel, new() => _dataProvider.RunProcess(model);
 
+	}
 
 }

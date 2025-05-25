@@ -2,7 +2,7 @@
 
 namespace ATF.Repository.UnitTests.Models
 {
-	[Schema("ActivityCategory")]
+	[Schema(name: "ActivityCategory")]
 	public class ActivityCategory: BaseModel
 	{
 		[SchemaProperty("Name")]

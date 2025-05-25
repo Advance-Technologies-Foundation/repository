@@ -3,7 +3,7 @@
 	using System.Collections.Generic;
 	using ATF.Repository.Attributes;
 
-	[Schema("Region")]
+	[Schema(name: "Region")]
 	public class Region: BaseModel
 	{
 		[SchemaProperty("Name")]

@@ -1,4 +1,14 @@
-﻿namespace ATF.Repository.Providers
+﻿using System.Collections;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Globalization;
+using System.Reflection;
+using ATF.Repository.Attributes;
+using ATF.Repository.Providers.BpModelParser;
+using Castle.Components.DictionaryAdapter.Xml;
+using Terrasoft.Core.ServiceModelContract;
+
+namespace ATF.Repository.Providers
 {
 	using ATF.Repository.Replicas;
 	using System;
@@ -25,6 +35,8 @@
 		private string BatchEndpointUrl => _isNetCore ? "/DataService/json/SyncReply/BatchQuery": "/0/DataService/json/SyncReply/BatchQuery";
 		private string SysSettingEndpointUrl => _isNetCore ? "/DataService/json/SyncReply/QuerySysSettings" :  "/0/DataService/json/SyncReply/QuerySysSettings";
 		private string FeatureEndpointUrl => _isNetCore ? "/rest/FeatureService/GetFeatureState": "/0/rest/FeatureService/GetFeatureState";
+		private string RunProcessEndpointUrl => _isNetCore ? "/ServiceModel/ProcessEngineService.svc/RunProcess": "/0/ServiceModel/ProcessEngineService.svc/RunProcess";
+		
 
 		#endregion;
 
@@ -221,6 +233,62 @@
 			}
 
 			return default(T);
+		}
+		
+		public RunProcessResponseWrapper<T> RunProcess<T>(T model) where T: BaseBpModel, new() {
+			List<string> resultParameterNames = GetResultParameterNames(model);
+			
+			RunProcessRequest rpr = new RunProcessRequest {
+				SchemaUId = model.SchemaUId,
+				SchemaName = model.SchemaName,
+				CollectExecutionData = true,
+				ParameterValues = GetInputParameterValues(model),
+				ResultParameterNames = resultParameterNames
+			};
+			
+			string requestData = JsonConvert.SerializeObject(rpr, Formatting.Indented);
+			string url = _applicationUrl + RunProcessEndpointUrl;
+			string jsonResponse = CreatioClientAdapter.ExecutePostRequest(url, requestData, 1_800_000);
+			
+			return ModelParser.Parse<T>(jsonResponse);
+		}
+		private static ProcessParameterValueCollection GetInputParameterValues<T>(T model) where T: BaseBpModel, new(){
+			ProcessParameterValueCollection collection = new ProcessParameterValueCollection();
+			model.GetType().GetProperties().ToList().ForEach(prop => {
+				ProcessParameterAttribute ppa = prop.GetCustomAttribute<ProcessParameterAttribute>(true);
+				if(ppa != null && (ppa.Direction == ProcessParameterDirection.Input || ppa.Direction == ProcessParameterDirection.Bidirectional)) {
+					object value = prop.GetValue(model);
+					if (value == null) {
+						return;
+					}
+					collection.Add(new NameValuePair {
+						Name = ppa.Name,
+						Value = value.ToString()
+					});
+				}
+			});
+			
+			if (collection.Count == 0) {
+				return null;
+			}
+			return collection;
+		}
+		
+		private static List<string> GetResultParameterNames<T>(T model) where T: BaseBpModel, new(){
+			List<string> result = new List<string>();
+			model.GetType().GetProperties().ToList().ForEach(prop => {
+				ProcessParameterAttribute ppa = prop.GetCustomAttribute<ProcessParameterAttribute>(false);
+				
+				if(ppa !=null && (ppa.Direction == ProcessParameterDirection.Output || ppa.Direction == ProcessParameterDirection.Bidirectional)) {
+					
+					result.Add(ppa.Name);
+				}
+				
+			});
+			if (result.Count == 0) {
+				return null;
+			}
+			return result;
 		}
 
 		#endregion

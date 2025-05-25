@@ -1,0 +1,42 @@
+﻿{
+  "processId":"7e354376-2228-4ed2-90c6-2fe5950fecae",
+  "processStatus":2,
+  "resultParameterValues":{
+    "OutputParam1":null,
+    "OutputDateTime":"2025-05-25T18:25:23.3049978",
+    "OutputCollection":[
+      {
+        "Id":"48c226bc-3984-4e5a-b8a7-af497852f2b8",
+        "Name":"Creatio Webhook Service"
+      },
+      {
+        "Id":"199a493b-ac55-4944-aece-0a4c1ea8da2f",
+        "Name":"Creatio ALM Integration"
+      },
+      {
+        "Id":"d4ca8c9f-2ada-4a28-b4d8-59151333bf1d",
+        "Name":"Creatio Web Farm Orchestrator"
+      },
+      {
+        "Id":"410006e1-ca4e-4502-a9ec-e54d922d2c00",
+        "Name":"Supervisor"
+      },
+      {
+        "Id":"e79c6fe5-1853-4df5-a9e9-a585964e3a3b",
+        "Name":"SysPortalConnection"
+      },
+      {
+        "Id":"5266908c-f3d1-4c5c-9097-f0dfbdbf900b",
+        "Name":"Email Supervisor"
+      },
+      {
+        "Id":"c4ed336c-3e9b-40fe-8b82-5632476472b4",
+        "Name":"Andrew Baker(sample)"
+      }
+    ],
+    "OutputCollectionTwo":[ ]
+  },
+  "executionData":null,
+  "success":true,
+  "errorInfo":null
+}

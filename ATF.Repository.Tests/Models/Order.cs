@@ -4,7 +4,7 @@
 	using System.Collections.Generic;
 	using ATF.Repository.Attributes;
 
-	[Schema("Order")]
+	[Schema(name: "Order")]
 	public class Order : BaseModel
 	{
 		[SchemaProperty("Number")]

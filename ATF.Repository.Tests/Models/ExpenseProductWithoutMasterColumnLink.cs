@@ -4,7 +4,7 @@
 	using ATF.Repository;
 	using ATF.Repository.Attributes;
 
-	[Schema("TsOrderExpenseProduct")]
+	[Schema(name: "TsOrderExpenseProduct")]
 	public class ExpenseProductWithoutMasterColumnLink : BaseModel
 	{
 		/*[SchemaProperty("TsOrderExpense")]

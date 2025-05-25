@@ -12,6 +12,7 @@
 		<AssemblyName>ATF.Repository.FW.UnitTests</AssemblyName>
 		<TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
 		<FileAlignment>512</FileAlignment>
+		<SonarQubeTestProject>true</SonarQubeTestProject>
 	</PropertyGroup>
 	<PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
 		<PlatformTarget>AnyCPU</PlatformTarget>
@@ -45,7 +46,7 @@
 		  <Private>True</Private>
 		</Reference>
 		<Reference Include="Creatio.Client, Version=1.0.24.0, Culture=neutral, processorArchitecture=MSIL">
-		  <HintPath>..\packages\creatio.client.1.0.24\lib\netstandard2.0\Creatio.Client.dll</HintPath>
+		  <HintPath>..\packages\creatio.client.1.0.28\lib\netstandard2.0\Creatio.Client.dll</HintPath>
 		</Reference>
 		<Reference Include="Creatio.FeatureToggling, Version=1.0.15.0, Culture=neutral, PublicKeyToken=edaadfbc3b0bb879, processorArchitecture=MSIL">
 		  <HintPath>..\packages\CreatioSDK.8.1.0.6716\lib\net40\Creatio.FeatureToggling.dll</HintPath>

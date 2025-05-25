@@ -3,7 +3,7 @@
 	using System;
 	using ATF.Repository.Attributes;
 
-	[Schema("Product")]
+	[Schema(name: "Product")]
 	public class Product: BaseModel
 	{
 		[SchemaProperty("Name")]

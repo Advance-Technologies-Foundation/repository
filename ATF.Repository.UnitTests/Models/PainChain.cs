@@ -3,7 +3,7 @@
 	using System;
 	using ATF.Repository.Attributes;
 
-	[Schema("PainChain")]
+	[Schema(name: "PainChain")]
 	public class PainChain: BaseModel
 	{
 		[SchemaProperty("Name")]

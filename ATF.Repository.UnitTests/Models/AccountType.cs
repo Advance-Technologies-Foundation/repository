@@ -2,7 +2,7 @@
 {
 	using ATF.Repository.Attributes;
 
-	[Schema("AccountType")]
+	[Schema(name: "AccountType")]
 	public class AccountType: BaseModel
 	{
 		[SchemaProperty("Name")]

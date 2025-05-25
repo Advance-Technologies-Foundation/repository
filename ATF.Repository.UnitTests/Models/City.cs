@@ -3,7 +3,7 @@
 	using System;
 	using ATF.Repository.Attributes;
 
-	[Schema("City")]
+	[Schema(name: "City")]
 	public class City: BaseModel
 	{
 		[SchemaProperty("CreatedOn")]

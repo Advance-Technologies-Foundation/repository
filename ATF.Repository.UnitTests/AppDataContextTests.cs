@@ -71,6 +71,11 @@ namespace ATF.Repository.UnitTests
 		{
 			return false;
 		}
+		
+		public RunProcessResponseWrapper<T> RunProcess<T>(T model) where T : BaseBpModel, new()
+		{
+			return default;
+		}
 	}
 	
 	[TestFixture]

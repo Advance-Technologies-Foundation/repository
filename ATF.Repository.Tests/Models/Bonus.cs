@@ -4,7 +4,7 @@
 	using System.Collections.Generic;
 	using ATF.Repository.Attributes;
 
-	[Schema("Bonus")]
+	[Schema(name: "Bonus")]
 	public class Bonus : BaseModel
 	{
 		[SchemaProperty("AccrualDate")]

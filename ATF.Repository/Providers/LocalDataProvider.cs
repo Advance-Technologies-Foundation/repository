@@ -1,4 +1,6 @@
-﻿namespace ATF.Repository.Providers
+﻿using Terrasoft.Core.Process;
+
+namespace ATF.Repository.Providers
 {
 	using ATF.Repository.Replicas;
 	using System;
@@ -315,6 +317,12 @@
 				.And("SysAdminUnitInRole", "SysAdminUnitId").IsEqual(Column.Parameter(_userConnection.CurrentUser.Id))
 				.OrderByDesc("AdminUnitFeatureState", "FeatureState");
 			return select.ExecuteScalar<int>();
+		}
+		
+		
+		public RunProcessResponseWrapper<T> RunProcess<T>(T model) where T: BaseBpModel, new() {
+			throw new NotImplementedException("LocalDataProvider does not support RunProcess method.");
+			
 		}
 
 		#endregion

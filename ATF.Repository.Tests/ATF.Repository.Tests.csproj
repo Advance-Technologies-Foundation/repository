@@ -6,14 +6,17 @@
 		<ProjectGuid>{B7327963-48AF-4B5B-A166-4A115D2821DC}</ProjectGuid>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 		<TargetFramework>net472</TargetFramework>
+		<SonarQubeTestProject>true</SonarQubeTestProject>
 	</PropertyGroup>
 	<ItemGroup>	
 	  <ProjectReference Include="..\ATF.Repository\ATF.Repository.csproj" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="Castle.Core" Version="4.4.1" />
+<!--		<PackageReference Include="Castle.Core" Version="4.4.1" />-->
+		<PackageReference Include="Castle.Core" Version="5.1.1" />
 		<PackageReference Include="CreatioMock" Version="7.17.4.2266" />
-		<PackageReference Include="CreatioSDK" Version="7.17.4.2265" />
+<!--		<PackageReference Include="CreatioSDK" Version="7.17.4.2265" />-->
+		<PackageReference Include="CreatioSDK" Version="8.1.0.6716" />
 		<PackageReference Include="CreatioTestFramework" Version="7.17.4.2265" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.1.1" />
 		<PackageReference Include="NUnit" Version="3.12.0" />

@@ -2,7 +2,7 @@
 {
 	using ATF.Repository.Attributes;
 
-	[Schema("LookupTestModel")]
+	[Schema(name: "LookupTestModel")]
 	public class LookupTestModel: BaseModel
 	{
 		[SchemaProperty("Name")]

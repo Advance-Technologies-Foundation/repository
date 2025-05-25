@@ -5,7 +5,7 @@
 	using ATF.Repository;
 	using ATF.Repository.Attributes;
 
-	[Schema("TsOrderExpense")]
+	[Schema(name: "TsOrderExpense")]
 	public class Expense : BaseModel
 	{
 		[SchemaProperty("ExpenseDate")]

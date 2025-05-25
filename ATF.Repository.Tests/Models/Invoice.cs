@@ -4,7 +4,7 @@
 	using System.Collections.Generic;
 	using ATF.Repository.Attributes;
 
-	[Schema("Invoice")]
+	[Schema(name: "Invoice")]
 	public class Invoice : BaseModel
 	{
 		[SchemaProperty("PrimaryAmount")]

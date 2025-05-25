@@ -3,7 +3,7 @@
 	using System;
 	using ATF.Repository.Attributes;
 
-	[Schema("CurrencyRate")]
+	[Schema(name: "CurrencyRate")]
 	public class CurrencyRate: BaseModel
 	{
 		[LookupProperty("Currency")]

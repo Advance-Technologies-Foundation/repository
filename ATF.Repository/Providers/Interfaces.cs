@@ -1,4 +1,6 @@
-﻿namespace ATF.Repository.Providers
+﻿using Terrasoft.Core.ServiceModelContract;
+
+namespace ATF.Repository.Providers
 {
 	using System.Collections.Generic;
 
@@ -13,6 +15,8 @@
 		T GetSysSettingValue<T>(string sysSettingCode);
 
 		bool GetFeatureEnabled(string featureCode);
+		
+		RunProcessResponseWrapper<T> RunProcess<T>(T model) where T: BaseBpModel, new();
 	}
 
 	public interface IDefaultValuesResponse

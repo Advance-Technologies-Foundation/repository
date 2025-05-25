@@ -2,7 +2,7 @@
 {
 	using ATF.Repository.Attributes;
 
-	[Schema("OpportunityType")]
+	[Schema(name: "OpportunityType")]
 	public class OpportunityType: BaseModel
 	{
 		[SchemaProperty("Name")]

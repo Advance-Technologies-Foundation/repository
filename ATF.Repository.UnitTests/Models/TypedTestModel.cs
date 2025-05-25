@@ -4,7 +4,7 @@
 	using System.Collections.Generic;
 	using ATF.Repository.Attributes;
 
-	[Schema("TypedTestModel")]
+	[Schema(name: "TypedTestModel")]
 	public class TypedTestModel: BaseModel
 	{
 		[SchemaProperty("StringValue")]

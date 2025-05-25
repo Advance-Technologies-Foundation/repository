@@ -3,7 +3,7 @@
 	using System;
 	using ATF.Repository.Attributes;
 
-	[Schema("ContactInTag")]
+	[Schema(name: "ContactInTag")]
 	public class ContactInTag: BaseModel
 	{
 		[SchemaProperty("Entity")]

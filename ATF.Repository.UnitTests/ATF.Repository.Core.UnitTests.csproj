@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>netcoreapp3.1</TargetFramework>
+		<TargetFramework>net8.0</TargetFramework>
 
 		<IsPackable>false</IsPackable>
 
@@ -10,20 +10,32 @@
 		<RootNamespace>ATF.Repository.UnitTests</RootNamespace>
 
 		<LangVersion>8</LangVersion>
+		<SonarQubeTestProject>true</SonarQubeTestProject>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Castle.Core" Version="5.1.1" />
-		<PackageReference Include="creatio.client" Version="1.0.24" />
+		<PackageReference Include="creatio.client" Version="1.0.28" />
 		<PackageReference Include="CreatioSDK" Version="8.1.0.6716" />
 		<PackageReference Include="NSubstitute" Version="4.2.2" />
 		<PackageReference Include="NUnit" Version="3.12.0" />
 		<PackageReference Include="NUnit3TestAdapter" Version="3.16.1" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />
+		<PackageReference Include="FluentAssertions" Version="[7.2.0]" />
 	</ItemGroup>
 
 	<ItemGroup>
 	  <ProjectReference Include="..\ATF.Repository\ATF.Repository.csproj" />
+	</ItemGroup>
+
+	
+	<ItemGroup>
+	  <None Include="Providers\Samples\*.json">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
+	  <None Update="Providers\Samples\brokenJson.json">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
 	</ItemGroup>
 
 </Project>

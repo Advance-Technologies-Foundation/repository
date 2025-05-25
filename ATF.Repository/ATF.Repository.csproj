@@ -16,11 +16,19 @@
 	</PropertyGroup>
 
 	<ItemGroup Label="Nuget">
-		<PackageReference Include="creatio.client" Version="1.0.24" />
+		<PackageReference Include="creatio.client" Version="1.0.28" />
 		<PackageReference Include="CreatioSDK" Version="8.1.0.6716" />
 		<PackageReference Include="Common.Logging" Version="3.4.1" />
 		<PackageReference Include="Castle.Core" Version="5.1.1" />
 		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="3.1.6" />
+		<PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
+	</ItemGroup>
+
+	
+	<ItemGroup Label="Test visibility">
+		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+			<_Parameter1>ATF.Repository.Core.UnitTests</_Parameter1>
+		</AssemblyAttribute>
 	</ItemGroup>
 	
 	<ItemGroup>

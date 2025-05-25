@@ -1,0 +1,12 @@
+﻿{
+  "processId":"00000000-0000-0000-0000-000000000000",
+  "processStatus":0,
+  "resultParameterValues":null,
+  "executionData":null,
+  "success":false,
+  "errorInfo":{
+    "errorCode":"ItemNotFoundException",
+    "message":"Collection item with name OutputCollection2 not found.",
+    "stackTrace":null
+  }
+}

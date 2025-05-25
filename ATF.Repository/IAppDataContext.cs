@@ -1,4 +1,6 @@
-﻿namespace ATF.Repository
+﻿using Terrasoft.Core.ServiceModelContract;
+
+namespace ATF.Repository
 {
 	using System;
 	using ATF.Repository.Providers;
@@ -21,5 +23,24 @@
 		ISysSettingResponse<T> GetSysSettingValue<T>(string sysSettingCode);
 
 		IFeatureResponse GetFeatureEnabled(string featureCode);
+		RunProcessResponseWrapper<T> RunProcess<T>(T model) where T : BaseBpModel, new();
 	}
+	
+	public class RunProcessResponseWrapper<T>: RunProcessResponse {
+
+		public RunProcessResponseWrapper(RunProcessResponse b) {
+			
+			Success = b.Success;
+			ProcessId = b.ProcessId;
+			ProcessStatus = b.ProcessStatus;
+			ErrorInfo = b.ErrorInfo;
+			ExecutionData = b.ExecutionData;
+			ResultParameterValues = b.ResultParameterValues;
+			
+			
+		}
+		public T ResultModel { get; set; }
+	}
+	
+	
 }

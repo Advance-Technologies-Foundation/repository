@@ -2,7 +2,7 @@
 {
 	using ATF.Repository.Attributes;
 
-	[Schema("Currency")]
+	[Schema(name: "Currency")]
 	public class Currency: BaseModel
 	{
 		[SchemaProperty("Name")]
