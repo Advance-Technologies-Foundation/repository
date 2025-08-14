@@ -71,6 +71,10 @@ namespace ATF.Repository.UnitTests
 		{
 			return false;
 		}
+
+		public IExecuteProcessResponse ExecuteProcess(IExecuteProcessRequest request) {
+			return new ExecuteProcessResponse();
+		}
 	}
 	
 	[TestFixture]

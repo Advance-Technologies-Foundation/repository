@@ -70,5 +70,28 @@
 
 			return string.Join(".", columnPathList);
 		}
+		
+		internal static string GetBusinessProcessName(MemberInfo type)
+		{
+			string name = string.Empty;
+			if (Attribute.IsDefined(type, typeof(BusinessProcessAttribute)) &&
+				(type.GetCustomAttribute(typeof(BusinessProcessAttribute)) as BusinessProcessAttribute) != null) {
+				BusinessProcessAttribute attribute = type.GetCustomAttribute(typeof(BusinessProcessAttribute)) as BusinessProcessAttribute;
+				name = attribute?.Name;
+			}
+			return name;
+		}
+
+		internal static void ValidateBusinessProcess<T>(T businessProcess) {
+			if (string.IsNullOrEmpty(GetBusinessProcessName(businessProcess.GetType()))) {
+				throw new ArgumentException(
+					$"Type {businessProcess.GetType().Name} must be decorated with BusinessProcessAttribute");
+			}
+
+			if (!(businessProcess is IBusinessProcess)) {
+				throw new ArgumentException(
+					$"Type {businessProcess.GetType().Name} must implement the IBusinessProcess interface");
+			}
+		}
 	}
 }

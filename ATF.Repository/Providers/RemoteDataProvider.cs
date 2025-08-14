@@ -7,11 +7,11 @@
 	using System.Linq;
 	using System.Net;
 	using System.Runtime.Serialization;
-	using System.Threading;
-	using Castle.DynamicProxy.Internal;
 	using Newtonsoft.Json;
 	using Newtonsoft.Json.Linq;
 	using Terrasoft.Common;
+	using Terrasoft.Core.Process;
+	using Terrasoft.Core.ServiceModelContract;
 	using DataValueType = Terrasoft.Nui.ServiceModel.DataContract.DataValueType;
 
 	public class RemoteDataProvider: IDataProvider
@@ -25,6 +25,7 @@
 		private string BatchEndpointUrl => _isNetCore ? "/DataService/json/SyncReply/BatchQuery": "/0/DataService/json/SyncReply/BatchQuery";
 		private string SysSettingEndpointUrl => _isNetCore ? "/DataService/json/SyncReply/QuerySysSettings" :  "/0/DataService/json/SyncReply/QuerySysSettings";
 		private string FeatureEndpointUrl => _isNetCore ? "/rest/FeatureService/GetFeatureState": "/0/rest/FeatureService/GetFeatureState";
+		private string RunProcessEndpointUrl => _isNetCore ? "/ServiceModel/ProcessEngineService.svc/RunProcess": "/0/ServiceModel/ProcessEngineService.svc/RunProcess";
 
 		#endregion;
 
@@ -92,7 +93,7 @@
 				? row[key]["value"]
 				: row[key];
 		}
-
+		
 		private T ConvertJTokenToValue<T>(JToken token) {
 			if (token == null || (string.IsNullOrEmpty(token.ToString()) && !IsNullableType(typeof(T)))) {
 				return default(T);
@@ -198,6 +199,84 @@
 			var responseBody = CreatioClientAdapter.ExecutePostRequest(url, requestData, 600000);
 			var featureRaw = JsonConvert.DeserializeObject<ServiceFeatureResponse>(responseBody);
 			return featureRaw?.FeatureState == 1;
+		}
+
+		public IExecuteProcessResponse ExecuteProcess(IExecuteProcessRequest request) {
+			var response = new ExecuteProcessResponse();
+			try {
+				var runProcessRequest = new RunProcessRequest() {
+					SchemaName = request.ProcessSchemaName,
+					CollectExecutionData = true,
+					ParameterValues = GetParameterValues(request.InputParameters),
+					ResultParameterNames = GetResultParameterNames(request.ResultParameters)
+				};
+			
+				var requestData = JsonConvert.SerializeObject(runProcessRequest, Formatting.Indented);
+				var url = _applicationUrl + RunProcessEndpointUrl;
+				var rawResponse = CreatioClientAdapter.ExecutePostRequest(url, requestData, 1800000);
+				var innerResponse = ParseExecuteProcessResponse(rawResponse, request.ResultParameters);
+				response.ProcessId = innerResponse.ProcessId;
+				response.ProcessStatus = (ProcessStatus)innerResponse.ProcessStatus;
+				response.ErrorMessage = innerResponse.ErrorInfo?.Message ?? string.Empty;
+				response.Success = innerResponse.Success;
+				response.ResponseValues = innerResponse.ResultParameterValues;
+
+			} catch (Exception e) {
+				response.Success = false;
+				response.ErrorMessage = e.Message;
+			}
+
+			return response;
+		}
+
+		private List<string> GetResultParameterNames(List<IExecuteProcessRequestItem> requestResultParameters) {
+			return requestResultParameters.Select(x => x.Code).ToList();
+		}
+
+		private InternalExecuteProcessResponse ParseExecuteProcessResponse(string jsonString, List<IExecuteProcessRequestItem> resultParameters) {
+			var settings = new JsonSerializerSettings
+			{
+				NullValueHandling = NullValueHandling.Ignore,
+				DateParseHandling = DateParseHandling.None
+			};
+			var response = JsonConvert.DeserializeObject<InternalExecuteProcessResponse>(jsonString, settings);
+			if (response == null) {
+				return new InternalExecuteProcessResponse() {
+					Success = false,
+					ErrorInfo = new InternalErrorInfo() {
+						Message = "Unexpected parse response exception"
+					}
+				};
+			}
+
+			response.ResultParameterValues = new Dictionary<string, object>();
+			var jObject = JObject.Parse(jsonString);
+			var resultParams = jObject["resultParameterValues"];
+			if (resultParams != null && resultParams.Type != JTokenType.Null) {
+				foreach (var prop in resultParams.Children<JProperty>()) {
+					var resultParameter = resultParameters.FirstOrDefault(x => x.Code == prop.Name);
+					if (resultParameter != null) {
+						var method =
+							RepositoryReflectionUtilities.GetGenericMethod(GetType(), "ConvertJTokenToValue", resultParameter.DataValueType);
+						var value = method?.Invoke(this, new object[] {prop.Value});
+						response.ResultParameterValues.Add(prop.Name, value);
+					}
+				}
+			}
+
+			return response;
+		}
+
+		private ProcessParameterValueCollection GetParameterValues(Dictionary<string, string> items) {
+			var response = new ProcessParameterValueCollection();
+			foreach (var item in items) {
+				response.Add(new NameValuePair() {
+					Name = item.Key,
+					Value = item.Value
+				});
+			}
+
+			return response;
 		}
 
 		private T ParseSysSettingValueResponse<T>(SysSettingsResponse response, string code) {
@@ -345,4 +424,32 @@
 	{
 		public int FeatureState { get; set; }
 	}
+
+	internal class InternalExecuteProcessResponse
+	{
+		[JsonProperty("processId")]
+		public Guid ProcessId { get; set; }
+
+		[JsonProperty("processStatus")]
+		public int ProcessStatus { get; set; }
+
+		[JsonProperty("success")]
+		public bool Success { get; set; }
+
+		[JsonProperty("errorInfo")]
+		public InternalErrorInfo ErrorInfo { get; set; }
+
+		[JsonIgnore]
+		public Dictionary<string, object> ResultParameterValues { get; set; }
+	}
+
+	internal class InternalErrorInfo
+	{
+		[JsonProperty("errorCode")]
+		public string ErrorCode { get; set; }
+		
+		[JsonProperty("message")]
+		public string Message { get; set; }
+	}
+
 }

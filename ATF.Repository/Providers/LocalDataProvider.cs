@@ -8,6 +8,7 @@
 	using Terrasoft.Core;
 	using Terrasoft.Core.DB;
 	using Terrasoft.Core.Entities;
+	using Terrasoft.Core.Process;
 	using Terrasoft.Nui.ServiceModel.Extensions;
 	using SelectQueryColumns = Terrasoft.Nui.ServiceModel.DataContract.SelectQueryColumns;
 	using InsertQuery = Terrasoft.Nui.ServiceModel.DataContract.InsertQuery;
@@ -204,6 +205,31 @@
 			};
 		}
 
+		private void WrapInTransactionIf(bool useTransaction, Action action) {
+			if (useTransaction) {
+				using (var dbExecutor = _userConnection.EnsureDBConnection()) {
+					dbExecutor.StartTransaction();
+					action();
+					dbExecutor.CommitTransaction();
+				}
+			} else {
+				action();
+			}
+		}
+
+		private int GetFeatureState(string code) {
+			var select = (Select)new Select(_userConnection).Top(1)
+				.Column("AdminUnitFeatureState", "FeatureState")
+				.From("AdminUnitFeatureState")
+				.InnerJoin("Feature").On("Feature", "Id").IsEqual("AdminUnitFeatureState", "FeatureId")
+				.InnerJoin("SysAdminUnitInRole").On("SysAdminUnitInRole", "SysAdminUnitRoleId")
+				.IsEqual("AdminUnitFeatureState", "SysAdminUnitId")
+				.Where("Feature", "Code").IsEqual(Column.Parameter(code))
+				.And("SysAdminUnitInRole", "SysAdminUnitId").IsEqual(Column.Parameter(_userConnection.CurrentUser.Id))
+				.OrderByDesc("AdminUnitFeatureState", "FeatureState");
+			return select.ExecuteScalar<int>();
+		}
+
 		#endregion
 
 		#region Methods: Public
@@ -283,17 +309,6 @@
 			return response;
 		}
 
-		private void WrapInTransactionIf(bool useTransaction, Action action) {
-			if (useTransaction) {
-				using (var dbExecutor = _userConnection.EnsureDBConnection()) {
-					dbExecutor.StartTransaction();
-					action();
-					dbExecutor.CommitTransaction();
-				}
-			} else {
-				action();
-			}
-		}
 
 		public T GetSysSettingValue<T>(string sysSettingCode) {
 			return Terrasoft.Core.Configuration.SysSettings.GetValue(_userConnection, sysSettingCode,
@@ -304,17 +319,34 @@
 			return GetFeatureState(featureCode) == 1;
 		}
 
-		private int GetFeatureState(string code) {
-			var select = (Select)new Select(_userConnection).Top(1)
-				.Column("AdminUnitFeatureState", "FeatureState")
-				.From("AdminUnitFeatureState")
-				.InnerJoin("Feature").On("Feature", "Id").IsEqual("AdminUnitFeatureState", "FeatureId")
-				.InnerJoin("SysAdminUnitInRole").On("SysAdminUnitInRole", "SysAdminUnitRoleId")
-				.IsEqual("AdminUnitFeatureState", "SysAdminUnitId")
-				.Where("Feature", "Code").IsEqual(Column.Parameter(code))
-				.And("SysAdminUnitInRole", "SysAdminUnitId").IsEqual(Column.Parameter(_userConnection.CurrentUser.Id))
-				.OrderByDesc("AdminUnitFeatureState", "FeatureState");
-			return select.ExecuteScalar<int>();
+		public IExecuteProcessResponse ExecuteProcess(IExecuteProcessRequest request) {
+			var response = new ExecuteProcessResponse() {
+				ResponseValues = new Dictionary<string, object>(),
+			};
+			try {
+				var processEngine = _userConnection.ProcessEngine;
+				var processExecutor = processEngine.ProcessExecutor;
+				var resultParameterNames = request.ResultParameters?.Select(x => x.Code).ToList() ?? new List<string>();
+				var processDescriptor = processExecutor.Execute(request.ProcessSchemaName, request.InputParameters,
+					resultParameterNames);
+				response.ProcessStatus = processDescriptor.ProcessStatus;
+				response.ProcessId = processDescriptor.UId;
+				if (processDescriptor.ProcessStatus == ProcessStatus.Done) {
+					var resultParameterValues = processDescriptor.ResultParameterValues;
+					if (resultParameterValues != null) {
+						resultParameterNames.ForEach(resultParameterName => {
+							if (resultParameterValues.TryGetValue(resultParameterName, out var value)) {
+								response.ResponseValues.Add(resultParameterName, value);
+							}
+						});
+					}
+				}
+				response.Success = response.ProcessStatus == ProcessStatus.Error;
+			} catch (Exception e) {
+				response.ErrorMessage = e.Message;
+				response.ProcessStatus = ProcessStatus.Error;
+			}
+			return response;
 		}
 
 		#endregion
