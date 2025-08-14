@@ -250,6 +250,9 @@
 			}
 
 			response.ResultParameterValues = new Dictionary<string, object>();
+			if ((ProcessStatus)response.ProcessStatus != ProcessStatus.Done) {
+				return response;
+			}
 			var jObject = JObject.Parse(jsonString);
 			var resultParams = jObject["resultParameterValues"];
 			if (resultParams != null && resultParams.Type != JTokenType.Null) {
