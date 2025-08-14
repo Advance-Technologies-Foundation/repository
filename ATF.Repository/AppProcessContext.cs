@@ -59,12 +59,6 @@
 				}).ToList();
 		}
 
-		private IBusinessProcessResponse<T> RunProcess<T>(string businessProcessName,
-			List<BusinessProcessItem> inputValues) {
-			var serializedInputValues = GetSerializedInputValues(inputValues);
-			throw new NotImplementedException();
-		}
-
 		private Dictionary<string, string> GetSerializedInputValues(List<BusinessProcessItem> inputProperties) {
 			var response = new Dictionary<string, string>();
 			inputProperties.ForEach(item => {
