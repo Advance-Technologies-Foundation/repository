@@ -3,6 +3,8 @@
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+	using Terrasoft.Common;
+	using Terrasoft.Core.Process;
 	using ATF.Repository.Mock.UnitTests.Models;
 	using NUnit.Framework;
 
@@ -12,6 +14,7 @@
 		private MemoryDataProviderMock _memoryDataProviderMock;
 		private IAppDataContext _appDataContext;
 		private IAppDataContext _secondAppDataContext;
+		private IAppProcessContext _appProcessContext;
 		private Guid _sysSettingsId;
 		private Guid _sysAdminUnit;
 
@@ -27,6 +30,7 @@
 			_memoryDataProviderMock.DataStore.RegisterModelSchema<SysAdminUnit>();
 			_appDataContext = AppDataContextFactory.GetAppDataContext(_memoryDataProviderMock);
 			_secondAppDataContext = AppDataContextFactory.GetAppDataContext(_memoryDataProviderMock);
+			_appProcessContext = AppProcessContextFactory.GetAppProcessContext(_memoryDataProviderMock);
 
 			_sysSettingsId = Guid.NewGuid();
 			_sysAdminUnit = Guid.NewGuid();
@@ -885,6 +889,159 @@
 			Assert.AreEqual(date, lookupHourModel.Parent.DateTimeValue);
 			
 		}
-		
+
+		[Test]
+		public void RunProcess_WhenUseEmptyProcessWithoutMock_ShouldReturnsExpectedValues() {
+			var processModel = new EmptyProcessModel();
+			var response = _appProcessContext.RunProcess(processModel);
+
+			Assert.IsFalse(response.Success);
+			Assert.AreEqual("No appropriate mock was found", response.ErrorMessage);
+		}
+
+		[Test]
+		public void RunProcess_WhenUseEmptyProcessWithBadMock_ShouldReturnsExpectedValues() {
+			var processModel = new EmptyProcessModel();
+			var expectedValue = Guid.NewGuid().ToString();
+			var isMockUsed = false;
+			_memoryDataProviderMock.MockExecuteProcess("EmptyProcess").Returns(expectedValue)
+				.ReceiveHandler(x => isMockUsed = true);
+			var response = _appProcessContext.RunProcess(processModel);
+
+			Assert.IsFalse(response.Success);
+			Assert.AreEqual(expectedValue, response.ErrorMessage);
+			Assert.IsTrue(isMockUsed);
+		}
+
+		[Test]
+		public void RunProcess_WhenUseEmptyProcessWithDisableMock_ShouldReturnsExpectedValues() {
+			var processModel = new EmptyProcessModel();
+			var isMockUsed = false;
+			var mock = _memoryDataProviderMock.MockExecuteProcess("EmptyProcess").Returns(Guid.NewGuid().ToString())
+				.ReceiveHandler(x => isMockUsed = true);
+			mock.Enabled = false;
+			var response = _appProcessContext.RunProcess(processModel);
+
+			Assert.IsFalse(response.Success);
+			Assert.AreEqual("No appropriate mock was found", response.ErrorMessage);
+			Assert.IsFalse(isMockUsed);
+		}
+
+		[Test]
+		public void RunProcess_WhenUseCommonProcessWithCorrectMock_ShouldReturnsExpectedValues() {
+			var processModel = new CommonProcessModel() {
+				InputGuid = Guid.NewGuid(),
+				BiDateTime = new DateTime(2022, 2, 24, 5, 15, 10),
+				BiDecimal = 11.17m
+			};
+			var isMockUsed = false;
+			var expectedDateTime = new DateTime(2025, 9, 8, 10, 15, 10);
+			var expectedDecimal = 15.55m;
+			var expectedBoolean = true;
+			var expectedInt = 100;
+			var mock = _memoryDataProviderMock.MockExecuteProcess("CommonProcess").HasInputParameters(new Dictionary<string, string>() {
+					{"InputGuid", processModel.InputGuid.ToString()},
+					{"BiDateTime", "2022-02-24T05:15:10.000Z"},
+					{"BiDecimal", "11.17"}
+				}).Returns(new Dictionary<string, object>() {
+					{"BiDateTime", expectedDateTime},
+					{"BiDecimal", expectedDecimal},
+					{"OutputBoolean", expectedBoolean},
+					{"OutputInt", expectedInt},
+				})
+				.ReceiveHandler(x => isMockUsed = true);
+			var response = _appProcessContext.RunProcess(processModel);
+
+			Assert.IsTrue(response.Success);
+			Assert.IsTrue(response.ErrorMessage.IsNullOrEmpty());
+			Assert.IsTrue(isMockUsed);
+			Assert.AreEqual(1, mock.ReceivedCount);
+			Assert.IsTrue(response.ProcessId.IsNotEmpty());
+			Assert.AreEqual(ProcessStatus.Done, response.ProcessStatus);
+			Assert.AreEqual(processModel.InputGuid, response.Result.InputGuid);
+			Assert.AreEqual(expectedDateTime, response.Result.BiDateTime);
+			Assert.AreEqual(expectedDecimal, response.Result.BiDecimal);
+			Assert.AreEqual(expectedBoolean, response.Result.OutputBoolean);
+			Assert.AreEqual(expectedInt, response.Result.OutputInteger);
+		}
+
+		[Test]
+		public void RunProcess_WhenUseCommonProcessWithPartialMock_ShouldReturnsExpectedValues() {
+			var processModel = new CommonProcessModel() {
+				InputGuid = Guid.NewGuid(),
+				BiDateTime = new DateTime(2022, 2, 24, 5, 15, 10),
+				BiDecimal = 11.17m
+			};
+			var isMockUsed = false;
+			var expectedDateTime = new DateTime(2025, 9, 8, 10, 15, 10);
+			var expectedDecimal = 15.55m;
+			var expectedBoolean = true;
+			var expectedInt = 100;
+			var mock = _memoryDataProviderMock.MockExecuteProcess("CommonProcess").HasInputParameters(new Dictionary<string, string>() {
+					{"InputGuid", processModel.InputGuid.ToString()}
+				}).Returns(new Dictionary<string, object>() {
+					{"BiDateTime", expectedDateTime},
+					{"BiDecimal", expectedDecimal},
+					{"OutputBoolean", expectedBoolean},
+					{"OutputInt", expectedInt},
+				})
+				.ReceiveHandler(x => isMockUsed = true);
+			var response = _appProcessContext.RunProcess(processModel);
+
+			Assert.IsTrue(response.Success);
+			Assert.IsTrue(response.ErrorMessage.IsNullOrEmpty());
+			Assert.IsTrue(isMockUsed);
+			Assert.AreEqual(1, mock.ReceivedCount);
+			Assert.IsTrue(response.ProcessId.IsNotEmpty());
+			Assert.AreEqual(ProcessStatus.Done, response.ProcessStatus);
+			Assert.AreEqual(processModel.InputGuid, response.Result.InputGuid);
+			Assert.AreEqual(expectedDateTime, response.Result.BiDateTime);
+			Assert.AreEqual(expectedDecimal, response.Result.BiDecimal);
+			Assert.AreEqual(expectedBoolean, response.Result.OutputBoolean);
+			Assert.AreEqual(expectedInt, response.Result.OutputInteger);
+		}
+
+		[Test]
+		public void RunProcess_WhenUseCommonProcessWithВisposableMock_ShouldReturnsExpectedValues() {
+			var processModel = new CommonProcessModel() {
+				InputGuid = Guid.NewGuid(),
+				BiDateTime = new DateTime(2022, 2, 24, 5, 15, 10),
+				BiDecimal = 11.17m
+			};
+			var isMockUsed = false;
+			var expectedDateTime = new DateTime(2025, 9, 8, 10, 15, 10);
+			var expectedDecimal = 15.55m;
+			var expectedBoolean = true;
+			var expectedInt = 100;
+			var mock = _memoryDataProviderMock.MockExecuteProcess("CommonProcess").HasInputParameters(new Dictionary<string, string>() {
+					{"InputGuid", processModel.InputGuid.ToString()}
+				}).Returns(new Dictionary<string, object>() {
+					{"BiDateTime", expectedDateTime},
+					{"BiDecimal", expectedDecimal},
+					{"OutputBoolean", expectedBoolean},
+					{"OutputInt", expectedInt},
+				})
+				.ReceiveHandler(x => {
+					isMockUsed = true;
+					x.Enabled = false;
+				});
+			var response = _appProcessContext.RunProcess(processModel);
+			var secondResponse = _appProcessContext.RunProcess(processModel);
+
+			Assert.IsTrue(response.Success);
+			Assert.IsTrue(response.ErrorMessage.IsNullOrEmpty());
+			Assert.IsTrue(isMockUsed);
+			Assert.AreEqual(1, mock.ReceivedCount);
+			Assert.IsTrue(response.ProcessId.IsNotEmpty());
+			Assert.AreEqual(ProcessStatus.Done, response.ProcessStatus);
+			Assert.AreEqual(processModel.InputGuid, response.Result.InputGuid);
+			Assert.AreEqual(expectedDateTime, response.Result.BiDateTime);
+			Assert.AreEqual(expectedDecimal, response.Result.BiDecimal);
+			Assert.AreEqual(expectedBoolean, response.Result.OutputBoolean);
+			Assert.AreEqual(expectedInt, response.Result.OutputInteger);
+
+			Assert.IsFalse(secondResponse.Success);
+			Assert.AreEqual("No appropriate mock was found", secondResponse.ErrorMessage);
+		}
 	}
 }

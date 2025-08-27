@@ -12,13 +12,11 @@
 
 	#region Class: MemoryDataProviderMock
 
-	public class MemoryDataProviderMock : IDataProvider
+	public class MemoryDataProviderMock : BaseDataProviderMock, IDataProvider
 	{
 		#region Fields: Private
 
 		private readonly DataSet _dataSet = new DataSet();
-		private readonly Dictionary<string, object> _sysSettingMockValues = new Dictionary<string, object>();
-		private readonly Dictionary<string, bool> _featureMockValues = new Dictionary<string, bool>();
 
 		#endregion
 
@@ -180,14 +178,14 @@
 
 		#region Methods: Public
 
-		public IDefaultValuesResponse GetDefaultValues(string schemaName) {
+		public override IDefaultValuesResponse GetDefaultValues(string schemaName) {
 			return new Internal.DefaultValuesResponse() {
 				Success = true,
 				DefaultValues = _dataStore.GetDefaultValues(schemaName)
 			};
 		}
 
-		public IItemsResponse GetItems(ISelectQuery selectQuery) {
+		public override IItemsResponse GetItems(ISelectQuery selectQuery) {
 			var isAggregateQuery = IsSingleColumnAggregateQuery(selectQuery);
 			var filteredItems = GetFilteredItems(selectQuery, isAggregateQuery);
 			var items = isAggregateQuery
@@ -200,7 +198,7 @@
 			};
 		}
 
-		public IExecuteResponse BatchExecute(List<IBaseQuery> queries) {
+		public override IExecuteResponse BatchExecute(List<IBaseQuery> queries) {
 			queries.ForEach(query => {
 				if (query is IInsertQuery insertQuery) {
 					ExecuteInsertQuery(insertQuery);
@@ -215,32 +213,6 @@
 			return new Internal.ExecuteResponse() {
 				Success = true
 			};
-		}
-
-		public void MockSysSettingValue<T>(string sysSettingCode, T value) {
-			_sysSettingMockValues[sysSettingCode] = value;
-		}
-		public T GetSysSettingValue<T>(string sysSettingCode) {
-			if (_sysSettingMockValues.ContainsKey(sysSettingCode) && _sysSettingMockValues[sysSettingCode] is T typedValue) {
-				return typedValue;
-			}
-
-			if (typeof(T) == typeof(string)) {
-				return (T)Convert.ChangeType(string.Empty, typeof(T));
-			}
-
-			return default(T);
-		}
-
-		public void MockFeatureEnable(string featureCode, bool value) {
-			_featureMockValues[featureCode] = value;
-		}
-		public bool GetFeatureEnabled(string featureCode) {
-			if (_featureMockValues.TryGetValue(featureCode, out var enabled)) {
-				return enabled;
-			}
-
-			return false;
 		}
 
 		#endregion
