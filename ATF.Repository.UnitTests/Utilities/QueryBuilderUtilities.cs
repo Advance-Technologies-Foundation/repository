@@ -1,10 +1,12 @@
 ﻿namespace ATF.Repository.UnitTests.Utilities
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Linq;
 	using ATF.Repository.Replicas;
 	using Terrasoft.Common;
 	using Terrasoft.Core.Entities;
+	using Terrasoft.Nui.ServiceModel.DataContract;
 	using FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType;
 	using DataValueType = Terrasoft.Nui.ServiceModel.DataContract.DataValueType;
 
@@ -31,6 +33,20 @@
 				OrderPosition = orderPosition
 			};
 			query.Columns.Items.Add(key, column);
+		}
+
+		public static void AddColumns(ISelectQuery query, Dictionary<string, ISelectQueryColumn> columns) {
+			columns.ForEach(item => {
+				query.Columns.Items.Add(item.Key, item.Value);
+			});
+		}
+		
+		public static void AddColumns(ISelectQuery query, bool withClean, Dictionary<string, ISelectQueryColumn> columns) {
+			if (withClean) {
+				query.Columns.Items.Clear();
+			}
+
+			AddColumns(query, columns);
 		}
 
 		public static IFilter CreateComparisonFilter(string columnPath, FilterComparisonType comparisonType,
@@ -84,6 +100,21 @@
 
 		public static IFilter CreateFilterGroup(LogicalOperationStrict logicalOperation) {
 			return new FilterGroupReplica() { LogicalOperation = logicalOperation};
+		}
+		
+		public static ISelectQueryColumn CreateDatePartColumn(string columnPath, DatePart datePart) {
+			return new SelectQueryColumnReplica() {
+				Expression = new ColumnExpressionReplica() {
+					AggregationType = AggregationType.None,
+					ArithmeticOperation = ArithmeticOperation.Addition,
+					DatePartType = datePart,
+					ExpressionType = EntitySchemaQueryExpressionType.Function,
+					FunctionArgument = CreateColumnExpression(columnPath),
+					FunctionType = FunctionType.DatePart
+				},
+				OrderDirection = OrderDirection.None,
+				OrderPosition = -1
+			};
 		}
 	}
 }

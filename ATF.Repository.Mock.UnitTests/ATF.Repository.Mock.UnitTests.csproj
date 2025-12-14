@@ -7,14 +7,14 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="ATF.Repository" Version="2.0.2.10" />
+		<PackageReference Include="ATF.Repository" Version="2.0.3.1" />
 		<PackageReference Include="nunit" Version="3.12.0" />
 		<PackageReference Include="NUnit3TestAdapter" Version="3.15.1" />
 		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\ATF.Repository.Mock\ATF.Repository.Mock.csproj" />
+		<ProjectReference Include="..\ATF.Repository.Mock\ATF.Repository.Mock.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

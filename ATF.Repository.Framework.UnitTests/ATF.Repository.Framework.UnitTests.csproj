@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net472</TargetFramework>
+
+		<IsPackable>false</IsPackable>
+
+		<AssemblyName>ATF.Repository.Framework.UnitTests</AssemblyName>
+
+		<RootNamespace>ATF.Repository.UnitTests</RootNamespace>
+
+		<LangVersion>8</LangVersion>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Castle.Core" Version="5.1.1" />
+		<PackageReference Include="creatio.client" Version="1.0.28" />
+		<PackageReference Include="CreatioSDK" Version="8.1.0.6716" />
+		<PackageReference Include="NSubstitute" Version="4.2.2" />
+		<PackageReference Include="NUnit" Version="3.12.0" />
+		<PackageReference Include="NUnit3TestAdapter" Version="3.16.1" />
+		<PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.5.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\ATF.Repository\ATF.Repository.csproj" />
+		<ProjectReference Include="..\ATF.Repository.Mock\ATF.Repository.Mock.csproj" />
+	</ItemGroup>
+
+	<!-- Link all test files from Core.UnitTests project -->
+	<ItemGroup>
+		<Compile Include="..\ATF.Repository.UnitTests\**\*.cs"
+		         Exclude="..\ATF.Repository.UnitTests\obj\**\*.cs;..\ATF.Repository.UnitTests\bin\**\*.cs;..\ATF.Repository.UnitTests\Properties\AssemblyInfo.cs"
+		         Link="%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+
+	<!-- Link resource files if any -->
+	<ItemGroup>
+		<None Include="..\ATF.Repository.UnitTests\**\*.json" Link="%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+		<None Include="..\ATF.Repository.UnitTests\**\*.xml" Link="%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
+</Project>

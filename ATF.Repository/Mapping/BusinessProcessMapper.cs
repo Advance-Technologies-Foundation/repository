@@ -12,9 +12,11 @@
 		#region Methods: Private
 
 		private static BusinessProcessItem GetBusinessProcessItem<T>(PropertyInfo propertyInfo, T businessProcess) {
-			if (!(propertyInfo.GetCustomAttribute(typeof(BusinessProcessParameterAttribute)) is BusinessProcessParameterAttribute attr)) {
+			if (!(propertyInfo.GetCustomAttribute(typeof(BusinessProcessParameterAttribute)) is
+				BusinessProcessParameterAttribute attr)) {
 				return null;
 			}
+
 			return new BusinessProcessItem() {
 				PropertyName = propertyInfo.Name,
 				DataValueType = propertyInfo.PropertyType,
@@ -41,10 +43,35 @@
 			return response;
 		}
 
+		/// <summary>
+		/// Gets properties with BusinessProcessParameter attribute for a given type.
+		/// </summary>
+		/// <param name="type">The type to inspect.</param>
+		/// <returns>List of PropertyInfo with BusinessProcessParameter attribute.</returns>
+		public static List<PropertyInfo> GetBusinessProcessProperties(System.Type type) {
+			var response = new List<PropertyInfo>();
+			type.GetProperties().ForEach(propertyInfo => {
+				if (propertyInfo.GetCustomAttribute(typeof(BusinessProcessParameterAttribute)) is
+					BusinessProcessParameterAttribute) {
+					response.Add(propertyInfo);
+				}
+			});
+			return response;
+		}
+
+		/// <summary>
+		/// Checks if type has any properties with BusinessProcessParameter attribute.
+		/// </summary>
+		/// <param name="type">The type to check.</param>
+		/// <returns>True if type has BusinessProcessParameter properties.</returns>
+		public static bool HasBusinessProcessParameters(System.Type type) {
+			return GetBusinessProcessProperties(type).Count > 0;
+		}
+
 		#endregion
 
 	}
 
 	#endregion
-	
+
 }

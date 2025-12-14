@@ -28,6 +28,8 @@
 			{"Sum", typeof(AggregationMethodApplier)},
 			{"Count", typeof(CountMethodApplier)},
 			{"Any", typeof(AnyMethodApplier)},
+			{"Select", typeof(SelectMethodApplier)},
+			{"GroupBy", typeof(GroupByMethodApplier)},
 		};
 
 		internal abstract bool Apply(ExpressionMetadataChainItem expression, ModelQueryBuildConfig config);

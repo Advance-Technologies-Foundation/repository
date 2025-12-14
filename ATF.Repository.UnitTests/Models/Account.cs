@@ -15,6 +15,9 @@
 
 		[SchemaProperty("ExactNoOfEmployees")]
 		public int ExactNoOfEmployees { get; set; }
+		
+		[SchemaProperty("Completeness")]
+		public int Completeness { get; set; }
 
 		[LookupProperty("PrimaryContact")]
 		public virtual Contact PrimaryContact { get; set; }

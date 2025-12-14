@@ -1,13 +1,15 @@
-﻿namespace ATF.Repository.ExpressionConverters
+namespace ATF.Repository.ExpressionConverters
 {
 	using System.Collections.Generic;
 
 	internal static class AvailableChainMethods
 	{
-		internal static List<string> MainMethods = new List<string>() {
+		internal static readonly List<string> MainMethods = new List<string>() {
 			ConvertableExpressionMethod.Skip,
 			ConvertableExpressionMethod.Take,
 			ConvertableExpressionMethod.Where,
+			ConvertableExpressionMethod.Select,
+			ConvertableExpressionMethod.GroupBy,
 			ConvertableExpressionMethod.OrderBy,
 			ConvertableExpressionMethod.OrderByDescending,
 			ConvertableExpressionMethod.ThenBy,
@@ -22,7 +24,7 @@
 			ConvertableExpressionMethod.Sum
 		};
 
-		internal static List<string> DetailMethods = new List<string>() {
+		internal static readonly List<string> DetailMethods = new List<string>() {
 			ConvertableExpressionMethod.Where,
 			ConvertableExpressionMethod.Any,
 			ConvertableExpressionMethod.Count,
@@ -32,6 +34,7 @@
 			ConvertableExpressionMethod.Sum
 		};
 	}
+
 	internal static class ConvertableExpressionMethod
 	{
 		public const string Skip = "Skip";
@@ -55,6 +58,8 @@
 		public const string EndsWith = "EndsWith";
 
 		public const string Select = "Select";
+
+		public const string GroupBy = "GroupBy";
 	}
 
 	internal enum AvailableFieldMethod
@@ -70,6 +75,5 @@
 		EndWith,
 		Contains
 	}
-
 
 }

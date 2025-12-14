@@ -1,4 +1,4 @@
-﻿namespace ATF.Repository.Queryables
+namespace ATF.Repository.Queryables
 {
 	using System;
 	using System.Collections.Generic;
@@ -31,24 +31,32 @@
 
 		public static SelectQueryReplica BuildSelectQuery(ExpressionMetadataChain expressionMetadataChain) {
 			if (expressionMetadataChain.IsEmpty()) {
-				var defaultConfig = GenerateModelQueryBuildConfig(expressionMetadataChain.LastValueType);
+				var defaultConfig = GenerateModelQueryBuildConfig(expressionMetadataChain.LastValueType, hasSelect: false, hasGroupBy: false);
 				return defaultConfig.SelectQuery;
 			}
 
 			var modelType = expressionMetadataChain.GetModelType();
-			var config = GenerateModelQueryBuildConfig(modelType);
+			var hasSelect = expressionMetadataChain.Items.Any(x =>
+				x.Expression.Method.Name == ConvertableExpressionMethod.Select);
+
+			var hasGroupBy = expressionMetadataChain.Items.Any(x =>
+				x.Expression.Method.Name == ConvertableExpressionMethod.GroupBy);
+
+			var config = GenerateModelQueryBuildConfig(modelType, hasSelect, hasGroupBy);
 			expressionMetadataChain.Items.TakeWhile(x => ApplyExpressionChainItemOnSelectQuery(x, config)).ToList();
 			OptimizeFilters(config.SelectQuery.Filters);
 			config.SelectQuery.IsPageable = config.SelectQuery.RowsOffset > 0;
 			return config.SelectQuery;
 		}
 
-		private static ModelQueryBuildConfig GenerateModelQueryBuildConfig(Type modelType) {
+		private static ModelQueryBuildConfig GenerateModelQueryBuildConfig(Type modelType, bool hasSelect, bool hasGroupBy) {
 			var config = new ModelQueryBuildConfig() {
 				ModelType = modelType,
 				SelectQuery = BuildEmptyQuery(modelType)
 			};
-			ExpressionApplier.AddAllColumns(config);
+			if (!hasSelect && !hasGroupBy) {
+				ExpressionApplier.AddAllColumns(config);
+			}
 			return config;
 		}
 
@@ -75,8 +83,10 @@
 		}
 
 		private static bool ApplyExpressionChainItemOnSelectQuery(ExpressionMetadataChainItem expressionChainItem, ModelQueryBuildConfig selectQuery) {
-			var expressionApplier = ExpressionApplier.GetApplier(expressionChainItem.Expression.Method.Name);
-			expressionChainItem.IsAppliedToQuery = expressionApplier?.Apply(expressionChainItem, selectQuery) ?? false;
+			var methodName = expressionChainItem.Expression.Method.Name;
+			var expressionApplier = ExpressionApplier.GetApplier(methodName);
+			var appliedResult = expressionApplier?.Apply(expressionChainItem, selectQuery) ?? false;
+			expressionChainItem.IsAppliedToQuery = appliedResult;
 			return expressionChainItem.IsAppliedToQuery;
 		}
 

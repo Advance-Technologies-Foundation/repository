@@ -6,6 +6,7 @@
 	{
 		public string ProcessSchemaName { get; set; }
 		public Dictionary<string, string> InputParameters { get; set; }
+		public Dictionary<string, object> RawInputParameters { get; set; }
 		public List<IExecuteProcessRequestItem> ResultParameters { get; set; }
 	}
 }

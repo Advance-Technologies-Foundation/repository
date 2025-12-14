@@ -1,25 +1,26 @@
-﻿using Terrasoft.Nui.ServiceModel.DataContract;
-
-namespace ATF.Repository.UnitTests
+﻿namespace ATF.Repository.UnitTests
 {
-	using System;
-	using System.Collections.Generic;
-	using System.Linq;
-	using System.Linq.Expressions;
 	using ATF.Repository.Exceptions;
 	using ATF.Repository.Mapping;
 	using ATF.Repository.Providers;
 	using ATF.Repository.Replicas;
 	using ATF.Repository.UnitTests.Models;
 	using ATF.Repository.UnitTests.Utilities;
+	using DataValueType = Terrasoft.Nui.ServiceModel.DataContract.DataValueType;
+	using FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType;
+	using FunctionType = Terrasoft.Nui.ServiceModel.DataContract.FunctionType;
 	using NSubstitute;
 	using NUnit.Framework;
+	using QueryComparison = ATF.Repository.UnitTests.Utilities.QueryComparison;
+	using System.Collections.Generic;
+	using System.Linq.Expressions;
+	using System.Linq;
+	using System;
 	using Terrasoft.Common;
 	using Terrasoft.Core.Entities;
-	using FilterType = Terrasoft.Nui.ServiceModel.DataContract.FilterType;
-	using QueryComparison = ATF.Repository.UnitTests.Utilities.QueryComparison;
-	using DataValueType = Terrasoft.Nui.ServiceModel.DataContract.DataValueType;
-	using FunctionType = Terrasoft.Nui.ServiceModel.DataContract.FunctionType;
+	using Terrasoft.Nui.ServiceModel.DataContract;
+
+	#region Class: PropertyValue
 
 	public class PropertyValue
 	{
@@ -44,6 +45,10 @@ namespace ATF.Repository.UnitTests
 			return string.IsNullOrEmpty(ColumnName) ? PropertyName : ColumnName;
 		}
 	}
+
+	#endregion
+
+	#region Class: MyDataProvider
 
 	public class MyDataProvider : IDataProvider
 	{
@@ -76,12 +81,22 @@ namespace ATF.Repository.UnitTests
 			return new ExecuteProcessResponse();
 		}
 	}
-	
+
+	#endregion
+
+	#region Class: AppDataContextTests
+
 	[TestFixture]
 	public class AppDataContextTests
 	{
+		#region Fields: Private
+
 		private IDataProvider _dataProvider;
 		private IAppDataContext _appDataContext;
+
+		#endregion
+
+		#region Methods: Public
 
 		[SetUp]
 		public void SetUp() {
@@ -806,7 +821,7 @@ namespace ATF.Repository.UnitTests
 
 		#endregion
 
-		
+
 		#region Not
 
 		[Test]
@@ -1249,8 +1264,9 @@ namespace ATF.Repository.UnitTests
 		public void Models_WhenUseWhereThenSelect_ShouldReturnExpectedValue()
 		{
 			// Arrange
-			var expectedId = Guid.NewGuid();
 			var expectedSelect = (SelectQueryReplica)TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
+			expectedSelect.Columns.Items.Clear();
+			QueryBuilderUtilities.AddColumn(expectedSelect, "IntValue", "IntValue");
 			expectedSelect.Filters.Items.Add("f1",
 				(FilterReplica)TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 					true));
@@ -1258,8 +1274,6 @@ namespace ATF.Repository.UnitTests
 				.GetItems(Arg.Is<SelectQueryReplica>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
 				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
 					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{"BooleanValue", true},
 						{"IntValue", 10}
 					}
 				}});
@@ -1486,14 +1500,17 @@ namespace ATF.Repository.UnitTests
 		}
 
 		[Test]
-		public void Models_WhenUseQueryWithSkipTakeWhereAndOrderPart_ShouldReturnExpectedValue()
+		public void Models_WhenUseQueryWithSelectDatePartAndOrderByOtherColumns_ShouldReturnExpectedValue()
 		{
 			// Arrange
-			var expectedId = Guid.NewGuid();
 			var expectedSelect = (SelectQueryReplica)TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
-			expectedSelect.RowCount = 1;
-			expectedSelect.RowsOffset = 1;
-			expectedSelect.IsPageable = true;
+			
+			QueryBuilderUtilities.AddColumns(expectedSelect, true, new Dictionary<string, ISelectQueryColumn>() {
+				{"Hour", QueryBuilderUtilities.CreateDatePartColumn("DateTimeValue", DatePart.Hour)}
+			});
+			QueryBuilderUtilities.AddColumn(expectedSelect, "IntValue", "IntValue", OrderDirection.Ascending, 1);
+			QueryBuilderUtilities.AddColumn(expectedSelect, "StringValue", "StringValue", OrderDirection.Descending, 2);
+			
 			expectedSelect.Filters.Items.Add("f1", (FilterReplica)TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
 				true));
 			expectedSelect.Filters.Items.Add("f2", (FilterReplica)TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
@@ -1501,41 +1518,133 @@ namespace ATF.Repository.UnitTests
 			expectedSelect.Filters.Items.Add("f3", (FilterReplica)TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Less, DataValueType.Integer,
 				20));
 
-			var intValueColumn = (SelectQueryColumnReplica)expectedSelect.Columns.Items.Select(x=>x.Value).First(x => x.Expression.ColumnPath == "IntValue");
-			intValueColumn.OrderPosition = 1;
-			intValueColumn.OrderDirection = OrderDirection.Ascending;
-			var stringValueColumn = (SelectQueryColumnReplica)expectedSelect.Columns.Items.Select(x=>x.Value).First(x => x.Expression.ColumnPath == "StringValue");
-			stringValueColumn.OrderPosition = 2;
-			stringValueColumn.OrderDirection = OrderDirection.Descending;
-
 			_dataProvider
 				.GetItems(Arg.Is<SelectQueryReplica>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
 				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
 					new Dictionary<string, object>() {
-						{"Id", expectedId},
-						{"BooleanValue", true},
 						{"IntValue", 10},
-						{"StringValue", "StringValue"},
-						{"DateTimeValue", new DateTime(2001, 1, 1, 12, 10, 0)}
+						{"StringValue", "Omega"},
+						{"Hour", 22}
 					},
 					new Dictionary<string, object>() {
-						{"Id", Guid.NewGuid()},
-						{"BooleanValue", true},
 						{"IntValue", 11},
-						{"StringValue", "StringValue2"}
+						{"StringValue", "Alpha"},
+						{"Hour", 10}
 					}
 				}});
 
 			// Act
-			var m = _appDataContext.Models<TypedTestModel>().Skip(1).Take(1)
+			var m = _appDataContext.Models<TypedTestModel>()
 				.Where(x => x.BooleanValue && x.IntValue > 9).Where(x => x.IntValue < 20).OrderBy(x => x.IntValue)
-				.ThenByDescending(x => x.StringValue).Select(x => x.DateTimeValue).Select(x=>x.Hour).Select(x=>x + 10);
+				.ThenByDescending(x => x.StringValue).Select(x => x.DateTimeValue.Hour);
 			var mList = m.ToList();
 
 			// Assert
 			Assert.AreEqual(2, mList.Count);
 			Assert.AreEqual(22, mList.First());
 			Assert.AreEqual(10, mList.Last());
+		}
+		
+		[Test]
+		public void Models_WhenUseQueryWithSelectSingleColumnAndOrderByOtherColumns_ShouldReturnExpectedValue()
+		{
+			// Arrange
+			var expectedSelect = (SelectQueryReplica)TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
+			expectedSelect.Columns.Items.Clear();
+			QueryBuilderUtilities.AddColumn(expectedSelect, "DateTimeValue", "DateTimeValue");
+			QueryBuilderUtilities.AddColumn(expectedSelect, "IntValue", "IntValue", OrderDirection.Ascending, 1);
+			QueryBuilderUtilities.AddColumn(expectedSelect, "StringValue", "StringValue", OrderDirection.Descending, 2);
+			
+			expectedSelect.Filters.Items.Add("f1", (FilterReplica)TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
+				true));
+			expectedSelect.Filters.Items.Add("f2", (FilterReplica)TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
+				9));
+			expectedSelect.Filters.Items.Add("f3", (FilterReplica)TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Less, DataValueType.Integer,
+				20));
+			var date1 = DateTime.Now.Date.AddDays(-1);
+			var date2 = DateTime.Now.Date.AddDays(-10);
+
+			_dataProvider
+				.GetItems(Arg.Is<SelectQueryReplica>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
+				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
+					new Dictionary<string, object>() {
+						{"IntValue", 10},
+						{"StringValue", "Omega"},
+						{"DateTimeValue", date1}
+					},
+					new Dictionary<string, object>() {
+						{"IntValue", 11},
+						{"StringValue", "Alpha"},
+						{"DateTimeValue", date2}
+					}
+				}});
+
+			// Act
+			var m = _appDataContext.Models<TypedTestModel>()
+				.Where(x => x.BooleanValue && x.IntValue > 9).Where(x => x.IntValue < 20).OrderBy(x => x.IntValue)
+				.ThenByDescending(x => x.StringValue).Select(x => x.DateTimeValue);
+			var mList = m.ToList();
+
+			// Assert
+			Assert.AreEqual(2, mList.Count);
+			Assert.AreEqual(date1, mList.First());
+			Assert.AreEqual(date2, mList.Last());
+		}
+		
+		[Test]
+		public void Models_WhenUseQueryWithSelectMultipleColumnsAndOrderByOtherColumns_ShouldReturnExpectedValue()
+		{
+			// Arrange
+			var expectedSelect = (SelectQueryReplica)TestSelectBuilder.GetTestSelectQuery<TypedTestModel>();
+			expectedSelect.Columns.Items.Clear();
+			QueryBuilderUtilities.AddColumn(expectedSelect, "DateTimeValue", "DateTimeValue");
+			QueryBuilderUtilities.AddColumn(expectedSelect, "DecimalValue", "DecimalValue");
+			QueryBuilderUtilities.AddColumn(expectedSelect, "IntValue", "IntValue", OrderDirection.Ascending, 1);
+			QueryBuilderUtilities.AddColumn(expectedSelect, "StringValue", "StringValue", OrderDirection.Descending, 2);
+			
+			expectedSelect.Filters.Items.Add("f1", (FilterReplica)TestSelectBuilder.CreateComparisonFilter("BooleanValue", FilterComparisonType.Equal, DataValueType.Boolean,
+				true));
+			expectedSelect.Filters.Items.Add("f2", (FilterReplica)TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Greater, DataValueType.Integer,
+				9));
+			expectedSelect.Filters.Items.Add("f3", (FilterReplica)TestSelectBuilder.CreateComparisonFilter("IntValue", FilterComparisonType.Less, DataValueType.Integer,
+				20));
+			var date1 = DateTime.Now.Date.AddDays(-1);
+			var date2 = DateTime.Now.Date.AddDays(-10);
+			var decimal1 = 11.12m;
+			var decimal2 = 10.11m;
+
+			_dataProvider
+				.GetItems(Arg.Is<SelectQueryReplica>(x => QueryComparison.AreSelectQueryEqual(expectedSelect, x)))
+				.Returns(new ItemsResponse() { Success = true, Items = new List<Dictionary<string, object>>() {
+					new Dictionary<string, object>() {
+						{"IntValue", 10},
+						{"StringValue", "Omega"},
+						{"DateTimeValue", date1},
+						{"DecimalValue", decimal1}
+					},
+					new Dictionary<string, object>() {
+						{"IntValue", 11},
+						{"StringValue", "Alpha"},
+						{"DateTimeValue", date2},
+						{"DecimalValue", decimal2}
+					}
+				}});
+
+			// Act
+			var m = _appDataContext.Models<TypedTestModel>()
+				.Where(x => x.BooleanValue && x.IntValue > 9).Where(x => x.IntValue < 20).OrderBy(x => x.IntValue)
+				.ThenByDescending(x => x.StringValue).Select(x => new {
+					x.DateTimeValue,
+					x.DecimalValue
+				});
+			var mList = m.ToList();
+
+			// Assert
+			Assert.AreEqual(2, mList.Count);
+			Assert.AreEqual(date1, mList.First().DateTimeValue);
+			Assert.AreEqual(decimal1, mList.First().DecimalValue);
+			Assert.AreEqual(date2, mList.Last().DateTimeValue);
+			Assert.AreEqual(decimal2, mList.Last().DecimalValue);
 		}
 
 		[Test]
@@ -1866,7 +1975,7 @@ namespace ATF.Repository.UnitTests
 							FunctionType = FunctionType.Aggregation,
 							FunctionArgument = new ColumnExpressionReplica() {
 								ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,
-								ColumnPath = "IntValue"
+								ColumnPath = "Id"
 							}
 						}
 					}}
@@ -1903,7 +2012,7 @@ namespace ATF.Repository.UnitTests
 							FunctionType = FunctionType.Aggregation,
 							FunctionArgument = new ColumnExpressionReplica() {
 								ExpressionType = EntitySchemaQueryExpressionType.SchemaColumn,
-								ColumnPath = "IntValue"
+								ColumnPath = "Id"
 							}
 						}
 					}}
@@ -2738,20 +2847,11 @@ namespace ATF.Repository.UnitTests
 			// Assert
 			Assert.AreEqual(expectedValue, model.Id);
 		}
-		
-		[Test]
-		public void Models_WhenUseSelect_ShouldReturnsExpectedValue() {
-			// Arrange
-			IDataProvider provider = new MyDataProvider();
-			var context = AppDataContextFactory.GetAppDataContext(provider);
 
-			// Act
-			var model = context.Models<TypedTestModel>().Select(x=>new {x.BooleanValue, x.IntValue, x.DetailModels.Count}).ToList();
+		#endregion
 
-			// Assert
-			//Assert.AreEqual(expectedValue, model.Id);
-			Assert.IsEmpty(model);
-		}
 	}
+
+	#endregion
 
 }

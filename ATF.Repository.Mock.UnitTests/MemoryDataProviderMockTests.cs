@@ -204,12 +204,12 @@
 			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
 				model.SysAdminUnitId = sysAdminUnitId;
 			});
-			
+
 			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
 				model.SysAdminUnitId = sysAdminUnitId;
 				model.SysSettingsId = Guid.NewGuid();
 			});
-			
+
 			var notEmptyList =
 				_appDataContext.Models<SysSettingsValue>().Where(x=>x.SysSettingsId != Guid.Empty).ToList();
 			Assert.AreEqual(2, notEmptyList.Count);
@@ -867,24 +867,257 @@
 			var yearModel = _appDataContext.Models<TypedTestModel>()
 				.FirstOrDefault(x => x.DateTimeValue.Year == date.Year);
 			Assert.AreEqual(date, yearModel.DateTimeValue);
-			
+
 			var monthModel = _appDataContext.Models<TypedTestModel>()
 				.FirstOrDefault(x => x.DateTimeValue.Month == date.Month);
 			Assert.AreEqual(date, monthModel.DateTimeValue);
-			
+
 			var dayModel = _appDataContext.Models<TypedTestModel>()
 				.FirstOrDefault(x => x.DateTimeValue.Day == date.Day);
 			Assert.AreEqual(date, dayModel.DateTimeValue);
-			
+
 			var hourModel = _appDataContext.Models<TypedTestModel>()
 				.FirstOrDefault(x => x.DateTimeValue.Hour == date.Hour);
 			Assert.AreEqual(date, hourModel.DateTimeValue);
-			
+
 			var lookupHourModel = _appDataContext.Models<TypedTestModel>()
 				.FirstOrDefault(x => x.Parent.DateTimeValue.Hour == date.Hour);
 			Assert.AreEqual(date, lookupHourModel.Parent.DateTimeValue);
+
+		}
+
+		[Test]
+		public void Select_WithConstants_ShouldReturnExpectedValues() {
+			// Arrange - use existing _sysSettingsId data from SetUp
+
+			// Act
+			var results = _appDataContext.Models<SysSettings>()
+				.Where(x => x.Id == _sysSettingsId)
+				.Select(x => new { x.Id, x.Code, RecordType = "SysSettings", Version = 1 })
+				.ToList();
+
+			// Assert
+			Assert.IsNotNull(results);
+			Assert.AreEqual(1, results.Count);
+			var result = results.First();
+			Assert.AreEqual(_sysSettingsId, result.Id);
+			Assert.AreEqual("UseNewShell", result.Code);
+			Assert.AreEqual("SysSettings", result.RecordType);
+			Assert.AreEqual(1, result.Version);
+		}
+
+		[Test]
+		public void Select_WithMultipleFields_ShouldReturnOnlySelectedFields() {
+			// Arrange - use existing _sysSettingsId data from SetUp
+
+			// Act
+			var results = _appDataContext.Models<SysSettings>()
+				.Select(x => new { x.Id, x.Code, x.Name })
+				.ToList();
+
+			// Assert
+			Assert.IsNotNull(results);
+			Assert.Greater(results.Count, 0);
+			var result = results.First();
+			Assert.AreEqual(_sysSettingsId, result.Id);
+			Assert.AreEqual("UseNewShell", result.Code);
+			Assert.AreEqual("Use Freedom UI interface", result.Name);
+		}
+
+		[Test]
+		public void GroupBy_WithSimpleKey_ShouldReturnExpectedValues() {
+			// Arrange - add multiple SysSettingsValue records with same SysSettingsId
+			var sysSettingsId = SetUpSortData(DateTime.Now);
+
+			// Act
+			var results = _appDataContext.Models<SysSettingsValue>()
+				.Where(x => x.SysSettingsId == sysSettingsId)
+				.GroupBy(x => new { x.SysSettingsId }, (groupBy, items) => new {
+					groupBy.SysSettingsId,
+					Count = items.Count(),
+					TotalInt = items.Sum(i => i.IntegerValue)
+				})
+				.ToList();
+
+			// Assert
+			Assert.IsNotNull(results);
+			Assert.AreEqual(1, results.Count);
+			var result = results.First();
+			Assert.AreEqual(sysSettingsId, result.SysSettingsId);
+			Assert.AreEqual(3, result.Count);
+			Assert.AreEqual(69, result.TotalInt); // 22 + 23 + 24
+		}
+
+		[Test]
+		public void GroupBy_WithMultipleKeys_ShouldReturnExpectedValues() {
+			// Arrange - add records with different combinations
+			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+				model.SysSettingsId = _sysSettingsId;
+				model.SysAdminUnitId = _sysAdminUnit;
+				model.IntegerValue = 100;
+				model.BooleanValue = true;
+			});
+			_memoryDataProviderMock.DataStore.AddModel<SysSettingsValue>(model => {
+				model.SysSettingsId = _sysSettingsId;
+				model.SysAdminUnitId = _sysAdminUnit;
+				model.IntegerValue = 200;
+				model.BooleanValue = true;
+			});
+
+			// Act
+			var results = _appDataContext.Models<SysSettingsValue>()
+				.Where(x => x.SysSettingsId == _sysSettingsId)
+				.GroupBy(x => new { x.SysSettingsId, x.SysAdminUnitId }, (groupBy, items) => new {
+					groupBy.SysSettingsId,
+					groupBy.SysAdminUnitId,
+					Count = items.Count(),
+					SumInt = items.Sum(i => i.IntegerValue)
+				})
+				.ToList();
+
+			// Assert
+			Assert.IsNotNull(results);
+			Assert.AreEqual(1, results.Count);
+			var result = results.First();
+			Assert.AreEqual(_sysSettingsId, result.SysSettingsId);
+			Assert.AreEqual(_sysAdminUnit, result.SysAdminUnitId);
+			Assert.AreEqual(3, result.Count); // 11, 100, 200
+			Assert.AreEqual(311, result.SumInt); // 11 + 100 + 200
+		}
+
+		[Test]
+		public void GroupBy_WithMultipleAggregations_ShouldReturnExpectedValues() {
+			// Arrange
+			var sysSettingsId = SetUpSortData(DateTime.Now);
+
+			// Act
+			var results = _appDataContext.Models<SysSettingsValue>()
+				.Where(x => x.SysSettingsId == sysSettingsId)
+				.GroupBy(x => new { x.SysSettingsId }, (groupBy, items) => new {
+					groupBy.SysSettingsId,
+					Count = items.Count(),
+					SumInt = items.Sum(i => i.IntegerValue),
+					MaxInt = items.Max(i => i.IntegerValue),
+					MinInt = items.Min(i => i.IntegerValue),
+					AvgFloat = items.Average(i => i.FloatValue)
+				})
+				.ToList();
+
+			// Assert
+			Assert.IsNotNull(results);
+			Assert.AreEqual(1, results.Count);
+			var result = results.First();
+			Assert.AreEqual(sysSettingsId, result.SysSettingsId);
+			Assert.AreEqual(3, result.Count);
+			Assert.AreEqual(69, result.SumInt);
+			Assert.AreEqual(24, result.MaxInt);
+			Assert.AreEqual(22, result.MinInt);
+		}
+		
+		[Test]
+		public void Select_WherUseDatePartOnlyAsSelect_ShouldReturnExpectedValues() {
+			// Arrange - add records with different combinations
+			_memoryDataProviderMock.DataStore.AddModel<TypedTestModel>(model => {
+				model.DateTimeValue = new DateTime(2025, 12, 14, 8, 15, 0);
+			});
+
+			// Act
+			var response = _appDataContext.Models<TypedTestModel>().Select(x => x.DateTimeValue.Hour).ToList();
+			
+			// Assert
+			Assert.IsNotNull(response);
+			Assert.AreEqual(1, response.Count);
+			Assert.AreEqual(8, response.First());
+		}
+		
+		[Test]
+		public void Select_WherUseDatePartWithOtherParametersAsSelect_ShouldReturnExpectedValues() {
+			// Arrange - add records with different combinations
+			_memoryDataProviderMock.DataStore.AddModel<TypedTestModel>(model => {
+				model.DateTimeValue = new DateTime(2025, 12, 14, 8, 15, 0);
+				model.BooleanValue = true;
+				model.IntValue = 10;
+			});
+			_memoryDataProviderMock.DataStore.AddModel<TypedTestModel>(model => {
+				model.DateTimeValue = new DateTime(2025, 12, 14, 20, 0, 0);
+				model.BooleanValue = false;
+				model.IntValue = 12;
+			});
+
+			// Act
+			var response = _appDataContext.Models<TypedTestModel>().Select(x => new {
+				x.DateTimeValue.Hour,
+				x.BooleanValue,
+				x.IntValue
+			}).ToList();
+			
+			// Assert
+			Assert.IsNotNull(response);
+			Assert.AreEqual(2, response.Count);
+			Assert.AreEqual(8, response.First().Hour);
+			Assert.AreEqual(true, response.First().BooleanValue);
+			Assert.AreEqual(10, response.First().IntValue);
+			Assert.AreEqual(20, response.Last().Hour);
+			Assert.AreEqual(false, response.Last().BooleanValue);
+			Assert.AreEqual(12, response.Last().IntValue);
+		}
+
+		[Test]
+		public void Select_WherUseDatePartWithOtherParametersWithOrderingAsSelect_ShouldReturnExpectedValues() {
+			// Arrange - add records with different combinations
+			_memoryDataProviderMock.DataStore.AddModel<TypedTestModel>(model => {
+				model.DateTimeValue = new DateTime(2025, 12, 14, 8, 15, 0);
+				model.BooleanValue = true;
+				model.IntValue = 10;
+			});
+			_memoryDataProviderMock.DataStore.AddModel<TypedTestModel>(model => {
+				model.DateTimeValue = new DateTime(2025, 12, 14, 20, 0, 0);
+				model.BooleanValue = false;
+				model.IntValue = 12;
+			});
+
+			// Act
+			var response = _appDataContext.Models<TypedTestModel>().OrderByDescending(x=>x.DateTimeValue).Select(x => new {
+				x.DateTimeValue.Hour,
+				x.BooleanValue,
+				x.IntValue
+			}).ToList();
+			
+			// Assert
+			Assert.IsNotNull(response);
+			Assert.AreEqual(2, response.Count);
+			Assert.AreEqual(20, response.First().Hour);
+			Assert.AreEqual(false, response.First().BooleanValue);
+			Assert.AreEqual(12, response.First().IntValue);
+			Assert.AreEqual(8, response.Last().Hour);
+			Assert.AreEqual(true, response.Last().BooleanValue);
+			Assert.AreEqual(10, response.Last().IntValue);
 			
 		}
 		
+		[Test]
+		public void Select_WherUseDatePartWithOrderingByAnotherColumnAsSelect_ShouldReturnExpectedValues() {
+			// Arrange - add records with different combinations
+			_memoryDataProviderMock.DataStore.AddModel<TypedTestModel>(model => {
+				model.DateTimeValue = new DateTime(2025, 12, 14, 8, 15, 0);
+				model.BooleanValue = true;
+				model.IntValue = 10;
+			});
+			_memoryDataProviderMock.DataStore.AddModel<TypedTestModel>(model => {
+				model.DateTimeValue = new DateTime(2025, 12, 14, 20, 0, 0);
+				model.BooleanValue = false;
+				model.IntValue = 12;
+			});
+
+			// Act
+			var response = _appDataContext.Models<TypedTestModel>().OrderByDescending(x=>x.IntValue).Select(x => x.DateTimeValue.Hour).ToList();
+			
+			// Assert
+			Assert.IsNotNull(response);
+			Assert.AreEqual(2, response.Count);
+			Assert.AreEqual(20, response.First());
+			Assert.AreEqual(8, response.Last());
+			
+		}
 	}
 }

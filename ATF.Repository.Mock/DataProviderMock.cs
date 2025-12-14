@@ -7,24 +7,12 @@
 	using ATF.Repository.Providers;
 	using Terrasoft.Common;
 
-	public class DataProviderMock: IDataProvider
+	public class DataProviderMock: BaseDataProviderMock
 	{
-		private readonly Dictionary<string, DefaultValuesMock> _defaultValuesMocks;
-		private readonly List<ItemsMock> _collectionItemsMocks;
-		private readonly List<ScalarMock> _scalarItemsMocks;
-		private readonly List<MockSavingItem> _batchItemMocks;
-		private readonly Dictionary<string, object> _sysSettingMockValues;
-		private readonly Dictionary<string, bool> _featureMockValues;
-
-
-		public DataProviderMock() {
-			_defaultValuesMocks = new Dictionary<string, DefaultValuesMock>();
-			_collectionItemsMocks = new List<ItemsMock>();
-			_scalarItemsMocks = new List<ScalarMock>();
-			_batchItemMocks = new List<MockSavingItem>();
-			_sysSettingMockValues = new Dictionary<string, object>();
-			_featureMockValues = new Dictionary<string, bool>();
-		}
+		private readonly Dictionary<string, DefaultValuesMock> _defaultValuesMocks = new Dictionary<string, DefaultValuesMock>();
+		private readonly List<ItemsMock> _collectionItemsMocks = new List<ItemsMock>();
+		private readonly List<ScalarMock> _scalarItemsMocks = new List<ScalarMock>();
+		private readonly List<MockSavingItem> _batchItemMocks = new List<MockSavingItem>();
 
 		public IDefaultValuesMock MockDefaultValues(string schemaName) {
 			if (!_defaultValuesMocks.ContainsKey(schemaName)) {
@@ -33,7 +21,7 @@
 			return _defaultValuesMocks[schemaName];
 		}
 
-		public IDefaultValuesResponse GetDefaultValues(string schemaName) {
+		public override IDefaultValuesResponse GetDefaultValues(string schemaName) {
 			if (!_defaultValuesMocks.ContainsKey(schemaName)) {
 				return null;
 			}
@@ -54,7 +42,7 @@
 			return mock;
 		}
 
-		public IItemsResponse GetItems(ISelectQuery selectQuery) {
+		public override IItemsResponse GetItems(ISelectQuery selectQuery) {
 			var mock = GetScalarMock(selectQuery) ?? GetCollectionMock(selectQuery);
 			if (mock == null) {
 				return null;
@@ -83,47 +71,13 @@
 				x.SchemaName == selectQuery.RootSchemaName && x.CheckByParameters(queryParameters));
 		}
 
-		public IExecuteResponse BatchExecute(List<IBaseQuery> queries) {
+		public override IExecuteResponse BatchExecute(List<IBaseQuery> queries) {
 			queries.ForEach(ReceiveBatchQueryItem);
 			return new ATF.Repository.Mock.Internal.ExecuteResponse() {
 				Success = true,
 				ErrorMessage = string.Empty,
 				QueryResults = new List<IExecuteItemResponse>()
 			};
-		}
-
-		public void MockSysSettingValue<T>(string sysSettingCode, T value) {
-			if (_sysSettingMockValues.ContainsKey(sysSettingCode)) {
-				_sysSettingMockValues[sysSettingCode] = value;
-			} else {
-				_sysSettingMockValues.Add(sysSettingCode, value);
-			}
-		}
-		public T GetSysSettingValue<T>(string sysSettingCode) {
-			if (_sysSettingMockValues.ContainsKey(sysSettingCode) && _sysSettingMockValues[sysSettingCode] is T typedValue) {
-				return typedValue;
-			}
-
-			if (typeof(T) == typeof(string)) {
-				return (T)Convert.ChangeType(string.Empty, typeof(T));
-			}
-
-			return default(T);
-		}
-
-		public void MockFeatureEnable(string featureCode, bool value) {
-			if (_featureMockValues.ContainsKey(featureCode)) {
-				_featureMockValues[featureCode] = value;
-			} else {
-				_featureMockValues.Add(featureCode, value);
-			}
-		}
-		public bool GetFeatureEnabled(string featureCode) {
-			if (_featureMockValues.ContainsKey(featureCode)) {
-				return _featureMockValues[featureCode];
-			}
-
-			return false;
 		}
 
 		public IMockSavingItem MockSavingItem(string entitySchema, SavingOperation operation) {

@@ -1,6 +1,4 @@
-﻿using Terrasoft.Nui.ServiceModel.DataContract;
-
-namespace ATF.Repository.ExpressionConverters
+﻿namespace ATF.Repository.ExpressionConverters
 {
 	using System;
 	using System.Collections.Generic;
@@ -168,7 +166,6 @@ namespace ATF.Repository.ExpressionConverters
 		private static List<object> GetRightValuesList(Expression collectionExpression, Type valueType) {
 			if (!ExpressionConverterUtilities.TryDynamicInvoke(collectionExpression, out var collection)) {
 				throw new ExpressionConvertException();
-				//return null;
 			}
 			var method = RepositoryReflectionUtilities.GetGenericMethod(typeof(ExpressionMetadataRawParser), "ConvertCollectionToObjectList",
 				valueType);
@@ -190,21 +187,22 @@ namespace ATF.Repository.ExpressionConverters
 		}
 
 		private static RawExpressionMetadata ConvertMemberExpression(MemberExpression memberExpression, ExpressionModelMetadata modelMetadata) {
-			if (ExpressionConverterUtilities.TryGetColumnMemberPath(memberExpression, modelMetadata, out var purePath)) {
-				return CreateColumnRawExpressionMetadata(memberExpression, purePath);
-			}
-
-			if (ExpressionConverterUtilities.TryDynamicInvoke(memberExpression, out var value)) {
-				return CreateConstantRawExpressionMetadata(memberExpression.Type, value);
-			}
-
-			if (ExpressionConverterUtilities.TryGetDatePartColumnMemberPath(memberExpression, modelMetadata, out var datePartSourcePath, out var datePart)) {
-				return CreateColumnRawExpressionMetadata(memberExpression, datePartSourcePath, metadata => {
-					metadata.DatePart = datePart;
-				});
-			}
-			throw new ExpressionConvertException();
+		if (ExpressionConverterUtilities.TryGetDatePartColumnMemberPath(memberExpression, modelMetadata, out var datePartSourcePath, out var datePart)) {
+			return CreateColumnRawExpressionMetadata(memberExpression, datePartSourcePath, metadata => {
+				metadata.DatePart = datePart;
+			});
 		}
+
+		if (ExpressionConverterUtilities.TryGetColumnMemberPath(memberExpression, modelMetadata, out var purePath)) {
+			return CreateColumnRawExpressionMetadata(memberExpression, purePath);
+		}
+
+		if (ExpressionConverterUtilities.TryDynamicInvoke(memberExpression, out var value)) {
+			return CreateConstantRawExpressionMetadata(memberExpression.Type, value);
+		}
+
+		throw new ExpressionConvertException();
+	}
 
 		private static RawExpressionMetadata CreateConstantRawExpressionMetadata(Type type, object value) {
 			return new RawExpressionMetadata() {

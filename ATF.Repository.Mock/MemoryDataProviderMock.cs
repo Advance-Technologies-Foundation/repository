@@ -12,13 +12,11 @@
 
 	#region Class: MemoryDataProviderMock
 
-	public class MemoryDataProviderMock : IDataProvider
+	public class MemoryDataProviderMock : BaseDataProviderMock
 	{
 		#region Fields: Private
 
 		private readonly DataSet _dataSet = new DataSet();
-		private readonly Dictionary<string, object> _sysSettingMockValues = new Dictionary<string, object>();
-		private readonly Dictionary<string, bool> _featureMockValues = new Dictionary<string, bool>();
 
 		#endregion
 
@@ -147,9 +145,17 @@
 			var aggregateExpression = ExpressionBuilder.GetSingleAggregationExpression(expressionContext,
 				column.Expression.AggregationType, columnValuePath, expressionContext.RowsExpression,
 				columnPath);
-			var resultType = column.Expression.AggregationType == AggregationType.Count
-				? typeof(int)
-				: columnValuePath;
+
+			Type resultType;
+			if (column.Expression.AggregationType == AggregationType.Count) {
+				resultType = typeof(int);
+			} else if (column.Expression.AggregationType == AggregationType.Avg &&
+			           (columnValuePath == typeof(int) || columnValuePath == typeof(Int32))) {
+				resultType = typeof(double);
+			} else {
+				resultType = columnValuePath;
+			}
+
 			var genericInvokeAggregateCollectionExpressionMethod =
 				RepositoryReflectionUtilities.GetGenericMethod(GetType(), "InvokeAggregateCollectionExpression",
 					resultType);
@@ -171,28 +177,124 @@
 			return response;
 		}
 
+		private List<Dictionary<string, object>> ConvertFilteredItemsToGroupByDictionaries(ISelectQuery selectQuery, List<DataRow> filteredItems) {
+			var table = _dataSet.Tables[selectQuery.RootSchemaName];
+			var expressionContext = new ExpressionContext(table);
+
+			var groupByColumns = new Dictionary<string, ISelectQueryColumn>();
+			var aggregationColumns = new Dictionary<string, ISelectQueryColumn>();
+
+			foreach (var columnPair in selectQuery.Columns.Items) {
+				if (columnPair.Value.Expression.FunctionType == FunctionType.Aggregation) {
+					aggregationColumns.Add(columnPair.Key, columnPair.Value);
+				} else {
+					groupByColumns.Add(columnPair.Key, columnPair.Value);
+				}
+			}
+
+			var groupByExtractors = new Dictionary<string, Tuple<object, Type>>();
+			foreach (var columnPair in groupByColumns) {
+				var columnValueExpressionResponse = GetColumnValueExpression(expressionContext, columnPair.Value);
+				var extractorMethod = GenerateExtractorMethod(expressionContext, columnValueExpressionResponse.Item1,
+					columnValueExpressionResponse.Item2);
+				groupByExtractors.Add(columnPair.Key, new Tuple<object, Type>(extractorMethod, columnValueExpressionResponse.Item2));
+			}
+
+			var groups = new Dictionary<string, List<DataRow>>();
+			foreach (var item in filteredItems) {
+				var keyValues = new List<string>();
+				foreach (var extractor in groupByExtractors) {
+					var value = ExtractRowValue(item, extractor.Value.Item1, extractor.Value.Item2);
+					keyValues.Add(value?.ToString() ?? "NULL");
+				}
+				var groupKey = string.Join("|||", keyValues);
+
+				if (!groups.ContainsKey(groupKey)) {
+					groups[groupKey] = new List<DataRow>();
+				}
+				groups[groupKey].Add(item);
+			}
+
+			var result = new List<Dictionary<string, object>>();
+			foreach (var group in groups) {
+				var resultRow = new Dictionary<string, object>();
+
+				var firstItemInGroup = group.Value.First();
+				foreach (var extractor in groupByExtractors) {
+					var value = ExtractRowValue(firstItemInGroup, extractor.Value.Item1, extractor.Value.Item2);
+					resultRow.Add(extractor.Key, value);
+				}
+
+				foreach (var aggColumnPair in aggregationColumns) {
+					var column = aggColumnPair.Value;
+					var columnPath = column.Expression.FunctionArgument.ColumnPath;
+					var columnValuePath = table.GetSchemaPathDataType(columnPath);
+
+					var aggregateExpression = ExpressionBuilder.GetSingleAggregationExpression(expressionContext,
+						column.Expression.AggregationType, columnValuePath, expressionContext.RowsExpression,
+						columnPath);
+
+					Type resultType;
+					if (column.Expression.AggregationType == AggregationType.Count) {
+						resultType = typeof(int);
+					} else if (column.Expression.AggregationType == AggregationType.Avg &&
+					           (columnValuePath == typeof(int) || columnValuePath == typeof(Int32))) {
+						resultType = typeof(double);
+					} else {
+						resultType = columnValuePath;
+					}
+
+					var genericInvokeAggregateCollectionExpressionMethod =
+						RepositoryReflectionUtilities.GetGenericMethod(GetType(), "InvokeAggregateCollectionExpression",
+							resultType);
+
+					var aggregateValue = genericInvokeAggregateCollectionExpressionMethod.Invoke(this,
+						new object[] { expressionContext, aggregateExpression, group.Value });
+
+					resultRow.Add(aggColumnPair.Key, aggregateValue);
+				}
+
+				result.Add(resultRow);
+			}
+
+			return result;
+		}
+
 		private bool IsSingleColumnAggregateQuery(ISelectQuery selectQuery) {
 			var column = selectQuery.Columns.Items.First().Value;
-			return selectQuery.Columns.Items.Count == 1 && column.Expression.FunctionType != FunctionType.None;
+			return selectQuery.Columns.Items.Count == 1 && column.Expression.FunctionType == FunctionType.Aggregation;
+		}
+
+		private bool IsGroupByQuery(ISelectQuery selectQuery) {
+			return selectQuery.Columns.Items.Count > 1 &&
+			       selectQuery.Columns.Items.Any(x => x.Value.Expression.FunctionType == FunctionType.Aggregation);
 		}
 
 		#endregion
 
 		#region Methods: Public
 
-		public IDefaultValuesResponse GetDefaultValues(string schemaName) {
+		public override IDefaultValuesResponse GetDefaultValues(string schemaName) {
 			return new Internal.DefaultValuesResponse() {
 				Success = true,
 				DefaultValues = _dataStore.GetDefaultValues(schemaName)
 			};
 		}
 
-		public IItemsResponse GetItems(ISelectQuery selectQuery) {
+		public override IItemsResponse GetItems(ISelectQuery selectQuery) {
+			var isGroupByQuery = IsGroupByQuery(selectQuery);
 			var isAggregateQuery = IsSingleColumnAggregateQuery(selectQuery);
-			var filteredItems = GetFilteredItems(selectQuery, isAggregateQuery);
-			var items = isAggregateQuery
-				? ConvertFilteredItemsToAggregateDictionaries(selectQuery, filteredItems)
-				: ConvertFilteredItemsToRequestedDictionaries(selectQuery, filteredItems);
+			var filteredItems = GetFilteredItems(selectQuery, isAggregateQuery || isGroupByQuery);
+
+			List<Dictionary<string, object>> items;
+			if (isGroupByQuery) {
+				items = ConvertFilteredItemsToGroupByDictionaries(selectQuery, filteredItems);
+			} else if (isAggregateQuery) {
+				items = ConvertFilteredItemsToAggregateDictionaries(selectQuery, filteredItems);
+			} else {
+				items = ConvertFilteredItemsToRequestedDictionaries(selectQuery, filteredItems);
+			}
+
 			return new ATF.Repository.Mock.Internal.ItemsResponse() {
 				Success = true,
 				ErrorMessage = null,
@@ -200,7 +302,7 @@
 			};
 		}
 
-		public IExecuteResponse BatchExecute(List<IBaseQuery> queries) {
+		public override IExecuteResponse BatchExecute(List<IBaseQuery> queries) {
 			queries.ForEach(query => {
 				if (query is IInsertQuery insertQuery) {
 					ExecuteInsertQuery(insertQuery);
@@ -215,32 +317,6 @@
 			return new Internal.ExecuteResponse() {
 				Success = true
 			};
-		}
-
-		public void MockSysSettingValue<T>(string sysSettingCode, T value) {
-			_sysSettingMockValues[sysSettingCode] = value;
-		}
-		public T GetSysSettingValue<T>(string sysSettingCode) {
-			if (_sysSettingMockValues.ContainsKey(sysSettingCode) && _sysSettingMockValues[sysSettingCode] is T typedValue) {
-				return typedValue;
-			}
-
-			if (typeof(T) == typeof(string)) {
-				return (T)Convert.ChangeType(string.Empty, typeof(T));
-			}
-
-			return default(T);
-		}
-
-		public void MockFeatureEnable(string featureCode, bool value) {
-			_featureMockValues[featureCode] = value;
-		}
-		public bool GetFeatureEnabled(string featureCode) {
-			if (_featureMockValues.TryGetValue(featureCode, out var enabled)) {
-				return enabled;
-			}
-
-			return false;
 		}
 
 		#endregion

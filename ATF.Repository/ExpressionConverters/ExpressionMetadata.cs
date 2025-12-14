@@ -1,11 +1,10 @@
-﻿using Terrasoft.Nui.ServiceModel.DataContract;
-
 namespace ATF.Repository.ExpressionConverters
 {
 	using System.Collections.Generic;
 	using System.Linq;
 	using Terrasoft.Common;
 	using Terrasoft.Core.Entities;
+	using Terrasoft.Nui.ServiceModel.DataContract;
 
 	internal class ExpressionMetadata {
 		internal ExpressionMetadataNodeType NodeType { get; set; }
@@ -24,6 +23,8 @@ namespace ATF.Repository.ExpressionConverters
 		internal ExpressionMetadataParameter Parameter { get; set; }
 
 		internal string MethodName { get; set; }
+
+		internal string Code { get; set; }
 
 		internal DatePart DatePart { get; set; }
 

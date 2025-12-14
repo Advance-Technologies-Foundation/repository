@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet build:*)",
+      "Bash(findstr:*)",
+      "Bash(cat:*)",
+      "Bash(Select-String -Pattern \"(SELECT QUERY JSON|columns|Account with Select|Passed|Failed)\" -Context 0,3)",
+      "Bash(git checkout:*)",
+      "Bash(Select-String -Pattern \"(Passed|Failed|Skipped|Total tests)\" -Context 0,0)",
+      "Bash(python:*)",
+      "Bash(Select-String -Pattern \"Assert.IsNull\\(response.ErrorMessage\\)\" -Path \"ATF.Repository.Mock.UnitTests\\DataProviderMockTests.cs\")",
+      "Bash(Select-String -Pattern \"(Passed|Failed|Total tests)\")",
+      "Bash(dotnet clean:*)",
+      "Bash(Select-String -Pattern \"(Passed|Failed|Total tests)\" -Context 0,0)",
+      "Bash(powershell -Command \"$content = Get-Content ''D:\\Projects\\github\\repository\\ATF.Repository.UnitTests\\AppDataContextTests.cs'' -Raw; $content.Length\")",
+      "Bash(powershell:*)",
+      "Bash(powershell.exe -NoProfile -ExecutionPolicy Bypass -File refactor_script.ps1)",
+      "Bash(ls:*)",
+      "Bash(Select-String -Pattern \"(Failed|Error|Exception|Assert)\" -Context 2,2)",
+      "Bash(Select-String -Pattern \"(Passed|Failed|Total tests)\" -Context 0,2)",
+      "Bash(Select-String \"SelectExpressionConverter\")",
+      "Bash(Select-String -Pattern \"(Passed|Failed|Total|Error|Exception)\" -Context 0,2)",
+      "Bash(dotnet restore:*)",
+      "Bash(Select-String -Pattern \"(Failed|Error|Could not load|Version)\" -Context 2,2)",
+      "Bash(Select-String -Pattern \"(error|warning|System.Net.Http)\" -Context 1,1)",
+      "Bash(find:*)",
+      "Bash(dotnet vstest:*)",
+      "Bash(Select-String -Pattern \"(Failed|Error|Exception|Assert|at ATF)\" -Context 2,2)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

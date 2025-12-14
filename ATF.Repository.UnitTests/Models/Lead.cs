@@ -3,20 +3,17 @@
 	using System;
 	using ATF.Repository.Attributes;
 
-	[Schema("Lead")]
+	[Schema("AtfLead")]
 	public class Lead: BaseModel
 	{
 		[SchemaProperty("CreatedOn")]
 		public DateTime CreatedOn { get; set; }
 
 		[SchemaProperty("Contact")]
-		public string Contact { get; set; }
+		public Guid ContactId { get; set; }
 
 		[SchemaProperty("Account")]
-		public string Account { get; set; }
-
-		[SchemaProperty("NewLeadType")]
-		public Guid NewLeadTypeId { get; set; }
+		public Guid AccountId { get; set; }
 
 		[SchemaProperty("AnnualRevenueBC")]
 		public decimal AnnualRevenueBC { get; set; }

@@ -135,11 +135,35 @@
 		}
 
 		private static bool AreSelectQueryColumnEqual(ISelectQueryColumn expected, ISelectQueryColumn actual) {
+			return expected.Expression.ExpressionType == EntitySchemaQueryExpressionType.Function
+				? AreSelectFunctionQueryColumnEqual(expected, actual)
+				: AreSelectCommonQueryColumnEqual(expected, actual);
+		}
+		
+		private static bool AreSelectCommonQueryColumnEqual(ISelectQueryColumn expected, ISelectQueryColumn actual) {
 			var areEqual = expected.Expression.ColumnPath == actual.Expression.ColumnPath &&
 				expected.Expression.ExpressionType == actual.Expression.ExpressionType &&
 				expected.OrderDirection == actual.OrderDirection &&
 				expected.OrderPosition == actual.OrderPosition;
 			return areEqual;
+		}
+		
+		private static bool AreSelectFunctionQueryColumnEqual(ISelectQueryColumn expected, ISelectQueryColumn actual) {
+			var areEqual = expected.Expression.ExpressionType == actual.Expression.ExpressionType &&
+				((expected.Expression.FunctionArguments != null && CompareFunctionArguments(expected.Expression.FunctionArguments, actual.Expression.FunctionArguments))
+				 || (expected.Expression.FunctionArguments == null && CompareFunctionArgument(expected.Expression.FunctionArgument, actual.Expression.FunctionArgument))) &&
+				expected.Expression.ArithmeticOperation == actual.Expression.ArithmeticOperation &&
+				expected.Expression.FunctionType == actual.Expression.FunctionType &&
+				expected.Expression.DatePartType == actual.Expression.DatePartType &&
+				expected.Expression.AggregationType == actual.Expression.AggregationType &&
+				expected.OrderDirection == actual.OrderDirection &&
+				expected.OrderPosition == actual.OrderPosition;
+			return areEqual;
+		}
+
+		private static bool CompareFunctionArguments(IBaseExpression[] expected, IBaseExpression[] actual) {
+			return expected.Length == actual.Length && expected.All(expectedItem =>
+				actual.Any(actualItem => CompareFunctionArgument(expectedItem, actualItem)));
 		}
 
 		private static bool AreMainSelectQueryParametersEqual(ISelectQuery expected, ISelectQuery actual) {

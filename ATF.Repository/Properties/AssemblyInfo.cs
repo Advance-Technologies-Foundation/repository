@@ -34,3 +34,7 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("2.0.1.0")]
 [assembly: AssemblyFileVersion("2.0.1.0")]
+
+// Make internal types visible to test projects
+[assembly: InternalsVisibleTo("ATF.Repository.Core.UnitTests")]
+[assembly: InternalsVisibleTo("ATF.Repository.Framework.UnitTests")]

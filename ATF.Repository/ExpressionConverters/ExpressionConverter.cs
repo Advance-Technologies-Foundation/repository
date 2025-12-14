@@ -48,6 +48,10 @@
 				return SelectExpressionConverter.Convert(methodCallExpression, modelMetadata);
 			}
 
+			if (methodName == ConvertableExpressionMethod.GroupBy) {
+				return GroupByExpressionConverter.Convert(methodCallExpression, modelMetadata);
+			}
+
 			throw new NotImplementedException();
 		}
 	}

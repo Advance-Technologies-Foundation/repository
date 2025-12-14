@@ -7,6 +7,7 @@
 		Comparison,
 		Group,
 		Detail,
-		Function
+		Function,
+		Constant
 	}
 }

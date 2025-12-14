@@ -156,9 +156,14 @@ namespace ATF.Repository.ExpressionConverters
 		}
 
 		private static ExpressionMetadata ConvertSimpleFilter(RawExpressionMetadata rawExpressionMetadata, ExpressionModelMetadata modelMetadata) {
-			if (rawExpressionMetadata.Right.Parameter?.Value == null) {
+			if (rawExpressionMetadata.Right.Parameter?.Value == null ||
+				(rawExpressionMetadata.Right.Parameter?.Type == typeof(Guid) &&
+					rawExpressionMetadata.Right.Parameter?.Value is Guid guidValue && guidValue == Guid.Empty) || 
+				(rawExpressionMetadata.Right.Parameter?.Type == typeof(DateTime) &&
+					rawExpressionMetadata.Right.Parameter?.Value is DateTime dateTime && dateTime == DateTime.MinValue)) {
 				return ConvertToNullFilter(rawExpressionMetadata, modelMetadata);
 			}
+
 			var comparisonType = GetComparisonType(rawExpressionMetadata);
 			var response = new ExpressionMetadata() {
 				NodeType = ExpressionMetadataNodeType.Comparison,

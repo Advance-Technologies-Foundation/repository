@@ -6,7 +6,9 @@ This is an external library and not a part of **Creatio** kernel.
 # General features:
 - working with data via models;
 - building direct and reverse data dependencies via models;
-- creating, modifying and deleting data with the help of models with business logic implementation.
+- creating, modifying and deleting data with the help of models with business logic implementation;
+- runing business processes with complex object parameters;
+- comprehensive **testing support** with `DataProviderMock` and `MemoryDataProviderMock` including full **DatePart support**.
 
 # Content table
 
@@ -30,6 +32,9 @@ This is an external library and not a part of **Creatio** kernel.
 		- [Model data changing](#model-data-changing)
 		- [Deleting model instance from the repository](#deleting-model-instance-from-the-repository)
 	- [Using different types of filtration](#deleting-model-instance-from-the-repository)
+	- [Using Select projections](#using-select-projections)
+	- [Using GroupBy aggregations](#using-groupby-aggregations)
+	- [Working with Business Processes (AppProcessContext)](#working-with-business-processes-appprocesscontext)
 	- [Work with Creatio Feature Toggling](#work-with-creatio-feature-toggling)
 	- [Work with Creatio System Settings](#work-with-creatio-system-settings)
 - [Testing](#testing)
@@ -37,16 +42,25 @@ This is an external library and not a part of **Creatio** kernel.
 	- [Using mocking data provider](#use-mocking-data-provider)
 		- [Mocking Model default values](#mocking-model-default-values)
 		- [Mocking Get Models result](#mocking-get-models-result)
+		- [Mocking Select projections](#mocking-select-projections)
+		- [Mocking GroupBy results](#mocking-groupby-results)
 		- [Mocking Scalar result](#mocking-scalar-result)
 		- [Mocking Save result](#mocking-save-result)
 		- [Mocking System Setting value](#mocking-system-setting-value)
 		- [Mocking Feature status](#mocking-feature-status)
+		- [Mocking ExecuteProcess](#mocking-executeprocess)
 	- [Use memory mocking data provider](#use-memory-mocking-data-provider)
 		- [What is DataStore](#what-is-datastore)
 			- [Regiser models in the DataStore](#regiser-models-in-the-datastore)
 			- [Set default values in the DataStore](#set-default-values-in-the-datastore)
 			- [Add a record to the DataStore](#add-a-record-to-the-datastore)
 			- [Add multiple records to the DataStore](#add-multiple-records-to-the-datastore)
+		- [Testing Select projections with MemoryDataProviderMock](#testing-select-projections-with-memorydataprovidermock)
+		- [Testing Select with DatePart functions](#testing-select-with-datepart-functions)
+		- [Testing GroupBy with aggregations](#testing-groupby-with-aggregations)
+		- [Testing GroupBy with DatePart keys](#testing-groupby-with-datepart-keys)
+		- [Testing Select with OrderBy and DatePart](#testing-select-with-orderby-and-datepart)
+		- [Testing ExecuteProcess with MemoryDataProviderMock](#testing-executeprocess-with-memorydataprovidermock)
 		- [Memory mocking System Setting value](#memory-mocking-system-setting-value)
 		- [Memory mocking Feature status](#memory-mocking-feature-status)
 		
@@ -367,6 +381,249 @@ var models = appDataContext.Models<Account>().Where(x =>
 	x.Contacts.Where(y=>y.ContactInTags.Any(z => z.TagId == new Guid("ee98ccf4-fb0d-47d1-a143-fc1468e73cef")))).ToList();
 ```
 
+## Using Select projections
+
+Select projections allow you to retrieve only specific fields from models, reducing data transfer and improving performance. You can select simple fields, lookup fields, nested lookups, constants, and detail aggregations.
+
+### Select specific fields
+
+```csharp
+var contacts = appDataContext.Models<Contact>()
+	.Select(x => new {
+		x.Id,
+		x.Name,
+		x.Email
+	})
+	.ToList();
+```
+
+### Select with lookup fields
+
+```csharp
+var contacts = appDataContext.Models<Contact>()
+	.Select(x => new {
+		x.Name,
+		AccountName = x.Account.Name,
+		AccountType = x.Account.Type.Name
+	})
+	.ToList();
+```
+
+### Select with detail aggregations
+
+```csharp
+var emailTypeId = new Guid("ee1c85c3-cfcb-df11-9b2a-001d60e938c6");
+
+var contacts = appDataContext.Models<Contact>()
+	.Select(x => new {
+		x.Name,
+		EmailCount = x.ContactCommunications.Count(c => c.CommunicationType == emailTypeId),
+		TotalAmount = x.Activities.Sum(a => a.Amount)
+	})
+	.ToList();
+```
+
+### Select with constants
+
+```csharp
+var contacts = appDataContext.Models<Contact>()
+	.Select(x => new {
+		x.Name,
+		Type = "Contact",
+		Priority = 1
+	})
+	.ToList();
+```
+
+### Select with DatePart functions
+
+You can extract specific parts of DateTime fields using Year, Month, Day, and Hour properties.
+
+```csharp
+var contacts = appDataContext.Models<Contact>()
+	.Select(x => new {
+		x.Name,
+		CreatedYear = x.CreatedOn.Year,
+		CreatedMonth = x.CreatedOn.Month,
+		CreatedDay = x.CreatedOn.Day,
+		CreatedHour = x.CreatedOn.Hour
+	})
+	.ToList();
+```
+
+### Select single DatePart value
+
+```csharp
+var years = appDataContext.Models<Contact>()
+	.Select(x => x.CreatedOn.Year)
+	.Distinct()
+	.ToList();
+```
+
+## Using GroupBy aggregations
+
+GroupBy allows you to group records and perform aggregations like Count, Sum, Max, Min, and Average.
+
+### Simple GroupBy with Count
+
+```csharp
+var contactsByAccount = appDataContext.Models<Contact>()
+	.GroupBy(x => new { x.Account }, (groupBy, items) => new {
+		groupBy.Account,
+		ContactCount = items.Count()
+	})
+	.ToList();
+```
+
+### GroupBy with multiple aggregations
+
+```csharp
+var activityStats = appDataContext.Models<Activity>()
+	.GroupBy(x => new { x.Account }, (groupBy, items) => new {
+		groupBy.Account,
+		ActivityCount = items.Count(),
+		TotalAmount = items.Sum(a => a.Amount),
+		AverageAmount = items.Average(a => a.Amount),
+		MaxAmount = items.Max(a => a.Amount),
+		MinAmount = items.Min(a => a.Amount)
+	})
+	.ToList();
+```
+
+### GroupBy with multiple keys
+
+```csharp
+var contactsByAccountAndType = appDataContext.Models<Contact>()
+	.GroupBy(x => new {
+		x.Account,
+		x.Type
+	}, (groupBy, items) => new {
+		groupBy.Account,
+		groupBy.Type,
+		ContactCount = items.Count()
+	})
+	.ToList();
+```
+
+### GroupBy with DatePart keys
+
+You can group records by date parts like Year, Month, Day, or Hour.
+
+```csharp
+var contactsByMonthAndYear = appDataContext.Models<Contact>()
+	.GroupBy(x => new {
+		Year = x.CreatedOn.Year,
+		Month = x.CreatedOn.Month
+	}, (groupBy, items) => new {
+		groupBy.Year,
+		groupBy.Month,
+		ContactCount = items.Count()
+	})
+	.ToList();
+```
+
+### GroupBy with mixed keys (regular columns and DatePart)
+
+```csharp
+var contactsByAccountAndMonth = appDataContext.Models<Contact>()
+	.GroupBy(x => new {
+		x.Account,
+		Year = x.CreatedOn.Year,
+		Month = x.CreatedOn.Month
+	}, (groupBy, items) => new {
+		groupBy.Account,
+		groupBy.Year,
+		groupBy.Month,
+		ContactCount = items.Count(),
+		TotalActivities = items.Sum(c => c.Activities.Count())
+	})
+	.ToList();
+```
+
+### GroupBy with Where filter
+
+```csharp
+var activeContactsByAccount = appDataContext.Models<Contact>()
+	.Where(x => x.Active == true)
+	.GroupBy(x => new { x.Account }, (groupBy, items) => new {
+		groupBy.Account,
+		ActiveContactCount = items.Count()
+	})
+	.ToList();
+```
+
+## Working with Business Processes (AppProcessContext)
+
+ATF.Repository provides support for executing Creatio business processes with complex parameters through `AppProcessContext`.
+
+### Execute simple process
+
+```csharp
+var appProcessContext = appDataContext.GetProcessContext();
+
+var response = appProcessContext.ExecuteProcess("MyProcessName", new Dictionary<string, object> {
+	{ "StringParameter", "value" },
+	{ "IntParameter", 42 },
+	{ "GuidParameter", Guid.NewGuid() }
+});
+
+if (!response.Success) {
+	throw new Exception($"Process execution failed: {response.ErrorMessage}");
+}
+```
+
+### Execute process with complex object parameters
+
+You can pass complex objects as process parameters. The library automatically serializes them.
+
+```csharp
+public class CustomParameter
+{
+	public string Key { get; set; }
+	public decimal Value { get; set; }
+}
+
+public class MyProcess
+{
+	public List<CustomParameter> Parameters { get; set; }
+	public DateTime ProcessDate { get; set; }
+}
+
+var process = new MyProcess {
+	Parameters = new List<CustomParameter> {
+		new CustomParameter { Key = "Param1", Value = 10.5m },
+		new CustomParameter { Key = "Param2", Value = 20.3m }
+	},
+	ProcessDate = DateTime.Now
+};
+
+var appProcessContext = appDataContext.GetProcessContext();
+var response = appProcessContext.ExecuteProcess(process);
+
+if (!response.Success) {
+	throw new Exception($"Process execution failed: {response.ErrorMessage}");
+}
+
+// Access result parameters
+var resultValue = response.ResultParameters["OutputParameter"];
+```
+
+### Execute process with process name and parameters
+
+```csharp
+var appProcessContext = appDataContext.GetProcessContext();
+
+var myComplexParam = new {
+	Items = new[] { 1, 2, 3 },
+	Description = "Complex parameter"
+};
+
+var response = appProcessContext.ExecuteProcess("MyProcessName", new Dictionary<string, object> {
+	{ "ComplexParam", myComplexParam },
+	{ "SimpleParam", "value" }
+});
+```
+
 ## Work with Creatio Feature Toggling
 
 *Feature toggle* is a software development technique that enables connecting additional features to a live application. This lets you use continuous integration while preserving the working capacity of the application and hiding features you are still developing.
@@ -551,6 +808,70 @@ var models = appDataContext.Models<InvoiceModel>().Where(x => x.Order.Number == 
 
 ```
 
+### Mocking Select projections
+
+When you use `.Select()` to project specific fields, you can mock the result using `MockItems` and return only the selected fields.
+
+```csharp
+// Mock Select projection result
+var mock = dataProviderMock.MockItems("Contact");
+mock.Returns(new List<Dictionary<string, object>>() {
+	new Dictionary<string, object>() {
+		{"Name", "John Doe"},
+		{"Email", "john@example.com"},
+		{"Account.Name", "ABC Corp"}
+	},
+	new Dictionary<string, object>() {
+		{"Name", "Jane Smith"},
+		{"Email", "jane@example.com"},
+		{"Account.Name", "XYZ Inc"}
+	}
+});
+
+// Execute Select projection
+var contacts = appDataContext.Models<Contact>()
+	.Select(x => new {
+		x.Name,
+		x.Email,
+		AccountName = x.Account.Name
+	})
+	.ToList();
+
+// contacts.Count == 2
+// contacts.First().Name == "John Doe"
+// contacts.First().AccountName == "ABC Corp"
+```
+
+### Mocking GroupBy results
+
+When you use `.GroupBy()` with aggregations, mock the result with aggregated data.
+
+```csharp
+// Mock GroupBy result
+var mock = dataProviderMock.MockItems("Contact");
+mock.Returns(new List<Dictionary<string, object>>() {
+	new Dictionary<string, object>() {
+		{"Account", accountId1},
+		{"ContactCount", 15}
+	},
+	new Dictionary<string, object>() {
+		{"Account", accountId2},
+		{"ContactCount", 8}
+	}
+});
+
+// Execute GroupBy
+var contactsByAccount = appDataContext.Models<Contact>()
+	.GroupBy(x => new { x.Account }, (groupBy, items) => new {
+		groupBy.Account,
+		ContactCount = items.Count()
+	})
+	.ToList();
+
+// contactsByAccount.Count == 2
+// contactsByAccount.First().ContactCount == 15
+```
+
 ### Mocking Scalar result
 
 When you need to mock scalar result of `Models<T>` method, you can use `MockScalar` that returns implement of public interface `IScalarMock`. 
@@ -695,6 +1016,59 @@ var secondResponse = appDataContext.GetFeatureEnabled("SecondFeature");
 // secondResponse.Enabled will be equal false;
 ```
 
+### Mocking ExecuteProcess
+
+When testing business processes, you can mock `ExecuteProcess` results using `MockExecuteProcess`.
+
+```csharp
+// Mock ExecuteProcess result
+var processMock = dataProviderMock.MockExecuteProcess("MyProcessName");
+processMock.Returns(new Dictionary<string, object> {
+	{ "OutputParameter", "Success" },
+	{ "ResultId", Guid.NewGuid() }
+});
+
+// Execute process
+var appProcessContext = appDataContext.GetProcessContext();
+var response = appProcessContext.ExecuteProcess("MyProcessName", new Dictionary<string, object> {
+	{ "InputParameter", "value" }
+});
+
+// response.Success == true
+// response.ResultParameters["OutputParameter"] == "Success"
+
+// Check if process was called
+processMock.ReceivedCount // == 1
+```
+
+### Mocking ExecuteProcess with complex parameters
+
+```csharp
+public class CustomParameter
+{
+	public string Key { get; set; }
+	public decimal Value { get; set; }
+}
+
+// Mock process execution
+var processMock = dataProviderMock.MockExecuteProcess("CalculateTotal");
+processMock.Returns(new Dictionary<string, object> {
+	{ "Total", 30.8m },
+	{ "Success", true }
+});
+
+// Execute with complex parameters
+var appProcessContext = appDataContext.GetProcessContext();
+var response = appProcessContext.ExecuteProcess("CalculateTotal", new Dictionary<string, object> {
+	{ "Parameters", new List<CustomParameter> {
+		new CustomParameter { Key = "Item1", Value = 10.5m },
+		new CustomParameter { Key = "Item2", Value = 20.3m }
+	}}
+});
+
+// response.ResultParameters["Total"] == 30.8m
+```
+
 ## Use memory mocking data provider
 
 To use mocking data provider `MemoryDataProviderMock` you need to install nuget-package `ATF.Repository.Mock` to your unit-test project.
@@ -803,6 +1177,247 @@ memoryDataProviderMock.DataStore.AddModelRawData("MyModel", list);
 // or
 memoryDataProviderMock.DataStore.AddModelRawData<MyModel>(list);
 
+```
+
+### Testing Select projections with MemoryDataProviderMock
+
+`MemoryDataProviderMock` fully supports Select projections, including lookups and detail aggregations.
+
+```csharp
+// Arrange
+var memoryDataProviderMock = new MemoryDataProviderMock();
+var appDataContext = AppDataContextFactory.GetAppDataContext(memoryDataProviderMock);
+
+var accountId = Guid.NewGuid();
+
+// Add test data
+memoryDataProviderMock.DataStore.AddModel<Account>(accountId, model => {
+	model.Name = "ABC Corp";
+});
+
+memoryDataProviderMock.DataStore.AddModel<Contact>(model => {
+	model.Name = "John Doe";
+	model.Email = "john@example.com";
+	model.AccountId = accountId;
+});
+
+// Act - Select projection with lookup
+var contacts = appDataContext.Models<Contact>()
+	.Select(x => new {
+		x.Name,
+		x.Email,
+		AccountName = x.Account.Name
+	})
+	.ToList();
+
+// Assert
+// contacts.Count == 1
+// contacts.First().Name == "John Doe"
+// contacts.First().AccountName == "ABC Corp"
+```
+
+### Testing Select with DatePart functions
+
+`MemoryDataProviderMock` fully supports DatePart functions (Year, Month, Day, Hour).
+
+```csharp
+// Arrange
+var memoryDataProviderMock = new MemoryDataProviderMock();
+var appDataContext = AppDataContextFactory.GetAppDataContext(memoryDataProviderMock);
+
+memoryDataProviderMock.DataStore.AddModel<Contact>(model => {
+	model.Name = "John Doe";
+	model.CreatedOn = new DateTime(2025, 12, 14, 8, 30, 0);
+});
+
+// Act - Select with DatePart
+var contacts = appDataContext.Models<Contact>()
+	.Select(x => new {
+		x.Name,
+		Year = x.CreatedOn.Year,
+		Month = x.CreatedOn.Month,
+		Day = x.CreatedOn.Day,
+		Hour = x.CreatedOn.Hour
+	})
+	.ToList();
+
+// Assert
+// contacts.First().Year == 2025
+// contacts.First().Month == 12
+// contacts.First().Day == 14
+// contacts.First().Hour == 8
+```
+
+### Testing GroupBy with aggregations
+
+`MemoryDataProviderMock` fully supports GroupBy with Count, Sum, Max, Min, and Average aggregations.
+
+```csharp
+// Arrange
+var memoryDataProviderMock = new MemoryDataProviderMock();
+var appDataContext = AppDataContextFactory.GetAppDataContext(memoryDataProviderMock);
+
+var account1Id = Guid.NewGuid();
+var account2Id = Guid.NewGuid();
+
+memoryDataProviderMock.DataStore.AddModel<Contact>(model => {
+	model.Name = "Contact 1";
+	model.AccountId = account1Id;
+	model.Age = 25;
+});
+
+memoryDataProviderMock.DataStore.AddModel<Contact>(model => {
+	model.Name = "Contact 2";
+	model.AccountId = account1Id;
+	model.Age = 35;
+});
+
+memoryDataProviderMock.DataStore.AddModel<Contact>(model => {
+	model.Name = "Contact 3";
+	model.AccountId = account2Id;
+	model.Age = 40;
+});
+
+// Act - GroupBy with aggregations
+var result = appDataContext.Models<Contact>()
+	.GroupBy(x => new { x.AccountId }, (groupBy, items) => new {
+		groupBy.AccountId,
+		ContactCount = items.Count(),
+		TotalAge = items.Sum(c => c.Age),
+		AverageAge = items.Average(c => c.Age),
+		MaxAge = items.Max(c => c.Age),
+		MinAge = items.Min(c => c.Age)
+	})
+	.ToList();
+
+// Assert
+var account1Stats = result.First(x => x.AccountId == account1Id);
+// account1Stats.ContactCount == 2
+// account1Stats.TotalAge == 60
+// account1Stats.AverageAge == 30
+// account1Stats.MaxAge == 35
+// account1Stats.MinAge == 25
+```
+
+### Testing GroupBy with DatePart keys
+
+`MemoryDataProviderMock` fully supports GroupBy with DatePart keys (Year, Month, Day, Hour).
+
+```csharp
+// Arrange
+var memoryDataProviderMock = new MemoryDataProviderMock();
+var appDataContext = AppDataContextFactory.GetAppDataContext(memoryDataProviderMock);
+
+memoryDataProviderMock.DataStore.AddModel<Contact>(model => {
+	model.Name = "Contact 1";
+	model.CreatedOn = new DateTime(2025, 1, 15, 10, 0, 0);
+});
+
+memoryDataProviderMock.DataStore.AddModel<Contact>(model => {
+	model.Name = "Contact 2";
+	model.CreatedOn = new DateTime(2025, 1, 20, 14, 0, 0);
+});
+
+memoryDataProviderMock.DataStore.AddModel<Contact>(model => {
+	model.Name = "Contact 3";
+	model.CreatedOn = new DateTime(2025, 2, 10, 9, 0, 0);
+});
+
+// Act - GroupBy with DatePart keys
+var result = appDataContext.Models<Contact>()
+	.GroupBy(x => new {
+		Year = x.CreatedOn.Year,
+		Month = x.CreatedOn.Month
+	}, (groupBy, items) => new {
+		groupBy.Year,
+		groupBy.Month,
+		ContactCount = items.Count()
+	})
+	.ToList();
+
+// Assert
+// result.Count == 2
+var jan2025 = result.First(x => x.Month == 1);
+// jan2025.ContactCount == 2
+var feb2025 = result.First(x => x.Month == 2);
+// feb2025.ContactCount == 1
+```
+
+### Testing Select with OrderBy and DatePart
+
+```csharp
+// Arrange
+var memoryDataProviderMock = new MemoryDataProviderMock();
+var appDataContext = AppDataContextFactory.GetAppDataContext(memoryDataProviderMock);
+
+memoryDataProviderMock.DataStore.AddModel<Contact>(model => {
+	model.Name = "Contact 1";
+	model.CreatedOn = new DateTime(2025, 12, 14, 8, 0, 0);
+	model.Age = 25;
+});
+
+memoryDataProviderMock.DataStore.AddModel<Contact>(model => {
+	model.Name = "Contact 2";
+	model.CreatedOn = new DateTime(2025, 12, 14, 20, 0, 0);
+	model.Age = 35;
+});
+
+// Act - Select with DatePart and OrderBy
+var result = appDataContext.Models<Contact>()
+	.OrderByDescending(x => x.Age)
+	.Select(x => new {
+		x.Name,
+		Hour = x.CreatedOn.Hour,
+		x.Age
+	})
+	.ToList();
+
+// Assert
+// result.Count == 2
+// result.First().Name == "Contact 2" // ordered by Age descending
+// result.First().Hour == 20
+// result.First().Age == 35
+```
+
+### Testing ExecuteProcess with MemoryDataProviderMock
+
+`MemoryDataProviderMock` supports mocking ExecuteProcess with complex parameters.
+
+```csharp
+public class CustomParameter
+{
+	public string Key { get; set; }
+	public decimal Value { get; set; }
+}
+
+// Arrange
+var memoryDataProviderMock = new MemoryDataProviderMock();
+
+// Mock ExecuteProcess
+memoryDataProviderMock.MockExecuteProcess("CalculateTotal", (parameters) => {
+	var items = parameters["Parameters"] as List<CustomParameter>;
+	var total = items.Sum(x => x.Value);
+
+	return new Dictionary<string, object> {
+		{ "Total", total },
+		{ "Success", true }
+	};
+});
+
+var appDataContext = AppDataContextFactory.GetAppDataContext(memoryDataProviderMock);
+var appProcessContext = appDataContext.GetProcessContext();
+
+// Act
+var response = appProcessContext.ExecuteProcess("CalculateTotal", new Dictionary<string, object> {
+	{ "Parameters", new List<CustomParameter> {
+		new CustomParameter { Key = "Item1", Value = 10.5m },
+		new CustomParameter { Key = "Item2", Value = 20.3m }
+	}}
+});
+
+// Assert
+// response.Success == true
+// response.ResultParameters["Total"] == 30.8m
 ```
 
 ## Memory mocking System Setting value

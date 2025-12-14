@@ -207,7 +207,7 @@
 				var runProcessRequest = new RunProcessRequest() {
 					SchemaName = request.ProcessSchemaName,
 					CollectExecutionData = true,
-					ParameterValues = GetParameterValues(request.InputParameters),
+					ParameterValues = GetParameterValues(request.InputParameters, request.RawInputParameters),
 					ResultParameterNames = GetResultParameterNames(request.ResultParameters)
 				};
 			
@@ -270,13 +270,26 @@
 			return response;
 		}
 
-		private ProcessParameterValueCollection GetParameterValues(Dictionary<string, string> items) {
+		private ProcessParameterValueCollection GetParameterValues(Dictionary<string, string> items, Dictionary<string, object> rawItems) {
 			var response = new ProcessParameterValueCollection();
+
+			// Add simple parameters (already serialized as strings)
 			foreach (var item in items) {
 				response.Add(new NameValuePair() {
 					Name = item.Key,
 					Value = item.Value
 				});
+			}
+
+			// Add complex parameters (serialize using JsonConvert for REST API)
+			if (rawItems != null) {
+				foreach (var rawItem in rawItems) {
+					var serializedValue = JsonConvert.SerializeObject(rawItem.Value);
+					response.Add(new NameValuePair() {
+						Name = rawItem.Key,
+						Value = serializedValue
+					});
+				}
 			}
 
 			return response;

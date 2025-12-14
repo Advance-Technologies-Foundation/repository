@@ -4,6 +4,7 @@
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+	using System.Reflection;
 	using Terrasoft.Common;
 	using Terrasoft.Core;
 	using Terrasoft.Core.DB;
@@ -319,6 +320,40 @@
 			return GetFeatureState(featureCode) == 1;
 		}
 
+		private string SerializeRawParameter(object value) {
+			if (value == null) {
+				return string.Empty;
+			}
+
+			if (value is System.Collections.IEnumerable enumerable && !(value is string)) {
+				var compositeList = new CompositeObjectList<CompositeObject>();
+				foreach (var item in enumerable) {
+					if (item == null) continue;
+
+					var compositeObject = new CompositeObject();
+					var properties = ATF.Repository.Mapping.BusinessProcessMapper.GetBusinessProcessProperties(item.GetType());
+
+					foreach (var prop in properties) {
+						var attr = prop.GetCustomAttribute(typeof(ATF.Repository.Attributes.BusinessProcessParameterAttribute))
+							as ATF.Repository.Attributes.BusinessProcessParameterAttribute;
+						if (attr == null) continue;
+
+						var propValue = prop.GetValue(item);
+						if (propValue != null) {
+							// Convert to string for CompositeObject
+							compositeObject[attr.Name] = propValue.ToString();
+						}
+					}
+
+					compositeList.Add(compositeObject);
+				}
+
+				return BaseSerializableObjectUtilities.SerializeToJson(compositeList);
+			}
+
+			return value.ToString();
+		}
+
 		public IExecuteProcessResponse ExecuteProcess(IExecuteProcessRequest request) {
 			var response = new ExecuteProcessResponse() {
 				ResponseValues = new Dictionary<string, object>(),
@@ -327,7 +362,17 @@
 				var processEngine = _userConnection.ProcessEngine;
 				var processExecutor = processEngine.ProcessExecutor;
 				var resultParameterNames = request.ResultParameters?.Select(x => x.Code).ToList() ?? new List<string>();
-				var processDescriptor = processExecutor.Execute(request.ProcessSchemaName, request.InputParameters,
+
+				var allParameters = new Dictionary<string, string>(request.InputParameters ?? new Dictionary<string, string>());
+
+				if (request.RawInputParameters != null) {
+					foreach (var rawParam in request.RawInputParameters) {
+						var serialized = SerializeRawParameter(rawParam.Value);
+						allParameters[rawParam.Key] = serialized;
+					}
+				}
+
+				var processDescriptor = processExecutor.Execute(request.ProcessSchemaName, allParameters,
 					resultParameterNames);
 				response.ProcessStatus = processDescriptor.ProcessStatus;
 				response.ProcessId = processDescriptor.UId;

@@ -87,7 +87,9 @@
 	{
 		string ProcessSchemaName { get; }
 		Dictionary<string, string> InputParameters { get; }
-		
+
+		Dictionary<string, object> RawInputParameters { get; }
+
 		List<IExecuteProcessRequestItem> ResultParameters { get; }
 	}
 

@@ -104,26 +104,69 @@
 			if (filter.FilterType == FilterType.InFilter) {
 				return BuildInFilter(expressionContext, filter);
 			}
-			throw new NotImplementedException();
+
+			if (filter.FilterType == FilterType.IsNullFilter) {
+				return BuildIsNullFilter(expressionContext, filter);
+			}
+
+			throw new NotImplementedException($"FilterType {filter.FilterType} is not implemented");
+		}
+
+		private static Expression BuildIsNullFilter(ExpressionContext expressionContext, IFilter filter) {
+			var leftExpression = BuildCompareFilterPart(expressionContext, filter.LeftExpression);
+			// Check ComparisonType instead of IsNot, because for Guid.Empty/DateTime.MinValue comparisons
+			// the filter is converted to IsNull/IsNotNull filter but IsNot is not set correctly
+			if (filter.ComparisonType == FilterComparisonType.IsNotNull || filter.IsNot) {
+				return BuildInIsNotNullExpression(expressionContext, filter, leftExpression);
+			}
+			return BuildInIsNullExpression(expressionContext, filter, leftExpression);
 		}
 
 		private static Expression BuildInIsNullExpression(ExpressionContext expressionContext, IFilter filter, Expression leftExpression) {
 			var expression = BuildHasValueFilterPart(expressionContext, filter.LeftExpression.ExpressionType,
 				filter.LeftExpression.ColumnPath);
-			if (expression != null && leftExpression.Type == typeof(Guid)) {
+
+			// For Guid and DateTime in DataTable (non-nullable), convert IsNull to comparison with default value
+			if (leftExpression.Type == typeof(Guid)) {
 				var comparisonExpression = BuildCompareFilter(FilterComparisonType.Equal, leftExpression, Expression.Constant(Guid.Empty));
-				expression = Expression.And(expression, comparisonExpression);
+				if (expression != null) {
+					expression = Expression.And(expression, comparisonExpression);
+				} else {
+					expression = comparisonExpression;
+				}
+			} else if (leftExpression.Type == typeof(DateTime)) {
+				var comparisonExpression = BuildCompareFilter(FilterComparisonType.Equal, leftExpression, Expression.Constant(DateTime.MinValue));
+				if (expression != null) {
+					expression = Expression.And(expression, comparisonExpression);
+				} else {
+					expression = comparisonExpression;
+				}
 			}
+
 			return expression;
 		}
-		
+
 		private static Expression BuildInIsNotNullExpression(ExpressionContext expressionContext, IFilter filter, Expression leftExpression) {
 			var expression = BuildHasValueFilterPart(expressionContext, filter.LeftExpression.ExpressionType,
 				filter.LeftExpression.ColumnPath);
-			if (expression != null && leftExpression.Type == typeof(Guid)) {
+
+			// For Guid and DateTime in DataTable (non-nullable), convert IsNotNull to comparison with default value
+			if (leftExpression.Type == typeof(Guid)) {
 				var comparisonExpression = BuildCompareFilter(FilterComparisonType.NotEqual, leftExpression, Expression.Constant(Guid.Empty));
-				expression = Expression.And(expression, comparisonExpression);
+				if (expression != null) {
+					expression = Expression.And(expression, comparisonExpression);
+				} else {
+					expression = comparisonExpression;
+				}
+			} else if (leftExpression.Type == typeof(DateTime)) {
+				var comparisonExpression = BuildCompareFilter(FilterComparisonType.NotEqual, leftExpression, Expression.Constant(DateTime.MinValue));
+				if (expression != null) {
+					expression = Expression.And(expression, comparisonExpression);
+				} else {
+					expression = comparisonExpression;
+				}
 			}
+
 			return expression;
 		}
 
@@ -387,23 +430,40 @@
 
 		private static MethodInfo GetGenericTypedAggregationMethodInfo(string name, Type columnValueType) {
 			var methods = typeof(Enumerable).GetMethods().Where(x=>x.Name == name).ToList();
-			var methodInfo = methods.FirstOrDefault(x =>
+
+			// For Average function on integer types, use the special overload that returns double
+			if (name == "Average" && (columnValueType == typeof(int) || columnValueType == typeof(Int32))) {
+				var methodInfo = methods.FirstOrDefault(x => {
+					if (!x.IsGenericMethod || x.GetGenericArguments().Length != 2) {
+						return false;
+					}
+					// Find the Average<TSource, TResult>(selector) overload
+					var parameters = x.GetParameters();
+					return parameters.Length == 2 && parameters[1].ParameterType.Name.Contains("Func");
+				});
+				if (methodInfo != null) {
+					return methodInfo.MakeGenericMethod(typeof(DataRow), typeof(int));
+				}
+			}
+
+			var methodInfo2 = methods.FirstOrDefault(x =>
 					x.IsGenericMethod && x.ReturnType == columnValueType);
-			if (methodInfo != null) {
-				return methodInfo.MakeGenericMethod(typeof(DataRow));
+			if (methodInfo2 != null) {
+				return methodInfo2.MakeGenericMethod(typeof(DataRow));
 			}
 
-			methodInfo = methods.FirstOrDefault(x =>
+			methodInfo2 = methods.FirstOrDefault(x =>
 					x.IsGenericMethod && x.GetGenericArguments().Length == 2);
-			if (methodInfo != null) {
-				return methodInfo.MakeGenericMethod(typeof(DataRow), columnValueType);
+			if (methodInfo2 != null) {
+				return methodInfo2.MakeGenericMethod(typeof(DataRow), columnValueType);
 			}
 
-			methodInfo = methods.FirstOrDefault(x =>
+			methodInfo2 = methods.FirstOrDefault(x =>
 				x.IsGenericMethod && x.GetGenericArguments().Length == 1 && x.ReturnType == typeof(int));
-			if (methodInfo != null) {
-				return methodInfo.MakeGenericMethod(typeof(DataRow));
+			if (methodInfo2 != null) {
+				return methodInfo2.MakeGenericMethod(typeof(DataRow));
 			}
+
 			throw new NotImplementedException(
 				$"Not found aggregation function {name} for result type {columnValueType.Name}");
 		}
@@ -509,7 +569,38 @@
 
 		internal static Tuple<Expression, Type> BuildColumnValueExtractor(ExpressionContext expressionContext,
 			ISelectQueryColumn selectQueryColumn) {
-			return BuildCompareSchemaColumnFilterPart(expressionContext, selectQueryColumn.Expression.ColumnPath);
+			var expression = selectQueryColumn.Expression;
+
+			// Handle Function expressions (for GroupBy aggregations)
+			if (expression.ExpressionType == EntitySchemaQueryExpressionType.Function &&
+			    expression.FunctionType == FunctionType.Aggregation) {
+				// For aggregations, get the column path from FunctionArgument
+				var columnPath = expression.FunctionArgument?.ColumnPath ?? "Id";
+				var columnInfo = BuildCompareSchemaColumnFilterPart(expressionContext, columnPath);
+
+				// Return the column info - aggregation will be handled elsewhere
+				return columnInfo;
+			}
+
+			// Handle DatePart functions (for Select with DatePart)
+			if (expression.ExpressionType == EntitySchemaQueryExpressionType.Function &&
+			    expression.FunctionType == FunctionType.DatePart) {
+				// Get the column that DatePart is applied to
+				var columnPath = expression.FunctionArgument?.ColumnPath;
+				var columnValueType = expressionContext.ContextTable.GetSchemaPathDataType(columnPath);
+
+				// Build expression to extract DateTime column
+				var dataRowFieldExpression = GetDataRowFieldExpression(expressionContext.RowExpression, columnPath, columnValueType);
+
+				// Apply DatePart extraction (Year, Month, Day, Hour, etc.)
+				var datePartExpression = BuildDatePartExpression(expressionContext, dataRowFieldExpression, expression.DatePartType);
+
+				// DatePart always returns int
+				return new Tuple<Expression, Type>(datePartExpression, typeof(int));
+			}
+
+			// Handle regular SchemaColumn expressions
+			return BuildCompareSchemaColumnFilterPart(expressionContext, expression.ColumnPath);
 		}
 
 		internal static Expression GetSingleAggregationExpression(ExpressionContext expressionContext, 
