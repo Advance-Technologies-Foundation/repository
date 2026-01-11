@@ -386,7 +386,7 @@
 						});
 					}
 				}
-				response.Success = response.ProcessStatus == ProcessStatus.Error;
+				response.Success = response.ProcessStatus != ProcessStatus.Error;
 			} catch (Exception e) {
 				response.ErrorMessage = e.Message;
 				response.ProcessStatus = ProcessStatus.Error;

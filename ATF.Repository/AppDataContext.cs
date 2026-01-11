@@ -82,6 +82,13 @@
 			var queries = itemsToChange.Select(ModifyQueryBuilder.BuildModifyQuery).Where(x => x != null)
 				.ToList();
 
+			if (queries.Count == 0) {
+				return new SaveResult() {
+					Success = true,
+					ErrorMessage = string.Empty
+				};
+			}
+
 			var result = _dataProvider.BatchExecute(queries);
 			if (result.Success) {
 				itemsToChange.ForEach(item => {
@@ -98,8 +105,18 @@
 			}
 			return new SaveResult() {
 				Success = result.Success,
-				ErrorMessage = result.ErrorMessage
+				ErrorMessage = result.Success ? result.ErrorMessage : GetErrorMessage(result)
 			};
+		}
+
+		private string GetErrorMessage(IExecuteResponse result) {
+			if (!string.IsNullOrWhiteSpace(result.ErrorMessage)) {
+				return result.ErrorMessage;
+			}
+			if (result?.QueryResults != null && result.QueryResults.Any()) {
+				return string.Join("\n", result.QueryResults.Select(x => x.ErrorMessage));
+			}
+			return "An unexpected error occurred during save operation";
 		}
 
 		public ISysSettingResponse<T> GetSysSettingValue<T>(string sysSettingCode) {

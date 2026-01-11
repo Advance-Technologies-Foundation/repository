@@ -8,7 +8,7 @@ This is an external library and not a part of **Creatio** kernel.
 - building direct and reverse data dependencies via models;
 - creating, modifying and deleting data with the help of models with business logic implementation;
 - runing business processes with complex object parameters;
-- comprehensive **testing support** with `DataProviderMock` and `MemoryDataProviderMock` including full **DatePart support**.
+- comprehensive **testing support** with `DataProviderMock` and `MemoryDataProviderMock`;
 
 # Content table
 
@@ -35,6 +35,14 @@ This is an external library and not a part of **Creatio** kernel.
 	- [Using Select projections](#using-select-projections)
 	- [Using GroupBy aggregations](#using-groupby-aggregations)
 	- [Working with Business Processes (AppProcessContext)](#working-with-business-processes-appprocesscontext)
+		- [Creating AppProcessContext instance](#creating-appprocesscontext-instance)
+		- [Defining business process model](#defining-business-process-model)
+		- [Running business process with common parameters](#running-business-process-with-common-parameters)
+		- [Process execution response](#process-execution-response)
+		- [Working with complex object parameters](#working-with-complex-object-parameters)
+		- [Running process with complex object parameters](#running-process-with-complex-object-parameters)
+		- [Supported parameter types](#supported-parameter-types)
+		- [Parameter directions](#parameter-directions)
 	- [Work with Creatio Feature Toggling](#work-with-creatio-feature-toggling)
 	- [Work with Creatio System Settings](#work-with-creatio-system-settings)
 - [Testing](#testing)
@@ -48,7 +56,8 @@ This is an external library and not a part of **Creatio** kernel.
 		- [Mocking Save result](#mocking-save-result)
 		- [Mocking System Setting value](#mocking-system-setting-value)
 		- [Mocking Feature status](#mocking-feature-status)
-		- [Mocking ExecuteProcess](#mocking-executeprocess)
+		- [Mocking RunProcess with DataProviderMock](#mocking-runprocess-with-dataprovidermock)
+		- [Mocking RunProcess with complex parameters](#mocking-runprocess-with-complex-parameters)
 	- [Use memory mocking data provider](#use-memory-mocking-data-provider)
 		- [What is DataStore](#what-is-datastore)
 			- [Regiser models in the DataStore](#regiser-models-in-the-datastore)
@@ -60,7 +69,7 @@ This is an external library and not a part of **Creatio** kernel.
 		- [Testing GroupBy with aggregations](#testing-groupby-with-aggregations)
 		- [Testing GroupBy with DatePart keys](#testing-groupby-with-datepart-keys)
 		- [Testing Select with OrderBy and DatePart](#testing-select-with-orderby-and-datepart)
-		- [Testing ExecuteProcess with MemoryDataProviderMock](#testing-executeprocess-with-memorydataprovidermock)
+		- [Testing RunProcess with MemoryDataProviderMock](#testing-runprocess-with-memorydataprovidermock)
 		- [Memory mocking System Setting value](#memory-mocking-system-setting-value)
 		- [Memory mocking Feature status](#memory-mocking-feature-status)
 		
@@ -554,75 +563,161 @@ var activeContactsByAccount = appDataContext.Models<Contact>()
 
 ## Working with Business Processes (AppProcessContext)
 
-ATF.Repository provides support for executing Creatio business processes with complex parameters through `AppProcessContext`.
+ATF.Repository provides support for executing Creatio business processes with typed parameters through `AppProcessContext`. The library uses strongly-typed models with attributes to define process parameters, their directions (Input, Output, Bidirectional), and automatically handles serialization of complex objects.
 
-### Execute simple process
+### Creating AppProcessContext instance
 
 ```csharp
-var appProcessContext = appDataContext.GetProcessContext();
+IDataProvider dataProvider = new LocalDataProvider(UserConnection);
+// or
+IDataProvider dataProvider = new RemoteDataProvider(url, login, password);
 
-var response = appProcessContext.ExecuteProcess("MyProcessName", new Dictionary<string, object> {
-	{ "StringParameter", "value" },
-	{ "IntParameter", 42 },
-	{ "GuidParameter", Guid.NewGuid() }
-});
+var appProcessContext = AppProcessContextFactory.GetAppProcessContext(dataProvider);
+```
 
-if (!response.Success) {
-	throw new Exception($"Process execution failed: {response.ErrorMessage}");
+### Defining business process model
+
+Use `[BusinessProcess]` attribute to mark the class and `[BusinessProcessParameter]` to define parameters:
+
+```csharp
+[BusinessProcess("AtfTestCommonParametersProcess")]
+public class AtfTestCommonParametersProcessModel : IBusinessProcess
+{
+	// Input parameter - sent to process
+	[BusinessProcessParameter("DecInputParam", BusinessProcessParameterDirection.Input)]
+	public decimal DecInputParam { get; set; }
+
+	// Bidirectional parameter - sent to process and received back
+	[BusinessProcessParameter("BoolParam", BusinessProcessParameterDirection.Bidirectional)]
+	public bool BoolParam { get; set; }
+
+	[BusinessProcessParameter("StringParam", BusinessProcessParameterDirection.Bidirectional)]
+	public string StringParam { get; set; }
+
+	// Output parameter - received from process
+	[BusinessProcessParameter("StringOutputParam", BusinessProcessParameterDirection.Output)]
+	public string StringOutputParam { get; set; }
 }
 ```
 
-### Execute process with complex object parameters
-
-You can pass complex objects as process parameters. The library automatically serializes them.
+### Running business process with common parameters
 
 ```csharp
-public class CustomParameter
+// Create and populate the process model
+var model = new AtfTestCommonParametersProcessModel {
+	DecInputParam = 10.11m,
+	BoolParam = true,
+	StringParam = "Hello!"
+};
+
+// Execute the process
+var response = appProcessContext.RunProcess(model);
+
+// Check execution result
+if (!response.Success) {
+	throw new Exception($"Process execution failed: {response.ErrorMessage}");
+}
+
+// Access output parameters from the result
+var outputString = response.Result.StringOutputParam;
+var modifiedBool = response.Result.BoolParam;
+
+// Access process execution info
+var processId = response.ProcessId;           // Unique identifier of the executed process instance
+var processStatus = response.ProcessStatus;   // Execution status of the process
+```
+
+### Process execution response
+
+The `IBusinessProcessResponse<T>` contains the following properties:
+
+- **Success** (`bool`) - Indicates whether the process execution was successful
+- **ErrorMessage** (`string`) - Contains error description if execution failed
+- **Result** (`T`) - The process model instance with populated output and bidirectional parameters
+- **ProcessId** (`Guid`) - Unique identifier of the executed process instance
+- **ProcessStatus** (`ProcessStatus`) - Current status of the process execution
+
+### Working with complex object parameters
+
+You can pass lists of complex objects as process parameters. Define the parameter class and use `[BusinessProcessParameter]` attributes:
+
+```csharp
+// Define parameter object structure
+public class AtfTestCustomObjectProcessParameter
 {
+	[BusinessProcessParameter("Key", BusinessProcessParameterDirection.Bidirectional)]
 	public string Key { get; set; }
+
+	[BusinessProcessParameter("Value", BusinessProcessParameterDirection.Bidirectional)]
 	public decimal Value { get; set; }
+
+	[BusinessProcessParameter("Position", BusinessProcessParameterDirection.Bidirectional)]
+	public int Position { get; set; }
 }
 
-public class MyProcess
+// Define process model with complex parameters
+[BusinessProcess("AtfTestCustomObjectProcess")]
+public class AtfTestCustomObjectProcessModel : IBusinessProcess
 {
-	public List<CustomParameter> Parameters { get; set; }
-	public DateTime ProcessDate { get; set; }
-}
+	[BusinessProcessParameter("Code", BusinessProcessParameterDirection.Bidirectional)]
+	public string Code { get; set; }
 
-var process = new MyProcess {
-	Parameters = new List<CustomParameter> {
-		new CustomParameter { Key = "Param1", Value = 10.5m },
-		new CustomParameter { Key = "Param2", Value = 20.3m }
-	},
-	ProcessDate = DateTime.Now
+	// List of complex objects as input
+	[BusinessProcessParameter("Parameters", BusinessProcessParameterDirection.Input)]
+	public List<AtfTestCustomObjectProcessParameter> Parameters { get; set; }
+
+	// List of complex objects as output
+	[BusinessProcessParameter("ExportParameters", BusinessProcessParameterDirection.Output)]
+	public List<AtfTestCustomObjectProcessParameter> ExportParameters { get; set; }
+}
+```
+
+### Running process with complex object parameters
+
+```csharp
+// Create process model with complex parameters
+var model = new AtfTestCustomObjectProcessModel {
+	Code = "ProcessCode",
+	Parameters = new List<AtfTestCustomObjectProcessParameter> {
+		new AtfTestCustomObjectProcessParameter {
+			Key = "Key 1",
+			Position = 0,
+			Value = 10.11m
+		},
+		new AtfTestCustomObjectProcessParameter {
+			Key = "Key 2",
+			Position = 1,
+			Value = 11.22m
+		}
+	}
 };
 
-var appProcessContext = appDataContext.GetProcessContext();
-var response = appProcessContext.ExecuteProcess(process);
+// Execute process
+var response = appProcessContext.RunProcess(model);
 
 if (!response.Success) {
 	throw new Exception($"Process execution failed: {response.ErrorMessage}");
 }
 
-// Access result parameters
-var resultValue = response.ResultParameters["OutputParameter"];
+// Access complex output parameters
+foreach (var param in response.Result.ExportParameters) {
+	Console.WriteLine($"Key: {param.Key}, Value: {param.Value}, Position: {param.Position}");
+}
 ```
 
-### Execute process with process name and parameters
+### Supported parameter types
 
-```csharp
-var appProcessContext = appDataContext.GetProcessContext();
+The library supports all common Creatio data types:
+- **Primitive types**: `int`, `decimal`, `bool`, `string`
+- **Date/Time types**: `DateTime` (for Date, DateTime, and Time parameters)
+- **Identifiers**: `Guid` (for GUID and Lookup parameters)
+- **Complex types**: `List<T>` where T is a class with `[BusinessProcessParameter]` attributes
 
-var myComplexParam = new {
-	Items = new[] { 1, 2, 3 },
-	Description = "Complex parameter"
-};
+### Parameter directions
 
-var response = appProcessContext.ExecuteProcess("MyProcessName", new Dictionary<string, object> {
-	{ "ComplexParam", myComplexParam },
-	{ "SimpleParam", "value" }
-});
-```
+- **Input**: Parameter is sent to the process but not returned
+- **Output**: Parameter is received from the process but not sent
+- **Bidirectional**: Parameter is both sent to and received from the process
 
 ## Work with Creatio Feature Toggling
 
@@ -1016,57 +1111,90 @@ var secondResponse = appDataContext.GetFeatureEnabled("SecondFeature");
 // secondResponse.Enabled will be equal false;
 ```
 
-### Mocking ExecuteProcess
+### Mocking RunProcess with DataProviderMock
 
-When testing business processes, you can mock `ExecuteProcess` results using `MockExecuteProcess`.
+When testing business processes with `DataProviderMock`, you can mock process execution and verify results.
 
 ```csharp
-// Mock ExecuteProcess result
-var processMock = dataProviderMock.MockExecuteProcess("MyProcessName");
+// Define process model
+[BusinessProcess("MyProcess")]
+public class MyProcessModel : IBusinessProcess
+{
+	[BusinessProcessParameter("InputParam", BusinessProcessParameterDirection.Input)]
+	public string InputParam { get; set; }
+
+	[BusinessProcessParameter("OutputParam", BusinessProcessParameterDirection.Output)]
+	public string OutputParam { get; set; }
+}
+
+// Setup mock
+var dataProviderMock = new DataProviderMock();
+var appProcessContext = AppProcessContextFactory.GetAppProcessContext(dataProviderMock);
+
+// Mock process execution
+var processMock = dataProviderMock.MockExecuteProcess("MyProcess");
 processMock.Returns(new Dictionary<string, object> {
-	{ "OutputParameter", "Success" },
-	{ "ResultId", Guid.NewGuid() }
+	{ "OutputParam", "Success" }
 });
 
 // Execute process
-var appProcessContext = appDataContext.GetProcessContext();
-var response = appProcessContext.ExecuteProcess("MyProcessName", new Dictionary<string, object> {
-	{ "InputParameter", "value" }
-});
+var model = new MyProcessModel { InputParam = "test" };
+var response = appProcessContext.RunProcess(model);
 
+// Verify results
 // response.Success == true
-// response.ResultParameters["OutputParameter"] == "Success"
+// response.Result.OutputParam == "Success"
 
 // Check if process was called
 processMock.ReceivedCount // == 1
 ```
 
-### Mocking ExecuteProcess with complex parameters
+### Mocking RunProcess with complex parameters
 
 ```csharp
+// Define complex parameter structure
 public class CustomParameter
 {
+	[BusinessProcessParameter("Key", BusinessProcessParameterDirection.Bidirectional)]
 	public string Key { get; set; }
+
+	[BusinessProcessParameter("Value", BusinessProcessParameterDirection.Bidirectional)]
 	public decimal Value { get; set; }
 }
 
-// Mock process execution
+// Define process model
+[BusinessProcess("CalculateTotal")]
+public class CalculateTotalProcess : IBusinessProcess
+{
+	[BusinessProcessParameter("Parameters", BusinessProcessParameterDirection.Input)]
+	public List<CustomParameter> Parameters { get; set; }
+
+	[BusinessProcessParameter("Total", BusinessProcessParameterDirection.Output)]
+	public decimal Total { get; set; }
+}
+
+// Setup mock
+var dataProviderMock = new DataProviderMock();
+var appProcessContext = AppProcessContextFactory.GetAppProcessContext(dataProviderMock);
+
+// Mock process execution with complex parameters
 var processMock = dataProviderMock.MockExecuteProcess("CalculateTotal");
 processMock.Returns(new Dictionary<string, object> {
-	{ "Total", 30.8m },
-	{ "Success", true }
+	{ "Total", 30.8m }
 });
 
-// Execute with complex parameters
-var appProcessContext = appDataContext.GetProcessContext();
-var response = appProcessContext.ExecuteProcess("CalculateTotal", new Dictionary<string, object> {
-	{ "Parameters", new List<CustomParameter> {
+// Execute process
+var model = new CalculateTotalProcess {
+	Parameters = new List<CustomParameter> {
 		new CustomParameter { Key = "Item1", Value = 10.5m },
 		new CustomParameter { Key = "Item2", Value = 20.3m }
-	}}
-});
+	}
+};
+var response = appProcessContext.RunProcess(model);
 
-// response.ResultParameters["Total"] == 30.8m
+// Verify results
+// response.Success == true
+// response.Result.Total == 30.8m
 ```
 
 ## Use memory mocking data provider
@@ -1379,45 +1507,61 @@ var result = appDataContext.Models<Contact>()
 // result.First().Age == 35
 ```
 
-### Testing ExecuteProcess with MemoryDataProviderMock
+### Testing RunProcess with MemoryDataProviderMock
 
-`MemoryDataProviderMock` supports mocking ExecuteProcess with complex parameters.
+`MemoryDataProviderMock` supports mocking business process execution with complex parameters using callback functions.
 
 ```csharp
+// Define complex parameter structure
 public class CustomParameter
 {
+	[BusinessProcessParameter("Key", BusinessProcessParameterDirection.Bidirectional)]
 	public string Key { get; set; }
+
+	[BusinessProcessParameter("Value", BusinessProcessParameterDirection.Bidirectional)]
 	public decimal Value { get; set; }
 }
 
-// Arrange
+// Define process model
+[BusinessProcess("CalculateTotal")]
+public class CalculateTotalProcess : IBusinessProcess
+{
+	[BusinessProcessParameter("Parameters", BusinessProcessParameterDirection.Input)]
+	public List<CustomParameter> Parameters { get; set; }
+
+	[BusinessProcessParameter("Total", BusinessProcessParameterDirection.Output)]
+	public decimal Total { get; set; }
+}
+
+// Setup mock with callback function
 var memoryDataProviderMock = new MemoryDataProviderMock();
 
-// Mock ExecuteProcess
 memoryDataProviderMock.MockExecuteProcess("CalculateTotal", (parameters) => {
+	// Access input parameters
 	var items = parameters["Parameters"] as List<CustomParameter>;
 	var total = items.Sum(x => x.Value);
 
+	// Return output parameters
 	return new Dictionary<string, object> {
-		{ "Total", total },
-		{ "Success", true }
+		{ "Total", total }
 	};
 });
 
-var appDataContext = AppDataContextFactory.GetAppDataContext(memoryDataProviderMock);
-var appProcessContext = appDataContext.GetProcessContext();
+// Create context
+var appProcessContext = AppProcessContextFactory.GetAppProcessContext(memoryDataProviderMock);
 
-// Act
-var response = appProcessContext.ExecuteProcess("CalculateTotal", new Dictionary<string, object> {
-	{ "Parameters", new List<CustomParameter> {
+// Execute process
+var model = new CalculateTotalProcess {
+	Parameters = new List<CustomParameter> {
 		new CustomParameter { Key = "Item1", Value = 10.5m },
 		new CustomParameter { Key = "Item2", Value = 20.3m }
-	}}
-});
+	}
+};
+var response = appProcessContext.RunProcess(model);
 
-// Assert
+// Verify results
 // response.Success == true
-// response.ResultParameters["Total"] == 30.8m
+// response.Result.Total == 30.8m
 ```
 
 ## Memory mocking System Setting value
