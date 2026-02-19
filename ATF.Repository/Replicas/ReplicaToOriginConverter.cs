@@ -126,15 +126,16 @@
 			return source.Value;
 		}
 
-		private static DateTime ParseDateTimeParameterValue(object source) {
+		private static DateTime? ParseDateTimeParameterValue(object source) {
 			if (source is string stringValue) {
 				var regex = new Regex(_dateTimePattern);
 				var match = regex.Match(stringValue);
-				return new DateTime(int.Parse(match.Groups[1].Value), int.Parse(match.Groups[2].Value),
+				var parsedDateTimeValue = new DateTime(int.Parse(match.Groups[1].Value), int.Parse(match.Groups[2].Value),
 					int.Parse(match.Groups[3].Value), int.Parse(match.Groups[4].Value),
 					int.Parse(match.Groups[5].Value), int.Parse(match.Groups[6].Value));
+				return parsedDateTimeValue != DateTime.MinValue ? parsedDateTimeValue : (DateTime?)null;
 			} else {
-				return default;
+				return null;
 			}
 		}
 
