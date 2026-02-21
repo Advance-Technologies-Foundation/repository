@@ -6,7 +6,7 @@
 		<ProjectGuid>{F6E64FAD-5F5C-46CD-95C1-07E9258810BA}</ProjectGuid>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 		<TargetFramework>netstandard2.0</TargetFramework>
-		<Version>2.0.3.3</Version>
+		<Version>2.0.3.4</Version>
 		<Title>ATF</Title>
 		<Copyright>Copyright ©2025</Copyright>
 		<PackageProjectUrl>https://github.com/Advance-Technologies-Foundation/repository</PackageProjectUrl>
