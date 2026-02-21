@@ -121,7 +121,8 @@
 
 		private static object ConvertParameterValue(Parameter source) {
 			if (DataValueTypeUtilities.IsDateDataValueType(source.DataValueType)) {
-				return ParseDateTimeParameterValue(source.Value);
+				var value = ParseDateTimeParameterValue(source.Value);
+				return value != default ? value : (object)null;
 			}
 			return source.Value;
 		}
