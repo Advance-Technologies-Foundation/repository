@@ -14,6 +14,8 @@
 
 		T GetModel<T>(Guid id) where T : BaseModel, new();
 
+		IReloadResult ReloadModel<T>(T model) where T : BaseModel, new();
+
 		void DeleteModel<T>(T model) where T : BaseModel;
 
 		ISaveResult Save();

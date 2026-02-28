@@ -10,5 +10,7 @@
 		void SetLazyProperty(BaseModel model, PropertyInfo propertyInfo, object value);
 
 		object GetLazyProperty(BaseModel model, PropertyInfo propertyInfo);
+
+		void ClearLookupLazyValues(BaseModel model);
 	}
 }

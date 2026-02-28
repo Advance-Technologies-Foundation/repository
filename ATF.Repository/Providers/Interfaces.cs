@@ -107,5 +107,11 @@
 		ProcessStatus ProcessStatus { get; }
 		Dictionary<string, object> ResponseValues { get; }
 	}
+
+	public interface IReloadResult
+	{
+		bool Success { get; }
+		string ErrorMessage { get; }
+	}
 }
 

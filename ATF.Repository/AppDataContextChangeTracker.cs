@@ -26,6 +26,13 @@
 			return _registry.FirstOrDefault(item => item.Type == type && item.Model.Id == id);
 		}
 
+		internal void ReloadTrackedModel<T>(T model) where T : BaseModel {
+			var trackedModel = GetTrackedModel(typeof(T), model.Id);
+			if (trackedModel != null) {
+				((ITrackedModel)trackedModel).ReloadInitValues();
+			}
+		}
+
 		public IEnumerable<ITrackedModel<BaseModel>> GetTrackedModels() {
 			return _registry;
 		}

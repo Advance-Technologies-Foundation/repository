@@ -142,5 +142,13 @@
 			var value = model.GetPropertyValue(localModelItem.PropertyName);
 			return (Guid?) value ?? Guid.Empty;
 		}
+
+		public void ClearLookupLazyValues(BaseModel model) {
+			var lookupKeys = ModelMapper.GetLookups(model.GetType())
+				.SelectMany(lp => new[] { lp.PropertyName, model.GetLazyLookupKey(lp.PropertyName) })
+				.Where(key => model.LazyValues.ContainsKey(key))
+				.ToList();
+			lookupKeys.ForEach(key => model.LazyValues.Remove(key));
+		}
 	}
 }

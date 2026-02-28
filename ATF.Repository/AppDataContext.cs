@@ -49,6 +49,20 @@
 			return model;
 		}
 
+		private void CopyModelValues<T>(T source, T target) where T : BaseModel {
+			var properties = ModelMapper.GetProperties(typeof(T));
+			foreach (var property in properties) {
+				var value = source.GetPropertyValue(property.PropertyName);
+				target.SetPropertyValue(property.PropertyName, value);
+			}
+
+			var lookups = ModelMapper.GetLookups(typeof(T));
+			foreach (var lookup in lookups) {
+				var guidValue = source.GetLazyLookupKeyValue(lookup.PropertyName);
+				target.SetLazyLookupKeyValue(lookup.PropertyName, guidValue);
+			}
+		}
+
 		private void LoadAdjectiveProperties<T>(T model) where T : BaseModel, new() {
 			var type = typeof(T);
 			ModelMapper.GetModelItems(type).Where(x=>(x.PropertyType == ModelItemType.Lookup || x.PropertyType == ModelItemType.Detail) && !x.IsLazy).ForEach(propertyInfo => {
@@ -140,6 +154,51 @@
 				response.ErrorMessage = e.Message;
 			}
 			return response;
+		}
+
+		public IReloadResult ReloadModel<T>(T model) where T : BaseModel, new() {
+			if (model.IsNew) {
+				return new ReloadResult() {
+					Success = false,
+					ErrorMessage = "Cannot reload new model that hasn't been saved"
+				};
+			}
+
+			if (model.IsMarkAsDeleted) {
+				return new ReloadResult() {
+					Success = false,
+					ErrorMessage = "Cannot reload deleted model"
+				};
+			}
+
+			try {
+				var freshContext = new AppDataContext(_dataProvider);
+				var freshModel = freshContext.GetModel<T>(model.Id);
+
+				if (freshModel == null) {
+					model.IsMarkAsDeleted = true;
+					return new ReloadResult() {
+						Success = false,
+						ErrorMessage = "Model not found in database and marked as deleted"
+					};
+				}
+
+				CopyModelValues(freshModel, model);
+
+				_lazyModelPropertyManager.ClearLookupLazyValues(model);
+
+				_changeTracker.ReloadTrackedModel(model);
+
+				return new ReloadResult() {
+					Success = true,
+					ErrorMessage = null
+				};
+			} catch (Exception e) {
+				return new ReloadResult() {
+					Success = false,
+					ErrorMessage = e.Message
+				};
+			}
 		}
 	}
 
