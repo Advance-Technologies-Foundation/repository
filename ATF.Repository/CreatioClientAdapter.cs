@@ -25,6 +25,10 @@ namespace ATF.Repository
 				CreatioClient.CreateOAuth20Client(applicationUrl, authApp, clientId, clientSecret, isNetCore);
 		}
 
+		internal CreatioClientAdapter(string applicationUrl, string bearerToken, bool isNetCore = false) {
+			_creatioClient = new CreatioClient(applicationUrl, bearerToken, isNetCore);
+		}
+
 		public virtual string ExecutePostRequest(string url, string requestData, int requestTimeout) {
 			return _creatioClient.ExecutePostRequest(url, requestData, requestTimeout);
 		}

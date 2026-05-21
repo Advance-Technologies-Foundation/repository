@@ -119,7 +119,8 @@
 			}
 			return new SaveResult() {
 				Success = result.Success,
-				ErrorMessage = result.Success ? result.ErrorMessage : GetErrorMessage(result)
+				ErrorMessage = result.Success ? result.ErrorMessage : GetErrorMessage(result),
+				RowsAffected = result.QueryResults?.Sum(x => x.RowsAffected) ?? 0
 			};
 		}
 
