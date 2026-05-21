@@ -1569,13 +1569,13 @@ var response = appProcessContext.RunProcess(model);
 ```csharp
 var memoryDataProviderMock = new MemoryDataProviderMock();
 
-memoryDataProviderMock.MockSysSettingValue("SystemSettingsCode", 180);
+memoryDataProviderMock.MockSysSettingValue("SystemSettingsCode", 100);
 
 var appDataContext = AppDataContextFactory.GetAppDataContext(memoryDataProviderMock);
 
 var response = appDataContext.GetSysSettingValue<int>("SystemSettingsCode");
 
-// response.Value will be equal 180;
+// response.Value will be equal 100;
 ```
 
 ## Memory mocking Feature status
