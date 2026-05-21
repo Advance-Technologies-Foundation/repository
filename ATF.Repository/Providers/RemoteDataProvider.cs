@@ -61,6 +61,19 @@
 			CreatioClientAdapter = new CreatioClientAdapter(applicationUrl, authApp, clientId, clientSecret, isNetCore);
 		}
 
+		/// <summary>
+		/// Initializes a new instance using an existing OAuth bearer token. No Login call is performed;
+		/// every request is sent with Authorization: Bearer &lt;token&gt;.
+		/// </summary>
+		/// <param name="applicationUrl">Application Url (e.g.: https://somename.creatio.com)</param>
+		/// <param name="bearerToken">The bearer token. May be passed with or without the leading "Bearer " prefix; the prefix is stripped.</param>
+		/// <param name="isNetCore">Optional parameter, default value <c>false</c></param>
+		public RemoteDataProvider(string applicationUrl, string bearerToken, bool isNetCore = false) {
+			_applicationUrl = applicationUrl;
+			_isNetCore = isNetCore;
+			CreatioClientAdapter = new CreatioClientAdapter(applicationUrl, bearerToken, isNetCore);
+		}
+
 		#endregion
 
 		#region Methods: Private
@@ -141,6 +154,11 @@
 			};
 			try {
 				var requestData = JsonConvert.SerializeObject(selectQuery);
+#if DEBUG
+				Console.WriteLine("\r\n--------------------------------------");
+				Console.WriteLine("selectQuery payload:");
+				Console.WriteLine(requestData);
+#endif
 				var url = _applicationUrl + SelectEndpointUri;
 				var responseBody = CreatioClientAdapter.ExecutePostRequest(url, requestData, 1800000);
 				var selectResponse = JsonConvert.DeserializeObject<SelectResponse>(responseBody);
@@ -158,6 +176,11 @@
 			var requestData = JsonConvert.SerializeObject(batchQuery); //BatchQuerySerializer.Serialize(batchQuery);
 			var url = _applicationUrl + BatchEndpointUrl;
 			try {
+#if DEBUG
+				Console.WriteLine("\r\n--------------------------------------");
+				Console.WriteLine("BatchExecute payload:");
+				Console.WriteLine(requestData);
+#endif
 				var responseBody = CreatioClientAdapter.ExecutePostRequest(url, requestData, 600000);
 				var batchResponse = JsonConvert.DeserializeObject<BatchResponse>(responseBody);
 				response = ConvertBatchResponse(batchResponse);
