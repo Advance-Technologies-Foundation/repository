@@ -154,11 +154,6 @@
 			};
 			try {
 				var requestData = JsonConvert.SerializeObject(selectQuery);
-#if DEBUG
-				Console.WriteLine("\r\n--------------------------------------");
-				Console.WriteLine("selectQuery payload:");
-				Console.WriteLine(requestData);
-#endif
 				var url = _applicationUrl + SelectEndpointUri;
 				var responseBody = CreatioClientAdapter.ExecutePostRequest(url, requestData, 1800000);
 				var selectResponse = JsonConvert.DeserializeObject<SelectResponse>(responseBody);

@@ -773,7 +773,7 @@
 		[Test]
 		public void SysSettings_WhenGetDateTimeValue_ShouldReturnsExpectedValue() {
 			TestGetSysSettingsValue<DateTime>("CalculateClientARRFromDate",
-				new DateTime(2025, 12, 4, 13, 15, 0));
+				new DateTime(2025, 12, 4, 12, 15, 0));
 		}
 
 		[Test]
