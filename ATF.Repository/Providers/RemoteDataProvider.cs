@@ -14,13 +14,14 @@
 	using Terrasoft.Core.ServiceModelContract;
 	using DataValueType = Terrasoft.Nui.ServiceModel.DataContract.DataValueType;
 
-	public class RemoteDataProvider: IDataProvider
+	public class RemoteDataProvider: IDataProvider, IDisposable
 	{
 		#region Fields: Private
 
 		private readonly string _applicationUrl;
 
 		private readonly bool _isNetCore;
+		private bool _disposed;
 		private string SelectEndpointUri => _isNetCore ? "/DataService/json/SyncReply/SelectQuery" :  "/0/DataService/json/SyncReply/SelectQuery";
 		private string BatchEndpointUrl => _isNetCore ? "/DataService/json/SyncReply/BatchQuery": "/0/DataService/json/SyncReply/BatchQuery";
 		private string SysSettingEndpointUrl => _isNetCore ? "/DataService/json/SyncReply/QuerySysSettings" :  "/0/DataService/json/SyncReply/QuerySysSettings";
@@ -41,6 +42,20 @@
 			_applicationUrl = applicationUrl;
 			_isNetCore = isNetCore;
 			CreatioClientAdapter = new CreatioClientAdapter(applicationUrl, username, password, isNetCore);
+		}
+
+		/// <summary>Initializes a forms-auth provider with an explicit certificate-validation policy.</summary>
+		/// <param name="applicationUrl">Application Url (e.g.: https://somename.creatio.com)</param>
+		/// <param name="username">Creatio user name.</param>
+		/// <param name="password">Creatio password.</param>
+		/// <param name="useUntrustedSsl">Whether invalid server certificates are accepted.</param>
+		/// <param name="isNetCore">Whether the target Creatio application uses the .NET runtime.</param>
+		public RemoteDataProvider(string applicationUrl, string username, string password,
+			bool useUntrustedSsl, bool isNetCore) {
+			_applicationUrl = applicationUrl;
+			_isNetCore = isNetCore;
+			CreatioClientAdapter = new CreatioClientAdapter(applicationUrl, username, password,
+				useUntrustedSsl, isNetCore);
 		}
 
 		/// <summary>
@@ -72,6 +87,44 @@
 			_applicationUrl = applicationUrl;
 			_isNetCore = isNetCore;
 			CreatioClientAdapter = new CreatioClientAdapter(applicationUrl, bearerToken, isNetCore);
+		}
+
+		/// <summary>
+		/// Initializes a new instance using an existing OAuth bearer token and an explicit server
+		/// certificate-validation policy. No Login call is performed.
+		/// </summary>
+		/// <param name="applicationUrl">Application Url (e.g.: https://somename.creatio.com)</param>
+		/// <param name="bearerToken">The bearer token. A leading "Bearer " prefix is accepted.</param>
+		/// <param name="useUntrustedSsl">Whether invalid server certificates are accepted.</param>
+		/// <param name="isNetCore">Whether the target Creatio application uses the .NET runtime.</param>
+		public RemoteDataProvider(string applicationUrl, string bearerToken, bool useUntrustedSsl,
+			bool isNetCore) {
+			_applicationUrl = applicationUrl;
+			_isNetCore = isNetCore;
+			CreatioClientAdapter = new CreatioClientAdapter(applicationUrl, bearerToken,
+				useUntrustedSsl, isNetCore);
+		}
+
+		#endregion
+
+		#region Methods: IDisposable
+
+		/// <summary>Releases the owned Creatio client transport.</summary>
+		public void Dispose() {
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		/// <summary>Releases resources owned by this provider.</summary>
+		/// <param name="disposing">Whether managed resources should be released.</param>
+		protected virtual void Dispose(bool disposing) {
+			if (_disposed) {
+				return;
+			}
+			if (disposing && CreatioClientAdapter is IDisposable disposable) {
+				disposable.Dispose();
+			}
+			_disposed = true;
 		}
 
 		#endregion
